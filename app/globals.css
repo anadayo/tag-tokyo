@@ -219,6 +219,37 @@ button { color: inherit; }
 .reward-line span { color: var(--muted); font-size: 8px; }
 .reward-line b { text-align: right; font-size: 9px; }
 .spot-draw { background: #725800; color: white; }
+.effect-preview { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line); }
+.effect-preview > small { display: block; margin-bottom: 6px; color: var(--muted); font-size: 8px; font-weight: 800; }
+.effect-preview > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.effect-preview button { height: 34px; border: 1px solid var(--line); border-radius: 6px; background: white; font-size: 9px; font-weight: 800; }
+.effect-preview button:nth-child(2) { border-color: #ff9aa1; color: #b72f3a; }
+.effect-preview button:nth-child(3) { border-color: #d0a92e; background: #fff9df; color: #725800; }
+.effect-preview p { margin: 6px 0 0; color: var(--muted); font-size: 8px; }
+.reward-overlay { position: fixed; z-index: 80; inset: 0; padding: 20px; display: grid; place-items: center; background: rgba(20,17,18,.72); backdrop-filter: blur(5px); }
+.reward-modal { width: min(100%, 350px); padding: 26px 22px 20px; overflow: hidden; position: relative; text-align: center; border: 1px solid var(--line); border-radius: 8px; background: white; box-shadow: 0 24px 70px rgba(0,0,0,.28); animation: reward-enter .28s ease-out both; }
+.reward-tier { display: inline-block; padding: 4px 7px; border-radius: 5px; background: #f0eded; color: var(--muted); font-size: 9px; font-weight: 900; }
+.reward-icon { width: 66px; height: 66px; margin: 15px auto 13px; display: grid; place-items: center; border: 2px solid var(--line); border-radius: 50%; color: #725800; background: var(--yellow); }
+.reward-icon svg { width: 28px; }
+.reward-modal h3 { margin: 0; font-size: 19px; line-height: 1.45; }
+.reward-modal p { margin: 8px 0 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.reward-modal > button { width: 100%; height: 42px; margin-top: 18px; border: 0; border-radius: 7px; background: var(--ink); color: white; font-size: 11px; font-weight: 800; }
+.reward-modal.is-rare { border: 2px solid var(--coral); box-shadow: 0 0 0 7px rgba(255,95,105,.14), 0 24px 70px rgba(0,0,0,.3); animation: reward-enter .28s ease-out both, rare-pulse 1.1s ease-in-out .3s 2; }
+.reward-modal.is-rare .reward-tier { background: #ffe9eb; color: #b72f3a; }
+.reward-modal.is-super { border: 2px solid var(--yellow); background: var(--ink); color: white; box-shadow: 0 0 0 8px rgba(255,215,94,.2), 0 24px 80px rgba(0,0,0,.5); animation: super-enter .5s cubic-bezier(.2,.9,.2,1.2) both, super-pulse 1.2s ease-in-out .55s 2; }
+.reward-modal.is-super .reward-tier { background: var(--yellow); color: #493500; }
+.reward-modal.is-super .reward-icon { border-color: var(--yellow); background: white; color: #725800; }
+.reward-modal.is-super p { color: #c9c3c5; }
+.reward-modal.is-super > button { background: var(--yellow); color: #332600; }
+.celebration-stars { height: 34px; display: flex; align-items: center; justify-content: center; gap: 22px; color: var(--coral); }
+.celebration-stars svg { width: 22px; animation: star-pop .75s ease-in-out infinite alternate; }
+.celebration-stars svg:nth-child(2) { width: 30px; color: var(--yellow); animation-delay: .18s; }
+.celebration-stars svg:nth-child(3) { animation-delay: .36s; }
+@keyframes reward-enter { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes super-enter { 0% { opacity: 0; transform: scale(.72) rotate(-2deg); } 70% { opacity: 1; transform: scale(1.04) rotate(1deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes rare-pulse { 50% { box-shadow: 0 0 0 12px rgba(255,95,105,.08), 0 24px 70px rgba(0,0,0,.3); } }
+@keyframes super-pulse { 50% { box-shadow: 0 0 0 16px rgba(255,215,94,.08), 0 24px 80px rgba(0,0,0,.5); } }
+@keyframes star-pop { to { transform: translateY(-5px) scale(1.18) rotate(8deg); } }
 .map-result { margin-top: 9px; }
 
 .bottom-nav { position: fixed; z-index: 30; left: 50%; bottom: 0; transform: translateX(-50%); width: min(100%, 480px); height: 76px; padding: 7px 8px max(7px, env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(5, 1fr); background: rgba(255,255,255,.96); border-top: 1px solid var(--line); backdrop-filter: blur(15px); }
@@ -233,5 +264,5 @@ button { color: inherit; }
   .photo-wrap { height: 300px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tag-orbit.is-on, .tag-orbit.is-on .tag-power { animation: none; }
+  .tag-orbit.is-on, .tag-orbit.is-on .tag-power, .reward-modal, .celebration-stars svg { animation: none; }
 }

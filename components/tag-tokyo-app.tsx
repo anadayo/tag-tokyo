@@ -134,6 +134,7 @@ function MapScreen({ growth, setGrowth }: { growth: GrowthState; setGrowth: Reac
   const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
   const [stake, setStake] = useState(100);
   const [result, setResult] = useState("");
+  const [rewardDisplay, setRewardDisplay] = useState<null | { tier: "normal" | "rare" | "super"; label: string; demoOnly?: boolean }>(null);
   const area = TOKYO_AREAS.find((item) => item.id === selectedAreaId) ?? TOKYO_AREAS[0];
   const spot = TAG_SPOTS.find((item) => item.id === selectedSpotId) ?? null;
   const myPoints = growth.areaContributions[area.id] ?? 0;
@@ -187,8 +188,18 @@ function MapScreen({ growth, setGrowth }: { growth: GrowthState; setGrowth: Reac
         : current.ownedCosmetics,
       spotClaims: { ...current.spotClaims, [spot.id]: today },
     }));
-    setResult(duplicateReward ? "取得済み装飾の代わりに+100 EXPを獲得しました" : `${reward.rarity} ${reward.label}を獲得しました`);
+    const tier = reward.rarity === "RARE" ? "rare" : reward.rarity === "SR" || reward.rarity === "SSR" ? "super" : "normal";
+    const label = duplicateReward
+      ? "100 EXP獲得しました"
+      : reward.type === "exp" ? `${reward.exp} EXP獲得しました` : `${reward.label}を獲得しました`;
+    setRewardDisplay({ tier, label });
+    setResult("");
     track("tagtokyo_spot_draw_preview", { spot_id: spot.id, reward: reward.rarity });
+  }
+
+  function previewReward(tier: "normal" | "rare" | "super") {
+    const label = tier === "normal" ? "50 EXP獲得しました" : tier === "rare" ? "限定プロフィール装飾を獲得しました" : "SUPER BOOSTを獲得しました";
+    setRewardDisplay({ tier, label, demoOnly: true });
   }
 
   return (
@@ -214,6 +225,7 @@ function MapScreen({ growth, setGrowth }: { growth: GrowthState; setGrowth: Reac
           <p>正式版では現地にいることを非公開判定して、1日1回無料で抽選できます。完全なハズレはありません。</p>
           <div className="reward-line"><span>通常</span><b>30 / 50 / 100 EXP</b><span>レア</span><b>限定プロフィール装飾</b><span>激レア</span><b>BOOST / SUPER BOOST</b></div>
           <button className="primary-wide spot-draw" disabled={alreadyClaimed} onClick={previewDraw}>{alreadyClaimed ? "本日のプレビュー済み" : "抽選をプレビュー"}</button>
+          {!hasSupabase && <div className="effect-preview"><small>演出確認</small><div><button onClick={() => previewReward("normal")}>通常</button><button onClick={() => previewReward("rare")}>レア</button><button onClick={() => previewReward("super")}>激レア</button></div><p>確認用のためEXP・景品は加算されません</p></div>}
         </div>
       ) : (
         <div className="map-panel">
@@ -226,6 +238,16 @@ function MapScreen({ growth, setGrowth }: { growth: GrowthState; setGrowth: Reac
         </div>
       )}
       {result && <div className="notice map-result" role="status">{result}</div>}
+      {rewardDisplay && <div className="reward-overlay" role="dialog" aria-modal="true" aria-label="抽選結果">
+        <div className={`reward-modal is-${rewardDisplay.tier}`}>
+          {rewardDisplay.tier !== "normal" && <div className="celebration-stars" aria-hidden="true"><Sparkles /><Star /><Sparkles /></div>}
+          <span className="reward-tier">{rewardDisplay.tier === "super" ? "激レア" : rewardDisplay.tier === "rare" ? "レア" : "獲得"}</span>
+          <div className="reward-icon"><Gift /></div>
+          <h3>{rewardDisplay.label}</h3>
+          {rewardDisplay.demoOnly && <p>演出確認モードです。所持EXP・景品には反映されません。</p>}
+          <button onClick={() => setRewardDisplay(null)}>閉じる</button>
+        </div>
+      </div>}
     </section>
   );
 }
