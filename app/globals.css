@@ -202,6 +202,11 @@ button { color: inherit; }
 .rank-row b { font-size: 11px; }
 .rank-row strong { font-size: 12px; }
 .rank-row.mine > svg { color: var(--mint); }
+.area-range-note { margin-top: 10px; padding: 10px; display: flex; align-items: center; gap: 8px; border-radius: 7px; background: var(--mint-soft); color: #0a704d; }
+.area-range-note svg { width: 17px; flex: 0 0 auto; }
+.area-range-note span { display: grid; gap: 2px; }
+.area-range-note b { font-size: 9px; }
+.area-range-note small { font-size: 8px; line-height: 1.4; }
 .stake-control { height: 46px; margin: 12px 0 4px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; border: 1px solid var(--line); border-radius: 8px; }
 .stake-control button { height: 100%; border: 0; background: transparent; }
 .stake-control button svg { width: 17px; }

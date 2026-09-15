@@ -71,13 +71,21 @@ create table public.areas (
   name text not null unique,
   map_x numeric(5,2) not null check (map_x between 0 and 100),
   map_y numeric(5,2) not null check (map_y between 0 and 100),
+  latitude double precision not null check (latitude between 35.49 and 35.90),
+  longitude double precision not null check (longitude between 138.94 and 139.93),
+  contribution_radius_m integer not null default 1000 check (contribution_radius_m = 1000),
   active boolean not null default true
 );
 
-insert into public.areas (id,name,map_x,map_y) values
-  ('kichijoji','吉祥寺',13,48),('shinjuku','新宿',35,52),('shibuya','渋谷',36,72),
-  ('ikebukuro','池袋',42,30),('ueno','上野',69,28),('kitasenju','北千住',80,12)
-on conflict (id) do update set name=excluded.name, map_x=excluded.map_x, map_y=excluded.map_y;
+insert into public.areas (id,name,map_x,map_y,latitude,longitude) values
+  ('kichijoji','吉祥寺',13,48,35.7033,139.5796),
+  ('shinjuku','新宿',35,52,35.6938,139.7034),
+  ('shibuya','渋谷',36,72,35.6580,139.7016),
+  ('ikebukuro','池袋',42,30,35.7295,139.7109),
+  ('ueno','上野',69,28,35.7141,139.7774),
+  ('kitasenju','北千住',80,12,35.7497,139.8050)
+on conflict (id) do update set name=excluded.name, map_x=excluded.map_x, map_y=excluded.map_y,
+  latitude=excluded.latitude, longitude=excluded.longitude, contribution_radius_m=1000;
 
 create table public.area_contributions (
   area_id text references public.areas(id) on delete cascade,
@@ -178,13 +186,22 @@ end $$;
 create trigger crossing_exp_after_insert after insert on public.crossings
 for each row execute function public.award_crossing_exp();
 
-create or replace function public.contribute_area_exp(p_area_id text, p_amount integer)
+create or replace function public.contribute_area_exp(
+  p_area_id text, p_amount integer, p_latitude double precision, p_longitude double precision
+)
 returns bigint language plpgsql security definer set search_path = public as $$
-declare v_user uuid; v_points bigint;
+declare v_user uuid; v_points bigint; v_area public.areas%rowtype; v_distance double precision;
 begin
   v_user := public.current_app_user_id();
   if v_user is null or p_amount < 100 or p_amount > 1000 or p_amount % 100 <> 0 then raise exception 'invalid contribution'; end if;
   if not exists (select 1 from public.users where id=v_user and age_verified and birth_date <= current_date - interval '20 years' and not is_demo) then raise exception '20+ verified user required'; end if;
+  select * into v_area from public.areas where id=p_area_id and active;
+  if v_area.id is null then raise exception 'area unavailable'; end if;
+  v_distance := 6371000 * 2 * asin(sqrt(
+    power(sin(radians(v_area.latitude-p_latitude)/2),2)
+    + cos(radians(p_latitude))*cos(radians(v_area.latitude))*power(sin(radians(v_area.longitude-p_longitude)/2),2)
+  ));
+  if v_distance > v_area.contribution_radius_m then raise exception 'EXP can be contributed only within 1km of the area base'; end if;
   perform public.spend_exp(v_user,p_amount,'area_contribution','area',p_area_id);
   insert into public.area_contributions (area_id,user_id,points) values (p_area_id,v_user,p_amount)
     on conflict (area_id,user_id) do update set points=area_contributions.points+excluded.points, updated_at=now()
@@ -263,6 +280,6 @@ revoke all on function public.issue_exp(uuid,integer,text,text,text) from public
 revoke all on function public.spend_exp(uuid,integer,text,text,text) from public,anon,authenticated;
 revoke all on function public.award_crossing_exp() from public,anon,authenticated;
 revoke all on function public.distance_meters(double precision,double precision,double precision,double precision) from public,anon,authenticated;
-grant execute on function public.contribute_area_exp(text,integer) to authenticated;
+grant execute on function public.contribute_area_exp(text,integer,double precision,double precision) to authenticated;
 grant execute on function public.exchange_cosmetic(text) to authenticated;
 grant execute on function public.draw_tag_spot(text,double precision,double precision) to authenticated;

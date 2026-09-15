@@ -141,10 +141,26 @@ function MapScreen({ growth, setGrowth }: { growth: GrowthState; setGrowth: Reac
   const today = new Date().toISOString().slice(0, 10);
   const alreadyClaimed = spot ? growth.spotClaims[spot.id] === today : false;
 
-  function contribute() {
+  async function contribute() {
     if (growth.availableExp < stake) {
       setResult("所持EXPが足りません");
       return;
+    }
+    if (supabase) {
+      setResult("拠点からの距離を確認しています…");
+      try {
+        const location = await requestPrivateLocation();
+        const { error } = await supabase.rpc("contribute_area_exp", {
+          p_area_id: area.id,
+          p_amount: stake,
+          p_latitude: location.latitude,
+          p_longitude: location.longitude,
+        });
+        if (error) throw error;
+      } catch (error) {
+        setResult(error instanceof Error ? error.message : "拠点の1km圏内でのみEXPを投下できます");
+        return;
+      }
     }
     const becomesChampion = myPoints <= area.championPoints && myPoints + stake > area.championPoints;
     setGrowth((current) => ({
@@ -196,7 +212,7 @@ function MapScreen({ growth, setGrowth }: { growth: GrowthState; setGrowth: Reac
         <div className="map-panel spot-panel">
           <div className="panel-title"><span className="panel-icon"><Gift /></span><div><small>FREE DRAW</small><h3>{spot.name}</h3></div></div>
           <p>正式版では現地にいることを非公開判定して、1日1回無料で抽選できます。完全なハズレはありません。</p>
-          <div className="reward-line"><span>通常</span><b>30 / 50 / 100 EXP</b><span>最高</span><b>SUPER BOOST</b></div>
+          <div className="reward-line"><span>通常</span><b>30 / 50 / 100 EXP</b><span>レア</span><b>限定プロフィール装飾</b><span>激レア</span><b>BOOST / SUPER BOOST</b></div>
           <button className="primary-wide spot-draw" disabled={alreadyClaimed} onClick={previewDraw}>{alreadyClaimed ? "本日のプレビュー済み" : "抽選をプレビュー"}</button>
         </div>
       ) : (
@@ -204,8 +220,9 @@ function MapScreen({ growth, setGrowth }: { growth: GrowthState; setGrowth: Reac
           <div className="area-head"><div><small>AREA BATTLE</small><h3>{area.name}</h3></div><span className="demo-badge inline">DEMO RANKING</span></div>
           <div className="rank-row"><Trophy /><span><small>現在1位</small><b>{isAreaChampion ? `あなた · Lv.${getLevelProgress(growth.totalEarnedExp).level}` : `${area.champion} · Lv.${area.championLevel}`}</b></span><strong>{(isAreaChampion ? myPoints : area.championPoints).toLocaleString()}pt</strong></div>
           <div className="rank-row mine"><Star /><span><small>{isAreaChampion ? "次点 DEMO" : "あなた"}</small><b>{isAreaChampion ? `${area.champion} · Lv.${area.championLevel}` : `プロフィール Lv.${getLevelProgress(growth.totalEarnedExp).level}`}</b></span><strong>{(isAreaChampion ? area.championPoints : myPoints).toLocaleString()}pt</strong></div>
+          <div className="area-range-note"><MapPin /><span><b>正式版は拠点の1km圏内限定</b><small>{hasSupabase ? "現在地は距離判定だけに使い、保存しません" : "プレビューでは場所に関係なくデモ投下できます"}</small></span></div>
           <div className="stake-control"><button aria-label="EXPを減らす" onClick={() => setStake(Math.max(100, stake - 100))}><Minus /></button><b>{stake} EXP</b><button aria-label="EXPを増やす" onClick={() => setStake(Math.min(1000, stake + 100))}><Plus /></button></div>
-          <button className="primary-wide" onClick={contribute}>このエリアへ投下</button>
+          <button className="primary-wide" onClick={contribute}>{hasSupabase ? "現在地を確認して投下" : "EXPをデモ投下"}</button>
         </div>
       )}
       {result && <div className="notice map-result" role="status">{result}</div>}
