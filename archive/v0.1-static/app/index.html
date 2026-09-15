@@ -1,0 +1,3399 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TAG TOKYO | 東京で、ちゃんと会える。</title>
+<meta name="description" content="東京限定の無料マッチングサービス。認証タグ、選択式トーク、60分プランで、安心して会う約束まで進めます。">
+<meta name="theme-color" content="#0b0b0d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TAG TOKYO">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1RKFX1HCCV"></script>
+<script>
+window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments);}
+gtag('js',new Date());
+gtag('config','G-1RKFX1HCCV',{content_group:'tag_tokyo'});
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0b0d;
+  --ink:#f7f8fb;
+  --muted:#8f99aa;
+  --soft:#c9d0dc;
+  --panel:#161417;
+  --panel-2:#211d21;
+  --line:rgba(201,208,220,.12);
+  --cyan:#6ee7c2;
+  --violet:#f0a8c3;
+  --pink:#ff6b8a;
+  --green:#55d69f;
+  --amber:#fbbf24;
+  --red:#f87171;
+  --radius:14px;
+  --radius-sm:10px;
+  --en:"Space Grotesk",-apple-system,sans-serif;
+  --sat:env(safe-area-inset-top,0px);
+  --sab:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  line-height:1.7;
+  min-height:100dvh;
+}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:#0b0b0d}
+a{color:inherit;text-decoration:none}
+button,input,select{font:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.en{font-family:var(--en)}
+#app{
+  position:relative;z-index:1;
+  width:min(100%,520px);margin:0 auto;
+  min-height:100dvh;
+  display:flex;flex-direction:column;
+}
+.app-bar{
+  position:sticky;top:0;z-index:20;
+  padding:calc(10px + var(--sat)) 18px 10px;
+  display:flex;align-items:center;gap:10px;
+  background:rgba(5,7,11,.82);
+  border-bottom:1px solid var(--line);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.app-bar .mark{
+  width:30px;height:30px;display:grid;place-items:center;border-radius:9px;
+  border:1px solid rgba(201,208,220,.18);
+  background:linear-gradient(135deg,rgba(125,211,252,.14),rgba(167,139,250,.12));
+  color:#dbeafe;
+}
+.app-bar .mark svg{width:17px;height:17px}
+.app-bar .word{font-family:var(--en);font-weight:700;font-size:16px}
+.app-bar .word span{font-weight:500;color:var(--soft)}
+.bar-pill{
+  margin-left:auto;
+  display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
+  color:#bbf7d0;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.26);
+  font-size:11px;font-weight:800;
+}
+.screen{flex:1;padding:18px 18px calc(86px + var(--sab));display:none}
+.screen.on{display:block}
+.screen-title{font-size:24px;font-weight:780;line-height:1.3;margin:6px 0 4px}
+.screen-sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+.panel{
+  border:1px solid var(--line);border-radius:var(--radius);
+  background:rgba(12,16,24,.85);
+}
+.pad{padding:16px}
+.btn{
+  min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:1px solid transparent;border-radius:999px;padding:0 20px;width:100%;
+  font-weight:760;color:var(--ink);background:var(--panel-2);
+  transition:transform .15s,opacity .15s;
+}
+.btn:active{transform:scale(.98)}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.btn-primary{
+  color:#05070a;
+  background:linear-gradient(120deg,#e0f2fe,#f7f8fb 55%,#ede9fe);
+}
+.btn-outline{border-color:rgba(201,208,220,.2);background:rgba(247,248,251,.04)}
+.btn-ghost{border-color:rgba(125,211,252,.22);background:rgba(125,211,252,.06);color:#d7efff}
+.btn-danger{border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.08);color:#fecaca}
+.btn-sm{min-height:36px;padding:0 14px;width:auto;font-size:13px}
+
+/* tags / chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.tag{
+  display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:4px 11px;border-radius:999px;
+  font-size:12.5px;font-weight:700;color:var(--tag-c,#d7efff);
+  background:var(--tag-bg,rgba(125,211,252,.06));border:1px solid var(--tag-border,rgba(125,211,252,.2));
+}
+.tag.l8,.tag.l9,.tag.l10{box-shadow:0 0 0 1px rgba(255,255,255,.1) inset}
+.tag.area{color:#fbe3f1;background:rgba(244,114,182,.09);border-color:rgba(244,114,182,.28)}
+.tag-level{
+  display:inline-grid;place-items:center;min-width:36px;height:20px;padding:0 7px;border-radius:999px;
+  font-family:var(--en);font-size:10.5px;font-weight:800;line-height:1;color:var(--tag-badge-ink,#05070b);
+  background:var(--tag-badge,#7dd3fc);
+}
+.chip-btn{
+  display:inline-flex;align-items:center;gap:5px;min-height:38px;padding:6px 14px;border-radius:999px;
+  font-size:13px;font-weight:700;color:#c9d0dc;
+  background:rgba(247,248,251,.03);border:1px solid rgba(201,208,220,.18);
+  transition:border-color .15s,background .15s,color .15s;
+}
+.chip-btn[aria-pressed="true"]{
+  color:#fbe3f1;background:rgba(244,114,182,.1);border-color:rgba(244,114,182,.5);
+}
+.cat-label{font-size:12px;color:var(--muted);font-weight:800;margin:16px 0 8px}
+.field{display:grid;gap:7px;margin-bottom:14px}
+.field label{font-size:13px;color:var(--soft);font-weight:800}
+.field input,.field select,.field textarea{
+  width:100%;min-height:48px;color:var(--ink);
+  border:1px solid rgba(201,208,220,.16);border-radius:12px;padding:0 14px;background:#0a101b;
+}
+.field textarea{min-height:88px;padding-top:12px;resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(125,211,252,.4);outline:none}
+
+/* onboarding */
+.steps{display:flex;gap:6px;margin:4px 0 18px}
+.steps i{height:4px;flex:1;border-radius:99px;background:rgba(201,208,220,.14)}
+.steps i.on{background:linear-gradient(90deg,var(--cyan),var(--violet))}
+.ob-status{
+  margin-top:14px;padding:11px 14px;border-radius:var(--radius-sm);
+  border:1px solid var(--line);background:#0a101b;
+  font-size:12.5px;color:var(--muted);
+}
+.ob-status b{color:var(--ink)}
+.ob-status.ok{border-color:rgba(52,211,153,.3);color:#bbf7d0}
+.verify-row{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 0;border-bottom:1px solid rgba(201,208,220,.08);
+}
+.verify-row:last-child{border-bottom:0}
+.verify-row .vname{font-size:14px;font-weight:700}
+.verify-row .vtype{display:block;font-size:11px;color:var(--muted)}
+.verify-row .spacer{margin-left:auto}
+.lv{
+  font-family:var(--en);font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;
+  border:1px solid rgba(201,208,220,.2);color:var(--muted);
+}
+.lv.l1{color:#fde68a;border-color:rgba(251,191,36,.56);background:rgba(251,191,36,.12)}
+.lv.l2{color:#bbf7d0;border-color:rgba(52,211,153,.56);background:rgba(52,211,153,.12)}
+.lv.l3{color:#fbcfe8;border-color:rgba(244,114,182,.68);background:rgba(244,114,182,.16)}
+
+/* discover cards */
+.cand{margin-bottom:12px;overflow:hidden}
+.cand-head{display:flex;align-items:center;gap:12px;padding:14px 16px 0}
+.avatar{
+  width:52px;height:52px;border-radius:50%;flex:0 0 auto;
+  display:grid;place-items:center;
+  font-family:var(--en);font-weight:700;font-size:19px;color:#e3f5ff;
+  background:linear-gradient(135deg,#27354b,#131a28);
+  border:1px solid rgba(203,213,225,.22);
+}
+.avatar.ai{
+  position:relative;overflow:hidden;color:#fff;
+  background:
+    radial-gradient(circle at 26% 18%,rgba(255,255,255,.42),transparent 22%),
+    linear-gradient(135deg,var(--avatar-a,#7dd3fc),var(--avatar-b,#f472b6));
+}
+.avatar.persona-photo,.persona-photo{
+  background-image:url('../assets/profile-sprite-v1.png');
+  background-size:200% 400%;
+  background-position:var(--photo-x,0%) var(--photo-y,0%);
+  background-repeat:no-repeat;
+  background-color:#262126;
+}
+.avatar.uploaded{overflow:hidden;background:#262126}
+.avatar.uploaded img{width:100%;height:100%;object-fit:cover}
+.self-avatar{background:#f7f3f5;color:#181517}
+.cand-photo{
+  position:relative;width:100%;aspect-ratio:4/3;
+  border-bottom:1px solid var(--line);
+}
+.cand-photo::after{
+  content:"";position:absolute;inset:auto 0 0;height:38%;
+  background:linear-gradient(transparent,rgba(11,11,13,.78));
+}
+.cand-photo-label{
+  position:relative;z-index:1;height:58px;margin-top:-58px;padding:0 16px 13px;
+  display:flex;align-items:end;justify-content:space-between;gap:12px;color:#fff;
+}
+.cand-photo-label b{font-size:22px;line-height:1.1}
+.cand-photo-label span{font-size:12px;font-weight:800}
+.consent-row{
+  display:flex;align-items:flex-start;gap:10px;margin:14px 0;padding:12px;
+  border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.035);
+  color:var(--soft);font-size:12.5px;line-height:1.55;
+}
+.consent-row input{width:18px;height:18px;flex:0 0 auto;margin-top:1px;accent-color:var(--pink)}
+.avatar.ai::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(145deg,rgba(255,255,255,.22),transparent 42%,rgba(5,7,11,.18));
+}
+.anime-svg,.animal-svg{position:absolute;inset:2px;z-index:1;width:calc(100% - 4px);height:calc(100% - 4px)}
+.avatar-maker{
+  display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;
+  padding:12px;border-radius:var(--radius-sm);
+  border:1px solid rgba(125,211,252,.18);background:rgba(125,211,252,.05);
+}
+.avatar-maker p{margin:0;color:var(--muted);font-size:12px;line-height:1.55}
+.avatar-maker .btn{grid-column:1 / -1;min-height:40px}
+.cand-head h3{margin:0;font-size:17px}
+.cand-head .meta{font-size:12px;color:var(--muted)}
+.score{
+  margin-left:auto;min-width:58px;min-height:40px;display:grid;place-items:center;border-radius:10px;
+  font-family:var(--en);font-weight:700;color:#d7efff;
+  background:rgba(125,211,252,.1);border:1px solid rgba(125,211,252,.24);
+}
+.cand .chips{padding:12px 16px 0}
+.rule-box{
+  margin:12px 16px;padding:11px 13px;border-radius:var(--radius-sm);
+  border:1px solid rgba(125,211,252,.16);background:rgba(125,211,252,.045);
+}
+.rule-line{
+  display:flex;justify-content:space-between;gap:10px;
+  padding:5px 0;font-size:12.5px;color:var(--soft);
+  border-bottom:1px solid rgba(148,163,184,.1);
+}
+.rule-line:last-child{border-bottom:0}
+.pass{color:#86efac;font-weight:800}
+.cand-cta{display:grid;grid-template-columns:1fr 1.35fr;gap:8px;padding:0 16px 16px}
+.cand-cta .btn{min-height:42px;padding:0 12px;font-size:12.5px}
+.blocked-note{
+  margin-top:4px;padding:13px 16px;border-radius:var(--radius);
+  border:1px dashed rgba(201,208,220,.2);color:var(--muted);font-size:12.5px;
+}
+.banner{
+  margin-bottom:14px;padding:13px 16px;border-radius:var(--radius);
+  border:1px solid rgba(251,191,36,.3);background:rgba(251,191,36,.07);
+  color:#fde9b8;font-size:13px;font-weight:700;
+}
+
+/* Free beta allowance */
+.like-bank{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;
+  margin-bottom:10px;padding:13px 16px;
+  border:1px solid rgba(244,114,182,.28);border-radius:var(--radius);
+  background:linear-gradient(120deg,rgba(244,114,182,.1),rgba(167,139,250,.05));
+}
+.like-bank-main{display:flex;align-items:baseline;gap:6px;color:#fbcfe8}
+.like-bank-main svg{width:18px;height:18px;align-self:center}
+.like-bank-main b{font-family:var(--en);font-size:22px;color:#fff;line-height:1}
+.like-bank-main span{font-size:11px;color:var(--muted)}
+.like-bank-detail{grid-column:1 / -1;font-size:11px;color:var(--muted);line-height:1.5}
+.like-bank .btn-sm{grid-row:1;grid-column:3}
+.plus-toggle{
+  display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:13px 16px;
+  border:1px solid rgba(167,139,250,.3);border-radius:var(--radius);
+  background:linear-gradient(120deg,rgba(167,139,250,.1),rgba(125,211,252,.05));
+}
+.plus-toggle-label{display:grid;gap:1px;min-width:0}
+.plus-toggle-label b{font-family:var(--en);font-size:14px;color:#ede9fe}
+.plus-toggle-label span{font-size:11.5px;color:var(--muted)}
+.filter-toggle{
+  display:grid;gap:10px;margin-bottom:12px;padding:13px 16px;
+  border:1px solid rgba(201,208,220,.14);border-radius:var(--radius);
+  background:rgba(247,248,251,.035);
+}
+.filter-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.filter-head b{font-size:13.5px}
+.filter-head span{display:block;margin-top:2px;font-size:11.5px;color:var(--muted)}
+.filter-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filter-actions .btn{min-height:38px;padding:0 12px;font-size:12.5px}
+.search-filters{
+  display:grid;gap:10px;margin-bottom:12px;padding:13px 16px;
+  border:1px solid rgba(201,208,220,.14);border-radius:var(--radius);
+  background:rgba(247,248,251,.035);
+}
+.filter-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.select-field{display:grid;gap:5px;min-width:0}
+.select-field span{font-size:10.5px;color:var(--muted);font-weight:800}
+.select-field select{
+  width:100%;min-height:38px;padding:0 10px;border-radius:10px;
+  color:var(--soft);background:#0a101b;border:1px solid rgba(201,208,220,.14);
+  font-size:12px;font-weight:700;
+}
+.place-filter{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.place-filter .btn{min-height:36px;padding:0 9px;font-size:12px}
+.audience-filter{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.audience-filter .btn{min-height:36px;padding:0 10px;font-size:12px}
+.filter-summary{font-size:11.5px;color:var(--muted);line-height:1.55}
+.switch{
+  margin-left:auto;flex:0 0 auto;width:48px;height:28px;border-radius:999px;border:0;padding:0;position:relative;
+  background:rgba(201,208,220,.2);transition:background .2s;
+}
+.switch.on{background:linear-gradient(90deg,#a78bfa,#7dd3fc)}
+.switch.locked{cursor:default}
+.switch-knob{
+  position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+  background:#fff;transition:transform .2s;
+}
+.switch.on .switch-knob{transform:translateX(20px)}
+.cand-locked{opacity:.96}
+.cand-locked .chips{filter:saturate(.5)}
+.lock-pill{
+  margin-left:auto;font-family:var(--en);font-size:11px;font-weight:700;color:#ede9fe;
+  padding:4px 10px;border-radius:999px;
+  background:rgba(167,139,250,.16);border:1px solid rgba(167,139,250,.4);
+}
+
+/* plans */
+.match-list{display:grid;gap:12px}
+.match-card{
+  display:grid;gap:11px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius);
+  background:rgba(12,16,24,.85);
+}
+.match-card-top{display:flex;align-items:center;gap:12px}
+.match-card h3{margin:0;font-size:16px}
+.match-card .meta{font-size:12px;color:var(--muted)}
+.match-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}
+.match-actions .btn{min-height:40px;padding:0 12px;font-size:12.5px}
+.countdown{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-bottom:14px;padding:12px 15px;border-radius:var(--radius-sm);
+  border:1px solid rgba(251,191,36,.26);background:rgba(251,191,36,.06);
+  font-size:13px;color:#fde9b8;
+}
+.countdown b{font-family:var(--en);font-size:18px;font-variant-numeric:tabular-nums;color:#fde047}
+.plan{
+  position:relative;display:grid;gap:3px;padding:14px 15px;text-align:left;width:100%;
+  border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--panel-2);color:var(--ink);
+  margin-bottom:9px;
+}
+.plan-when{font-family:var(--en);font-size:12px;color:var(--cyan);font-weight:600}
+.plan-title{font-size:14.5px;font-weight:760;line-height:1.5}
+.plan-meta{font-size:11.5px;color:var(--muted)}
+.plan-meta em{font-style:normal;color:#bbf7d0}
+.ticket{
+  border:1px solid rgba(125,211,252,.3);border-radius:var(--radius);
+  background:linear-gradient(165deg,rgba(125,211,252,.08),rgba(12,16,24,.9) 50%);
+  padding:18px;margin-bottom:14px;
+}
+.ticket .t-label{font-family:var(--en);font-size:11px;letter-spacing:.12em;color:var(--cyan);font-weight:700}
+.ticket h3{margin:6px 0 2px;font-size:19px;line-height:1.4}
+.ticket .t-meta{font-size:13px;color:var(--soft)}
+.ticket .t-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.qr{
+  margin-top:14px;height:96px;border-radius:10px;
+  display:grid;place-items:center;color:var(--muted);font-size:12px;font-weight:700;
+  border:1px dashed rgba(201,208,220,.26);
+  background:
+    repeating-linear-gradient(0deg,rgba(247,248,251,.07) 0 4px,transparent 4px 8px),
+    repeating-linear-gradient(90deg,rgba(247,248,251,.07) 0 4px,transparent 4px 8px);
+}
+.qr-card{text-align:center;padding:16px;border-radius:var(--radius);background:#f8fafc;color:#0f172a}
+.qr-code{
+  width:178px;height:178px;margin:10px auto;border:10px solid #fff;border-radius:12px;
+  display:grid;grid-template-columns:repeat(9,1fr);gap:4px;background:#fff;
+  box-shadow:0 10px 30px rgba(0,0,0,.22);
+}
+.qr-code i{border-radius:2px;background:#0f172a}
+.qr-code i.off{background:#fff}
+.qr-help{font-size:12px;color:var(--muted);line-height:1.6}
+.scan-frame{
+  height:178px;border-radius:16px;border:1px solid rgba(125,211,252,.32);
+  background:linear-gradient(180deg,rgba(125,211,252,.1),rgba(12,16,24,.92));
+  position:relative;overflow:hidden;display:grid;place-items:center;color:#d7efff;font-weight:800;
+}
+.scan-frame::after{
+  content:"";position:absolute;left:12px;right:12px;height:2px;top:24px;
+  background:var(--cyan);box-shadow:0 0 18px var(--cyan);animation:scan 1.8s ease-in-out infinite alternate;
+}
+@keyframes scan{to{top:150px}}
+.met-card{
+  border:1px solid rgba(52,211,153,.34);border-radius:var(--radius);
+  background:linear-gradient(165deg,rgba(52,211,153,.1),rgba(12,16,24,.9) 55%);
+  padding:18px;margin-bottom:14px;text-align:center;
+}
+.met-card h3{margin:8px 0 4px;font-size:20px}
+.met-card p{margin:0;color:var(--soft);font-size:13px}
+
+/* talk */
+.talk-shell{
+  height:min(760px,calc(100dvh - 112px));min-height:580px;
+  display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;
+  border:1px solid rgba(201,208,220,.14);border-radius:18px;overflow:hidden;
+  background:#0f1724;box-shadow:0 18px 50px rgba(0,0,0,.22);
+}
+.talk-shell > *{min-width:0}
+.talk-header{
+  position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-bottom:1px solid rgba(201,208,220,.1);
+  background:rgba(14,20,31,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+}
+.talk-header .avatar{width:40px;height:40px;font-size:14px}
+.talk-title{min-width:0;flex:1}
+.talk-title b{display:block;font-size:15.5px;line-height:1.25}
+.talk-title span{display:block;font-size:11px;line-height:1.35;color:#9aa7ba;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.talk-header-actions{display:flex;gap:6px;flex:0 0 auto}
+.talk-header-actions .btn{min-height:32px;padding:0 10px;font-size:11.5px;border-radius:999px}
+.talk-match-strip{
+  display:flex;gap:7px;overflow-x:auto;padding:8px 12px;
+  border-bottom:1px solid rgba(201,208,220,.08);background:#0b111b;
+  scrollbar-width:none;
+}
+.talk-match-strip::-webkit-scrollbar{display:none}
+.talk-match-strip .chip-btn{
+  white-space:nowrap;min-height:30px;padding:3px 11px;font-size:12px;
+  background:rgba(247,248,251,.06);border-color:rgba(201,208,220,.12);
+}
+.talk-match-strip .chip-btn[aria-pressed="true"]{
+  color:#052e1a;background:#86efac;border-color:#86efac;
+}
+.lock-note{
+  display:flex;align-items:center;gap:8px;margin-bottom:14px;width:max-content;max-width:100%;
+  font-size:12px;color:#bbf7d0;font-weight:700;
+  border:1px solid rgba(52,211,153,.26);border-radius:999px;
+  background:rgba(52,211,153,.07);padding:6px 12px;
+}
+.lock-note svg{width:14px;height:14px;flex:0 0 auto}
+.talk-log{
+  display:grid;align-content:end;gap:12px;min-height:0;overflow-y:auto;
+  width:100%;padding:20px 14px 22px;scrollbar-width:none;
+  background:
+    linear-gradient(180deg,rgba(16,24,39,.92),rgba(13,19,30,.98)),
+    #111827;
+}
+.talk-log::-webkit-scrollbar{display:none}
+.message-row{display:flex;align-items:flex-end;gap:8px;max-width:86%}
+.message-row.me{justify-self:end;justify-content:flex-end}
+.message-row:not(.me){justify-self:start}
+.msg-avatar{
+  width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+  color:#d7efff;font-size:11px;font-family:var(--en);font-weight:800;
+  background:linear-gradient(135deg,#263244,#111827);border:1px solid rgba(201,208,220,.18);
+}
+.message-row.me .msg-avatar{display:none}
+.message-stack{display:grid;gap:3px}
+.bubble{
+  position:relative;max-width:100%;padding:10px 13px;border-radius:18px;
+  font-size:14px;line-height:1.62;letter-spacing:0;
+  border:0;background:#f8fafc;color:#172033;
+  border-bottom-left-radius:6px;box-shadow:0 5px 16px rgba(0,0,0,.13);
+}
+.bubble.me{
+  margin-left:auto;border-bottom-right-radius:6px;border-bottom-left-radius:18px;
+  background:#86efac;color:#052e1a;
+}
+.message-row:not(.me) .bubble::before{
+  content:"";position:absolute;left:-5px;bottom:2px;border:7px solid transparent;
+  border-right-color:#f8fafc;border-bottom:0;transform:rotate(-8deg);
+}
+.message-row.me .bubble::after{
+  content:"";position:absolute;right:-5px;bottom:2px;border:7px solid transparent;
+  border-left-color:#86efac;border-bottom:0;transform:rotate(8deg);
+}
+.bubble-label{display:block;font-size:10.5px;color:#b6c1d2;margin:0 0 2px 5px;font-weight:700}
+.bubble-time{font-size:10px;color:#8f9bae;margin:1px 5px 0}
+.message-row.me .bubble-time{text-align:right;color:#8ad7a8}
+.choice-label{font-size:12px;color:var(--muted);font-weight:800;margin:14px 0 8px}
+.ai-suggest{
+  margin-top:8px;padding:8px 9px;border-radius:14px;
+  border:1px solid rgba(201,208,220,.11);background:rgba(247,248,251,.045);
+  min-width:0;
+}
+.ai-suggest-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.ai-suggest-head b{font-size:12px;color:#dbeafe}
+.ai-suggest-head span{font-size:10.5px;color:#8492a8;font-weight:700}
+.ai-suggest .chips{gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.ai-suggest .chips::-webkit-scrollbar{display:none}
+.ai-suggest .chip-btn{
+  white-space:nowrap;min-height:32px;padding:5px 10px;font-size:12px;
+  background:rgba(125,211,252,.07);border-color:rgba(125,211,252,.16);
+}
+.talk-composer{
+  padding:9px 10px calc(9px + var(--sab));border-top:1px solid rgba(201,208,220,.12);
+  background:#08111c;min-width:0;width:100%;
+}
+.talk-composer .ai-suggest{margin-top:9px}
+.talk-composer .ai-suggest-head{margin-bottom:7px}
+.talk-composer .choice-label{margin:9px 0 6px;font-size:11.5px}
+.composer-bar{
+  display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;
+  padding:6px 7px;border-radius:20px;background:#f8fafc;
+}
+.composer-placeholder{
+  min-height:34px;display:flex;align-items:center;color:#64748b;font-size:13px;font-weight:700;
+  padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.composer-send{
+  width:34px;height:34px;border:0;border-radius:50%;display:grid;place-items:center;
+  color:#052e1a;background:#34d399;
+}
+.composer-send svg{width:18px;height:18px}
+.quick-replies{display:flex;gap:7px;overflow-x:auto;margin-top:7px;scrollbar-width:none}
+.quick-replies::-webkit-scrollbar{display:none}
+.quick-replies .chip-btn{
+  white-space:nowrap;min-height:34px;padding:5px 12px;font-size:12.5px;
+  background:rgba(247,248,251,.09);border-color:rgba(201,208,220,.13);
+}
+
+/* inbound likes */
+.like-inbox{margin-bottom:14px;padding:14px;border-color:rgba(244,114,182,.28);background:linear-gradient(155deg,rgba(244,114,182,.11),rgba(125,211,252,.045))}
+.like-inbox-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.like-inbox-head b{font-size:14px;color:#fbcfe8}
+.like-inbox-head span{font-size:11px;color:var(--muted);font-weight:800}
+.like-inbox-list{display:grid;gap:9px}
+.like-inbox-row{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;
+  padding:10px;border:1px solid rgba(201,208,220,.12);border-radius:var(--radius-sm);
+  background:rgba(5,7,11,.34);
+}
+.like-inbox-row .avatar{width:40px;height:40px;font-size:14px}
+.like-inbox-row h3{margin:0;font-size:14px}
+.like-inbox-row .meta{font-size:11px;color:var(--muted);margin-top:1px}
+.like-inbox-row .btn{min-height:34px;padding:0 11px;font-size:12px}
+.home-hero{
+  display:grid;gap:12px;margin-bottom:14px;
+}
+.for-you-card{
+  padding:16px;border-radius:var(--radius);border:1px solid rgba(125,211,252,.22);
+  background:
+    linear-gradient(135deg,rgba(125,211,252,.13),rgba(52,211,153,.06) 44%,rgba(247,248,251,.035)),
+    rgba(12,16,24,.92);
+}
+.for-you-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.for-you-top b{display:block;font-size:15px;color:#dff7ff}
+.for-you-top span{display:block;margin-top:2px;font-size:11.5px;color:var(--muted)}
+.for-you-score{
+  flex:0 0 auto;min-width:62px;text-align:center;padding:6px 9px;border-radius:12px;
+  font-family:var(--en);font-weight:800;color:#052e1a;background:#86efac;
+}
+.for-you-reason{margin-top:12px;color:var(--soft);font-size:12.5px;line-height:1.6}
+.for-you-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mode-card{
+  min-height:86px;padding:12px 10px;border-radius:var(--radius-sm);
+  border:1px solid rgba(201,208,220,.13);background:rgba(247,248,251,.04);
+  text-align:left;color:var(--ink);
+}
+.mode-card b{display:block;font-size:13px}
+.mode-card span{display:block;margin-top:3px;font-size:10.5px;line-height:1.45;color:var(--muted)}
+.date-board{
+  padding:14px;border-radius:var(--radius);border:1px solid rgba(244,114,182,.22);
+  background:linear-gradient(150deg,rgba(244,114,182,.09),rgba(251,191,36,.045),rgba(247,248,251,.035));
+}
+.date-board-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.date-board-head b{font-size:14px;color:#fbcfe8}
+.date-board-head span{font-size:11px;color:var(--muted);font-weight:800}
+.date-row{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;
+  padding:10px;border-radius:var(--radius-sm);border:1px solid rgba(201,208,220,.11);
+  background:rgba(5,7,11,.28);
+}
+.date-row + .date-row{margin-top:8px}
+.date-row .avatar{width:38px;height:38px;font-size:13px}
+.date-row h3{margin:0;font-size:13.5px}
+.date-row .meta{margin-top:1px;font-size:11px;color:var(--muted)}
+.date-row .btn{min-height:34px;padding:0 10px;font-size:12px}
+.profile-meter{
+  padding:11px 13px;border-radius:var(--radius-sm);border:1px solid rgba(52,211,153,.18);
+  background:rgba(52,211,153,.055);color:#bbf7d0;font-size:12px;font-weight:800;
+}
+.profile-meter i{
+  display:block;height:6px;margin-top:8px;border-radius:999px;background:rgba(52,211,153,.14);overflow:hidden;
+}
+.profile-meter i span{display:block;height:100%;border-radius:inherit;background:#34d399}
+.cand-head .avatar.ai{width:56px;height:56px}
+.cand-kicker{
+  margin:10px 16px 0;padding:10px 12px;border-radius:var(--radius-sm);
+  color:#dbeafe;font-size:12px;line-height:1.55;
+  background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.16);
+}
+.compat-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:11px 16px 0;
+}
+.compat-item{
+  padding:8px 7px;border-radius:10px;background:rgba(247,248,251,.045);
+  border:1px solid rgba(201,208,220,.1);text-align:center;
+}
+.compat-item b{display:block;font-family:var(--en);font-size:15px;color:#fff}
+.compat-item span{font-size:10px;color:var(--muted)}
+.card-actions{
+  display:grid;grid-template-columns:44px 1fr 44px;gap:9px;padding:14px 16px 16px;
+}
+.card-actions .btn{min-height:44px;padding:0 12px}
+.icon-btn{
+  width:44px;min-width:44px;padding:0!important;border-radius:50%;
+}
+.icon-btn svg{width:18px;height:18px}
+
+/* board */
+.board-rule{
+  display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px;
+}
+.board-rule .panel{padding:12px}
+.board-rule b{display:block;font-size:13px;color:#fff}
+.board-rule span{display:block;margin-top:3px;font-size:11px;color:var(--muted);line-height:1.45}
+.board-post{
+  display:grid;gap:11px;padding:14px 16px;margin-bottom:12px;
+  border:1px solid rgba(201,208,220,.13);border-radius:var(--radius);
+  background:rgba(12,16,24,.9);
+}
+.board-post-top{display:flex;align-items:center;gap:12px}
+.board-post-top .avatar{width:48px;height:48px}
+.board-post h3{margin:0;font-size:16px}
+.board-post .meta{font-size:12px;color:var(--muted)}
+.board-post-main{
+  padding:12px;border-radius:var(--radius-sm);
+  border:1px solid rgba(244,114,182,.18);
+  background:linear-gradient(150deg,rgba(244,114,182,.09),rgba(125,211,252,.045));
+}
+.board-post-main b{display:block;font-size:15px;color:#fbcfe8}
+.board-post-main p{margin:4px 0 0;color:var(--soft);font-size:12.5px;line-height:1.6}
+.board-tags{display:flex;gap:7px;flex-wrap:wrap}
+.board-badge{
+  display:inline-flex;align-items:center;min-height:24px;padding:3px 9px;border-radius:999px;
+  color:#bbf7d0;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.24);
+  font-size:10.5px;font-weight:800;
+}
+.board-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.board-actions .btn{min-height:40px;padding:0 12px;font-size:12.5px}
+.board-empty{padding:18px;text-align:center;color:var(--muted);font-size:13px}
+
+/* drum picker */
+.drum{
+  position:relative;display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:8px;
+  border:1px solid var(--line);border-radius:var(--radius-sm);background:#0a101b;padding:0 10px;
+}
+.drum::before{
+  content:"";position:absolute;left:8px;right:8px;top:50%;height:44px;transform:translateY(-50%);
+  border-top:1px solid rgba(125,211,252,.24);border-bottom:1px solid rgba(125,211,252,.24);
+  background:rgba(125,211,252,.05);border-radius:8px;pointer-events:none;
+}
+.drum-col{
+  height:132px;overflow-y:auto;scroll-snap-type:y mandatory;
+  scrollbar-width:none;-ms-overflow-style:none;
+  mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent);
+  -webkit-mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent);
+}
+.drum-col::-webkit-scrollbar{display:none}
+.drum-col ul{list-style:none;margin:0;padding:44px 0}
+.drum-col li{
+  height:44px;display:grid;place-items:center;scroll-snap-align:center;
+  color:var(--muted);font-size:13.5px;font-weight:600;
+  font-variant-numeric:tabular-nums;transition:color .15s;
+}
+.drum-col li.on{color:var(--ink);font-weight:800}
+
+/* me */
+.me-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.me-head .avatar{width:58px;height:58px;font-size:22px;position:relative}
+.me-head h3{margin:0;font-size:19px}
+.me-head .meta{font-size:12.5px;color:var(--muted)}
+.avatar-crown{
+  position:absolute;right:-3px;bottom:-2px;z-index:3;width:20px;height:20px;border-radius:50%;
+  display:grid;place-items:center;font-size:10px;color:#05070b;background:#fef3c7;
+  border:2px solid var(--bg);
+}
+.pm-badge{
+  display:inline-flex;align-items:center;vertical-align:middle;margin-left:5px;
+  padding:2px 7px;border-radius:999px;font-family:var(--en);font-size:10px;
+  color:#fef3c7;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.34);
+}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px}
+.stat{padding:13px 8px;text-align:center}
+.stat b{display:block;font-family:var(--en);font-size:21px}
+.stat span{font-size:11px;color:var(--muted)}
+.premium-card{
+  margin-top:14px;padding:16px;border-color:rgba(251,191,36,.32);
+  background:linear-gradient(150deg,rgba(251,191,36,.11),rgba(167,139,250,.08) 48%,rgba(12,16,24,.9));
+}
+.premium-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.premium-top b{display:block;color:#fef3c7}
+.premium-top span{display:block;margin-top:2px;font-size:12px;color:var(--muted)}
+.premium-state{
+  flex:0 0 auto;padding:3px 9px;border-radius:999px;font-family:var(--en);font-size:11px;font-weight:700;
+  color:#ede9fe;background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.34);
+}
+.premium-card .btn{margin-top:13px}
+.check-list{list-style:none;padding:0;display:grid;gap:9px}
+.check-list li{display:flex;gap:8px;align-items:flex-start;color:var(--soft);font-size:12.5px;line-height:1.5}
+.check-list svg{width:17px;height:17px;flex:0 0 auto;color:#86efac;margin-top:1px}
+.profile-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.profile-item{padding:11px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:rgba(247,248,251,.035)}
+.profile-item span{display:block;font-size:10.5px;color:var(--muted);font-weight:800}
+.profile-item b{display:block;margin-top:2px;font-size:13px;color:var(--soft)}
+.profile-note{margin-top:9px;color:var(--muted);font-size:12.5px;line-height:1.7}
+.proof-gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+.proof-card{
+  overflow:hidden;border:1px solid var(--line);border-radius:var(--radius-sm);
+  background:rgba(247,248,251,.035);
+}
+.proof-photo{
+  height:104px;position:relative;display:grid;place-items:end start;padding:9px;
+  background:
+    radial-gradient(circle at 75% 22%,rgba(255,255,255,.45) 0 13px,transparent 14px),
+    linear-gradient(155deg,var(--proof-a,#7dd3fc),var(--proof-b,#f472b6));
+}
+.proof-photo::before{
+  content:"";position:absolute;inset:auto 0 0;height:45%;
+  background:linear-gradient(12deg,rgba(5,7,11,.42),rgba(5,7,11,.06));
+  clip-path:polygon(0 58%,35% 22%,60% 48%,100% 8%,100% 100%,0 100%);
+}
+.proof-photo b{
+  position:relative;z-index:1;font-size:11px;color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.45);
+}
+.proof-body{padding:9px 10px 10px}
+.proof-body .tag{margin-bottom:6px}
+.proof-body p{margin:0;font-size:11px;color:var(--muted);line-height:1.45}
+.proof-more{
+  display:grid;place-items:center;min-height:170px;border:1px dashed rgba(201,208,220,.2);
+  border-radius:var(--radius-sm);color:var(--muted);font-size:12px;text-align:center;padding:12px;
+}
+.profile-sheet-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.profile-sheet-head h3{margin:0}
+.profile-sheet-head .meta{font-size:12px;color:var(--muted)}
+.profile-sheet-note{
+  padding:11px 13px;border-radius:var(--radius-sm);
+  border:1px solid rgba(52,211,153,.22);background:rgba(52,211,153,.055);
+  color:#bbf7d0;font-size:12px;line-height:1.55;
+}
+
+/* met ledger (trust ledger) */
+.ledger-count{
+  display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;
+  font-family:var(--en);font-size:11px;font-weight:700;color:#c9f7e4;
+  background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.34);vertical-align:middle;
+}
+.ledger-empty{
+  padding:16px;border:1px dashed rgba(201,208,220,.2);border-radius:var(--radius);
+  color:var(--muted);font-size:12.5px;line-height:1.7;
+}
+.ledger{display:grid;gap:0}
+.ledger-row{display:grid;grid-template-columns:24px 1fr;gap:10px}
+.ledger-rail{position:relative;display:flex;justify-content:center}
+.ledger-rail::before{
+  content:"";position:absolute;top:0;bottom:0;width:2px;
+  background:linear-gradient(180deg,rgba(52,211,153,.4),rgba(52,211,153,.08));
+}
+.ledger-row:first-child .ledger-rail::before{top:7px}
+.ledger-row:last-child .ledger-rail::before{bottom:auto;height:9px}
+.ledger-dot{
+  position:relative;z-index:1;margin-top:5px;width:11px;height:11px;border-radius:50%;
+  background:var(--green);box-shadow:0 0 0 4px rgba(52,211,153,.14);
+}
+.ledger-body{
+  padding:0 0 18px 2px;min-width:0;
+}
+.ledger-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ledger-top b{font-size:15px}
+.met-badge{
+  font-family:var(--en);font-size:10px;font-weight:700;color:#c9f7e4;
+  padding:2px 7px;border-radius:999px;
+  background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.34);
+}
+.ledger-date{margin-left:auto;font-family:var(--en);font-size:12px;color:var(--muted)}
+.ledger-plan{margin-top:4px;font-size:13px;color:var(--soft)}
+.ledger-revs{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.rev-pill{
+  font-size:11px;font-weight:700;color:var(--soft);
+  padding:3px 9px;border-radius:999px;
+  background:rgba(247,248,251,.04);border:1px solid rgba(201,208,220,.16);
+}
+
+/* invite card */
+.invite-card{
+  padding:18px;
+  border-color:rgba(167,139,250,.3);
+  background:linear-gradient(165deg,rgba(167,139,250,.1),rgba(125,211,252,.05) 50%,rgba(12,16,24,.9));
+}
+.invite-lead{font-size:13px;color:var(--soft);line-height:1.7}
+.invite-lead b{color:#ddd6fe}
+.invite-code-row{
+  display:flex;align-items:center;gap:12px;margin-top:14px;
+  padding:13px 14px;border-radius:var(--radius-sm);
+  border:1px dashed rgba(167,139,250,.4);background:rgba(10,15,27,.7);
+}
+.invite-code{display:grid;gap:2px;min-width:0}
+.invite-code-label{font-size:10.5px;color:var(--muted);font-weight:700}
+.invite-code b{font-size:24px;letter-spacing:.18em;color:#ede9fe;line-height:1.1}
+.invite-code-row .btn{margin-left:auto;flex:0 0 auto}
+.invite-prog{margin-top:14px}
+.invite-prog-bar{
+  height:8px;border-radius:999px;overflow:hidden;
+  background:rgba(201,208,220,.12);
+}
+.invite-prog-bar i{
+  display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,#a78bfa,#7dd3fc);transition:width .4s ease;
+}
+.invite-prog-label{display:block;margin-top:7px;font-size:11.5px;color:var(--muted)}
+.invite-prog-label b{color:var(--soft)}
+#invite-share svg{width:18px;height:18px}
+
+/* verify animation */
+.verify-anim{padding:8px 4px 4px}
+.verify-scan{
+  position:relative;height:120px;border-radius:var(--radius);overflow:hidden;
+  display:grid;place-items:center;
+  border:1px solid rgba(125,211,252,.24);
+  background:
+    radial-gradient(120% 80% at 50% 0,rgba(125,211,252,.12),transparent 70%),
+    repeating-linear-gradient(0deg,rgba(125,211,252,.05) 0 2px,transparent 2px 12px),
+    #0a101b;
+}
+.verify-scan-tag{
+  font-size:15px;font-weight:800;color:#d7efff;letter-spacing:.02em;z-index:1;
+  padding:6px 14px;border-radius:999px;
+  background:rgba(10,16,27,.7);border:1px solid rgba(125,211,252,.3);
+}
+.verify-scan-line{
+  position:absolute;left:0;right:0;top:0;height:34px;
+  background:linear-gradient(180deg,rgba(125,211,252,.42),transparent);
+  border-bottom:2px solid rgba(125,211,252,.85);
+  animation:scanmove 1.1s ease-in-out infinite;
+}
+@keyframes scanmove{0%{top:-34px}100%{top:120px}}
+.verify-bar{height:6px;border-radius:999px;overflow:hidden;background:rgba(201,208,220,.12);margin-top:16px}
+.verify-bar i{display:block;height:100%;width:6%;border-radius:999px;
+  background:linear-gradient(90deg,#7dd3fc,#a78bfa);transition:width 1.7s ease}
+.verify-step{margin-top:12px;text-align:center;color:var(--soft);font-size:13px;font-weight:600;min-height:18px}
+.verify-done{
+  width:64px;height:64px;margin:8px auto 0;display:grid;place-items:center;border-radius:50%;
+  color:#062c1c;background:linear-gradient(135deg,#34d399,#7dd3fc);
+  animation:pop .4s ease;
+}
+.verify-done svg{width:34px;height:34px}
+@keyframes pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  .verify-scan-line{animation:none;top:43px}
+  .verify-done{animation:none}
+  .verify-bar i{transition:none;width:100%!important}
+}
+
+/* like / mutual-like */
+.btn-like svg{width:18px;height:18px;color:#f472b6}
+.like-anim{padding:14px 4px 4px;display:grid;justify-items:center}
+.like-burst{color:var(--pink);animation:beat 1s ease-in-out infinite}
+.like-burst svg{width:60px;height:60px}
+@keyframes beat{0%,100%{transform:scale(1)}30%{transform:scale(1.18)}45%{transform:scale(1.02)}}
+.like-step{margin-top:14px;text-align:center;color:var(--soft);font-size:13.5px;font-weight:600}
+.like-done{
+  width:72px;height:72px;display:grid;place-items:center;border-radius:50%;
+  color:#fff;background:linear-gradient(135deg,#f472b6,#a78bfa);animation:pop .45s ease;
+}
+.like-done svg{width:38px;height:38px}
+
+/* tab bar */
+.tabbar{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:25;
+  width:min(100%,520px);
+  display:none;grid-template-columns:repeat(5,1fr);
+  padding:8px 10px calc(8px + var(--sab));
+  background:rgba(5,7,11,.88);
+  border-top:1px solid var(--line);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.tabbar.on{display:grid}
+.tab{
+  display:grid;justify-items:center;gap:3px;padding:6px 0;border:0;background:none;
+  color:var(--muted);font-size:10px;font-weight:800;border-radius:10px;
+}
+.tab svg{width:20px;height:20px}
+.tab[aria-current="true"]{color:#d7efff}
+.tab .dot{
+  position:absolute;margin-left:26px;margin-top:-2px;
+  width:8px;height:8px;border-radius:50%;background:var(--pink);display:none;
+}
+.tab.has-dot .dot{display:block}
+
+/* overlay sheet */
+.overlay{
+  position:fixed;inset:0;z-index:40;display:none;
+  background:rgba(3,5,8,.66);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.overlay.on{display:grid;align-items:end;justify-items:center}
+.sheet{
+  width:min(100%,520px);max-height:86dvh;overflow-y:auto;
+  border-radius:20px 20px 0 0;
+  border:1px solid var(--line);border-bottom:0;
+  background:#0a0f18;
+  padding:20px 18px calc(20px + var(--sab));
+  animation:up .26s ease;
+}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.sheet h3{margin:0 0 4px;font-size:18px}
+.sheet .sub{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+.sheet .actions{display:grid;gap:9px;margin-top:16px}
+
+/* toast */
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);z-index:60;
+  bottom:calc(96px + var(--sab));
+  max-width:min(92%,480px);
+  padding:11px 18px;border-radius:999px;
+  background:#131b29;border:1px solid rgba(125,211,252,.3);
+  color:#e3f5ff;font-size:13px;font-weight:700;text-align:center;
+  opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(-6px)}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="app-bar">
+    <span class="mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4.8a2 2 0 0 1 2-2H12a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8Z"></path><path d="M7.5 7.5h.01"></path></svg>
+    </span>
+    <span class="word">TAG <span>TOKYO</span></span>
+    <span class="bar-pill" id="bar-pill">FREE BETA</span>
+  </div>
+
+  <!-- onboarding -->
+  <section class="screen" id="s-onboard"></section>
+  <!-- discover -->
+  <section class="screen" id="s-home"></section>
+  <!-- board -->
+  <section class="screen" id="s-board"></section>
+  <!-- plans -->
+  <section class="screen" id="s-plans"></section>
+  <!-- talk -->
+  <section class="screen" id="s-talk"></section>
+  <!-- me -->
+  <section class="screen" id="s-me"></section>
+
+  <nav class="tabbar" id="tabbar" aria-label="アプリ内ナビゲーション">
+    <button class="tab" data-go="home" aria-current="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      さがす
+    </button>
+    <button class="tab" data-go="board">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h10"></path><path d="M4 19h16"></path><path d="M18 9v6"></path><path d="M15 12h6"></path></svg>
+      募集
+    </button>
+    <button class="tab" data-go="plans">
+      <span class="dot" aria-hidden="true"></span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4"></path><path d="M8 2v4"></path><path d="M3 10h18"></path></svg>
+      約束
+    </button>
+    <button class="tab" data-go="talk">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg>
+      トーク
+    </button>
+    <button class="tab" data-go="me">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+      じぶん
+    </button>
+  </nav>
+</div>
+
+<div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ================= data ================= */
+var TAGS = [
+  {id:'cafe',label:'カフェ巡り',cat:'hobby',verify:'photo'},
+  {id:'movie',label:'名画座・映画',cat:'hobby',verify:'photo'},
+  {id:'sauna',label:'サウナ',cat:'hobby',verify:'photo'},
+  {id:'book',label:'読書',cat:'hobby',verify:'photo'},
+  {id:'pokeca',label:'カードゲーム',cat:'hobby',verify:'photo'},
+  {id:'bodoge',label:'ボドゲ',cat:'hobby',verify:'photo'},
+  {id:'furugi',label:'古着',cat:'hobby',verify:'photo'},
+  {id:'live',label:'ライブ',cat:'hobby',verify:'photo'},
+  {id:'run',label:'ランニング',cat:'hobby',verify:'photo'},
+  {id:'cook',label:'自炊',cat:'hobby',verify:'photo'},
+  {id:'travel',label:'旅行',cat:'outing',verify:'photo'},
+  {id:'onsen',label:'温泉',cat:'outing',verify:'photo'},
+  {id:'drive',label:'ドライブ',cat:'outing',verify:'photo'},
+  {id:'walk',label:'散歩',cat:'outing',verify:'photo'},
+  {id:'museum',label:'美術館',cat:'outing',verify:'photo'},
+  {id:'aquarium',label:'水族館',cat:'outing',verify:'photo'},
+  {id:'disney',label:'テーマパーク',cat:'outing',verify:'photo'},
+  {id:'camp',label:'キャンプ',cat:'outing',verify:'photo'},
+  {id:'fes',label:'フェス',cat:'outing',verify:'photo'},
+  {id:'photo',label:'カメラ',cat:'hobby',verify:'photo'},
+  {id:'game',label:'ゲーム',cat:'culture',verify:'photo'},
+  {id:'anime',label:'アニメ',cat:'culture',verify:'photo'},
+  {id:'manga',label:'漫画',cat:'culture',verify:'photo'},
+  {id:'music',label:'音楽',cat:'culture',verify:'photo'},
+  {id:'karaoke',label:'カラオケ',cat:'culture',verify:'photo'},
+  {id:'art',label:'アート',cat:'culture',verify:'photo'},
+  {id:'comedy',label:'お笑い',cat:'culture',verify:'photo'},
+  {id:'theater',label:'舞台',cat:'culture',verify:'photo'},
+  {id:'ramen',label:'ラーメン',cat:'food',verify:'photo'},
+  {id:'sushi',label:'寿司',cat:'food',verify:'photo'},
+  {id:'yakiniku',label:'焼肉',cat:'food',verify:'photo'},
+  {id:'sweets',label:'スイーツ',cat:'food',verify:'photo'},
+  {id:'bread',label:'パン屋巡り',cat:'food',verify:'photo'},
+  {id:'wine',label:'ワイン',cat:'food',verify:'photo'},
+  {id:'nihonshu',label:'日本酒',cat:'food',verify:'photo'},
+  {id:'coffee',label:'コーヒー',cat:'food',verify:'photo'},
+  {id:'spicy',label:'辛いもの',cat:'food',verify:'photo'},
+  {id:'gym',label:'ジム',cat:'sports',verify:'photo'},
+  {id:'yoga',label:'ヨガ',cat:'sports',verify:'photo'},
+  {id:'bouldering',label:'ボルダリング',cat:'sports',verify:'photo'},
+  {id:'tennis',label:'テニス',cat:'sports',verify:'photo'},
+  {id:'golf',label:'ゴルフ',cat:'sports',verify:'photo'},
+  {id:'baseball',label:'野球観戦',cat:'sports',verify:'photo'},
+  {id:'soccer',label:'サッカー観戦',cat:'sports',verify:'photo'},
+  {id:'ski',label:'スキー・スノボ',cat:'sports',verify:'photo'},
+  {id:'dog',label:'犬好き',cat:'pet',verify:'photo'},
+  {id:'cat',label:'猫好き',cat:'pet',verify:'photo'},
+  {id:'animal',label:'動物好き',cat:'pet',verify:'photo'},
+  {id:'plant',label:'観葉植物',cat:'life',verify:'photo'},
+  {id:'interior',label:'インテリア',cat:'life',verify:'photo'},
+  {id:'fashion',label:'ファッション',cat:'life',verify:'photo'},
+  {id:'cosme',label:'美容・コスメ',cat:'life',verify:'photo'},
+  {id:'language',label:'英語・語学',cat:'life',verify:'photo'},
+  {id:'morning',label:'朝型',cat:'value',verify:'photo'},
+  {id:'night',label:'夜型',cat:'value',verify:'photo'},
+  {id:'indoor',label:'インドア',cat:'value',verify:'photo'},
+  {id:'outdoor',label:'アウトドア',cat:'value',verify:'photo'},
+  {id:'serious',label:'真剣交際',cat:'value',verify:'photo'},
+  {id:'friend',label:'まずは友達から',cat:'value',verify:'photo'},
+  {id:'slow',label:'連絡はゆっくり',cat:'value',verify:'photo'},
+  {id:'weekend',label:'土日休み',cat:'value',verify:'photo'},
+  {id:'weekday',label:'平日休み',cat:'value',verify:'photo'}
+];
+var TAG_BY_ID = {};
+TAGS.forEach(function(t){ TAG_BY_ID[t.id] = t; });
+var VERIFY = {
+  photo:    {name:'写真フォルダ認証', action:'写真フォルダから選ぶ（体験）', level:2, desc:'個人の写真フォルダにある体験写真で確認します。認証した写真はプロフィールの証拠として掲載されます。'},
+  question: {name:'質問認証', action:'質問に回答する（体験）', level:1, desc:'価値観の質問に回答して証明します。'},
+  log:      {name:'行動ログ認証', action:'利用ログで自動判定（体験）', level:1, desc:'アプリ内の行動傾向から自動で判定します。'},
+  location: {name:'エリア認証', action:'現在地で確認（体験）', level:2, desc:'位置情報で確認。相手には大まかなエリアだけ表示されます。'}
+};
+var PERSONAS = [
+  {name:'Rin',age:27,gender:'woman',job:'デザイナー',income:'400-600万円',height:'162cm',vibe:'まずは友達から',area:'新宿・中野'},
+  {name:'Sota',age:29,gender:'man',job:'エンジニア',income:'600-800万円',height:'174cm',vibe:'真剣交際',area:'下北沢・渋谷'},
+  {name:'Yui',age:25,gender:'woman',job:'編集者',income:'400-600万円',height:'158cm',vibe:'カフェ友達から',area:'吉祥寺・中野'},
+  {name:'Kaito',age:31,gender:'man',job:'企画職',income:'600-800万円',height:'178cm',vibe:'趣味友歓迎',area:'秋葉原・上野'},
+  {name:'Mio',age:26,gender:'woman',job:'医療系',income:'400-600万円',height:'160cm',vibe:'まずは友達から',area:'錦糸町・北千住'},
+  {name:'Ren',age:28,gender:'man',job:'マーケター',income:'500-700万円',height:'171cm',vibe:'自然体で',area:'渋谷・下北沢'},
+  {name:'Aoi',age:24,gender:'woman',job:'公務員',income:'300-500万円',height:'156cm',vibe:'ゆっくり仲良く',area:'池袋・新宿'},
+  {name:'Haru',age:30,gender:'man',job:'営業',income:'500-700万円',height:'176cm',vibe:'真剣交際',area:'吉祥寺・三鷹'}
+];
+var GENDERS = {
+  woman: '女性',
+  man: '男性',
+  other: 'その他・未回答'
+};
+var PROFILE_DEFAULTS = {
+  job:'未設定',
+  income:'未設定',
+  height:'未設定',
+  residence:'東京都',
+  education:'未設定',
+  alcohol:'未設定',
+  bio:'共通のキーワードから、まずは60分で会ってみたいです。'
+};
+var PLAN_TPL = {
+  cafe:    {title:'ブックカフェで1杯だけ', spot:'新宿御苑前のブックカフェ', stations:['新宿御苑前駅 1番出口','新宿三丁目駅 C5'], badge:'TAG SPOT / 1杯目割引'},
+  book:    {title:'静かなブックカフェの2人席', spot:'新宿御苑前のブックカフェ', stations:['新宿御苑前駅 1番出口','新宿三丁目駅 C5'], badge:'TAG SPOT / 1杯目割引'},
+  movie:   {title:'名画座のレイトショー前にコーヒー', spot:'新宿の名画座ラウンジ', stations:['新宿三丁目駅 C5','新宿駅 東南口'], badge:'半券で特典'},
+  sauna:   {title:'サウナ後の外気浴トーク', spot:'錦糸町のサウナ&カフェ', stations:['錦糸町駅 北口'], badge:'Met認証対応'},
+  pokeca:  {title:'カードショップで1戦だけ', spot:'秋葉原の対戦スペース', stations:['秋葉原駅 電気街口'], badge:'TAG SPOT'},
+  bodoge:  {title:'ボドゲカフェの60分席', spot:'下北沢のボドゲカフェ', stations:['下北沢駅 東口'], badge:'60分席を予約'},
+  live:    {title:'ライブ前にカフェで予習', spot:'渋谷の音楽カフェ', stations:['渋谷駅 ハチ公口'], badge:'TAG SPOT'},
+  run:     {title:'朝ラン1周＋コーヒー', spot:'皇居ランステーション', stations:['竹橋駅 1b出口'], badge:'TAG SPOT'},
+  furugi:  {title:'古着屋を2軒だけハシゴ', spot:'下北沢の古着ストリート', stations:['下北沢駅 東口'], badge:'TAG SPOT'},
+  cook:    {title:'食材マーケットを30分散歩', spot:'吉祥寺ハモニカ横丁前', stations:['吉祥寺駅 北口'], badge:'TAG SPOT'}
+};
+var REPLIES = ['こちらこそ、よろしくお願いします😊','いいですね！','楽しみにしてます！','それ、ぜひ！','わたしもです！'];
+var SUGGEST_WHEN = ['FRI 19:30','SAT 16:00','SUN 11:00'];
+var MAX_TAG_LEVEL = 10;
+var DISCOVER_DEFAULTS = {gender:'all', age:'all', area:'all', place:'all', sort:'recommended'};
+
+/* ================= state ================= */
+var KEY = 'tagtokyo-app-v1';
+var state = load();
+function load(){
+  try {
+    var s = JSON.parse(localStorage.getItem(KEY));
+    if (s && s.profile) {
+      if (!s.metHistory) s.metHistory = [];
+      s.premium = false;
+      s.plus = true;
+      s.discover = normalizeDiscover(s.discover);
+      if (!s.likes) s.likes = { free: 30, paid: 0, day: likeDayKey() };
+      pruneProfileTags(s.profile);
+      if (!s.profile.avatar) s.profile.avatar = makeAvatar(s.profile.name || 'T');
+      ensureProfileDetails(s.profile);
+      ensureTagProofs(s.profile);
+      if (!s.tagProgress) s.tagProgress = {};
+      if (!s.skipped) s.skipped = [];
+      if (!s.boardPosts) s.boardPosts = seedBoardPosts();
+      if (!s.boardLiked) s.boardLiked = [];
+      if (!s.matches) s.matches = [];
+      if (s.match) addOrUpdateMatch(s, s.match);
+      if (!s.activeMatchId && s.match) s.activeMatchId = s.match.id;
+      if (!s.reach) s.reach = {};
+      syncActiveMatch(s);
+      return s;
+    }
+  } catch(e){}
+  return {profile:null, match:null, matches:[], activeMatchId:null, metCount:0, metHistory:[], plus:true, premium:false, likes:null, discover:normalizeDiscover(null), reach:{}, tagProgress:{}, skipped:[], boardPosts:seedBoardPosts(), boardLiked:[]};
+}
+function save(){
+  state.plus = true;
+  state.premium = false;
+  state.discover = normalizeDiscover(state.discover);
+  if (!state.matches) state.matches = [];
+  if (!state.tagProgress) state.tagProgress = {};
+  if (!state.skipped) state.skipped = [];
+  if (!state.boardPosts) state.boardPosts = seedBoardPosts();
+  if (!state.boardLiked) state.boardLiked = [];
+  syncActiveMatch(state);
+  localStorage.setItem(KEY, JSON.stringify(state));
+}
+function normalizeDiscover(d){
+  d = d || {};
+  return {
+    gender: d.gender || DISCOVER_DEFAULTS.gender,
+    age: d.age || DISCOVER_DEFAULTS.age,
+    area: d.area || DISCOVER_DEFAULTS.area,
+    place: d.place || DISCOVER_DEFAULTS.place,
+    sort: d.sort || DISCOVER_DEFAULTS.sort
+  };
+}
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function trackEvent(name, params){
+  try { if (typeof gtag === 'function') gtag('event', name, Object.assign({service:'tag_tokyo'}, params || {})); } catch(e){}
+}
+function pruneProfileTags(profile){
+  if (!profile || !profile.tags) return;
+  Object.keys(profile.tags).forEach(function(id){
+    if (!TAG_BY_ID[id] || TAG_BY_ID[id].verify !== 'photo') delete profile.tags[id];
+  });
+}
+function ensureProfileDetails(profile){
+  if (!profile) return;
+  if (!profile.details) profile.details = {};
+  Object.keys(PROFILE_DEFAULTS).forEach(function(k){
+    if (!profile.details[k]) profile.details[k] = PROFILE_DEFAULTS[k];
+  });
+}
+function proofColors(id){
+  var s = String(id || 'tag'), n = 0;
+  for (var i=0;i<s.length;i++) n += s.charCodeAt(i) * (i+7);
+  var palettes = [
+    ['#7dd3fc','#34d399'],['#f472b6','#a78bfa'],['#fbbf24','#fb7185'],
+    ['#60a5fa','#f472b6'],['#34d399','#fbbf24'],['#c4b5fd','#7dd3fc']
+  ];
+  return palettes[n % palettes.length];
+}
+function makeProof(id){
+  var t = TAG_BY_ID[id] || {label:'TAG'};
+  var c = proofColors(id), n = Math.abs(String(id).split('').reduce(function(a,ch,i){ return a + ch.charCodeAt(0)*(i+1); }, 11));
+  return {
+    tag:id,
+    source:'写真フォルダ',
+    file:t.label.replace(/\s/g,'')+'_'+String(1000 + n % 9000)+'.jpg',
+    verifiedAt:Date.now(),
+    a:c[0],
+    b:c[1]
+  };
+}
+function makePublicProof(id, name){
+  var p = makeProof(id);
+  p.source = '相手の写真フォルダ';
+  p.file = (name || 'TAG')+'_'+p.file;
+  return p;
+}
+function ensureTagProofs(profile){
+  if (!profile) return;
+  if (!profile.proofs) profile.proofs = {};
+  Object.keys(profile.tags || {}).forEach(function(id){
+    if ((profile.tags[id] || 0) >= 2 && TAG_BY_ID[id] && !profile.proofs[id]) profile.proofs[id] = makeProof(id);
+  });
+  Object.keys(profile.proofs).forEach(function(id){
+    if (!TAG_BY_ID[id] || !profile.tags || (profile.tags[id] || 0) < 2) delete profile.proofs[id];
+  });
+}
+function hasTagPlus(){ return true; }
+function genderLabel(g){ return GENDERS[g] || '未設定'; }
+function oppositeGender(g){ return g === 'woman' ? 'man' : (g === 'man' ? 'woman' : ''); }
+function genderFilterMode(){ return state.discover && state.discover.gender === 'opposite' ? 'opposite' : 'all'; }
+function setGenderFilter(mode){
+  state.discover = normalizeDiscover(state.discover);
+  state.discover.gender = mode;
+  save();
+}
+function matchIdFrom(c){
+  return 'm'+c.i+'-'+Date.now().toString(36)+'-'+Math.floor(Math.random()*999).toString(36);
+}
+function addOrUpdateMatch(target, m){
+  if (!m.id) m.id = matchIdFrom({i:m.ci || 0});
+  if (!m.talk) m.talk = [];
+  if (!m.reviewed) m.reviewed = [];
+  if (!m.deadline) m.deadline = Date.now() + 72*3600*1000;
+  if (m.closed == null) m.closed = false;
+  var list = target.matches || (target.matches = []);
+  var idx = list.findIndex(function(x){ return x.id === m.id; });
+  if (idx >= 0) list[idx] = m;
+  else list.unshift(m);
+}
+function syncActiveMatch(target){
+  var list = target.matches || [];
+  if (target.activeMatchId){
+    target.match = list.find(function(m){ return m.id === target.activeMatchId; }) || null;
+  }
+  if (!target.match && list.length){
+    target.match = list[0];
+    target.activeMatchId = list[0].id;
+  }
+  if (target.match && !list.some(function(m){ return m.id === target.match.id; })) addOrUpdateMatch(target, target.match);
+}
+function matches(){ return state.matches || []; }
+function activeMatch(){ syncActiveMatch(state); return state.match; }
+function setActiveMatch(id){
+  state.activeMatchId = id;
+  syncActiveMatch(state);
+  save();
+  return state.match;
+}
+function matchedCandidateIds(){
+  var used = {};
+  matches().forEach(function(m){ if (!m.closed && m.ci != null) used[m.ci] = true; });
+  return used;
+}
+function personaByIndex(i){
+  return PERSONAS[i] || null;
+}
+function profileDetailsForPerson(p){
+  return {
+    job:p.job || '未設定',
+    income:p.income || '未設定',
+    height:p.height || '未設定',
+    residence:p.area ? p.area.split('・')[0]+'周辺' : '東京都',
+    education:p.education || ['大学卒','専門卒','大学院卒','高校卒'][((p.name || '').length + (p.age || 0)) % 4],
+    alcohol:p.alcohol || ['たまに飲む','飲まない','よく飲む'][((p.age || 0) + (p.name || '').length) % 3],
+    bio:p.bio || p.vibe || '共通のキーワードから自然に話したいです。'
+  };
+}
+function publicTagLevels(ids, met){
+  var levels = {};
+  (ids || []).forEach(function(id){ levels[id] = met ? 4 : 2; });
+  return levels;
+}
+function publicProofs(ids, name){
+  var proofs = {};
+  (ids || []).forEach(function(id){ proofs[id] = makePublicProof(id, name); });
+  return proofs;
+}
+function makeAvatar(seed){
+  var s = String(seed || 'T'), n = 0;
+  for (var i=0;i<s.length;i++) n += s.charCodeAt(i) * (i+3);
+  var palettes = [
+    ['#7dd3fc','#f472b6','#f8fafc','#f9a8d4'],
+    ['#34d399','#a78bfa','#fef3c7','#f59e0b'],
+    ['#fbbf24','#7dd3fc','#fde68a','#d97706'],
+    ['#f472b6','#34d399','#fecdd3','#be123c'],
+    ['#c4b5fd','#fb7185','#e5e7eb','#6b7280'],
+    ['#60a5fa','#fbbf24','#dbeafe','#2563eb']
+  ];
+  var animals = ['cat','dog','rabbit','fox','bear','shiba'];
+  var p = palettes[n % palettes.length];
+  return {a:p[0], b:p[1], fur:p[2], accent:p[3], animal:animals[n % animals.length], seed:n};
+}
+function avatarHTML(profile, crown){
+  var av = profile && profile.avatar || makeAvatar(profile && profile.name || '?');
+  if (!av.animal) av = makeAvatar((profile && profile.name || '?') + (av.seed || ''));
+  var gid = 'av'+Math.abs(av.seed || 1);
+  var ears = '';
+  var faceShape = '';
+  var muzzle = '';
+  if (av.animal === 'rabbit'){
+    ears = '<path d="M28 38C20 16 24 5 34 4c8 2 10 16 8 35" fill="'+esc(av.fur)+'" stroke="'+esc(av.accent)+'" stroke-width="3"/>'
+      + '<path d="M67 38C74 16 70 5 60 4c-8 2-10 16-8 35" fill="'+esc(av.fur)+'" stroke="'+esc(av.accent)+'" stroke-width="3"/>'
+      + '<path d="M32 35c-4-13-2-20 2-23 4 4 5 12 4 23M63 35c4-13 2-20-2-23-4 4-5 12-4 23" fill="#fda4af" opacity=".58"/>';
+    faceShape = '<ellipse cx="48" cy="50" rx="31" ry="34" fill="'+esc(av.fur)+'"/>';
+  } else if (av.animal === 'fox'){
+    ears = '<path d="M21 38 32 8l17 27zM75 38 64 8 47 35z" fill="'+esc(av.accent)+'"/>'
+      + '<path d="M29 32 34 18l8 15zM67 32 62 18l-8 15z" fill="#fff7ed" opacity=".82"/>';
+    faceShape = '<path d="M18 46c4-21 16-32 30-32s26 11 30 32c3 18-10 34-30 34S15 64 18 46z" fill="'+esc(av.accent)+'"/>';
+    muzzle = '<path d="M26 54c8 20 36 20 44 0-7 6-15 9-22 9s-15-3-22-9z" fill="#fff7ed" opacity=".95"/>';
+  } else if (av.animal === 'bear'){
+    ears = '<circle cx="25" cy="30" r="13" fill="'+esc(av.accent)+'"/><circle cx="71" cy="30" r="13" fill="'+esc(av.accent)+'"/>'
+      + '<circle cx="25" cy="30" r="7" fill="#fecaca" opacity=".62"/><circle cx="71" cy="30" r="7" fill="#fecaca" opacity=".62"/>';
+    faceShape = '<circle cx="48" cy="50" r="32" fill="'+esc(av.fur)+'"/>';
+  } else if (av.animal === 'dog' || av.animal === 'shiba'){
+    ears = '<path d="M21 35c1-17 10-24 21-22-3 16-11 25-21 30zM75 35c-1-17-10-24-21-22 3 16 11 25 21 30z" fill="'+esc(av.accent)+'"/>'
+      + '<path d="M29 34c2-8 6-13 11-15-2 8-6 13-11 17zM67 34c-2-8-6-13-11-15 2 8 6 13 11 17z" fill="#fde2e7" opacity=".72"/>';
+    faceShape = '<path d="M18 47c0-20 13-32 30-32s30 12 30 32c0 20-12 34-30 34S18 67 18 47z" fill="'+esc(av.fur)+'"/>';
+    muzzle = '<path d="M28 55c2 15 11 24 20 24s18-9 20-24c-5 5-12 8-20 8s-15-3-20-8z" fill="#fff7ed" opacity=".95"/>';
+  } else {
+    ears = '<path d="M20 39 29 12l20 25zM76 39 67 12 47 37z" fill="'+esc(av.fur)+'"/>'
+      + '<path d="M28 33 32 21l9 13zM68 33 64 21l-9 13z" fill="#fda4af" opacity=".66"/>';
+    faceShape = '<circle cx="48" cy="50" r="32" fill="'+esc(av.fur)+'"/>';
+  }
+  var forehead = av.animal === 'cat'
+    ? '<path d="M39 22c2 7 5 10 9 10s7-3 9-10" fill="none" stroke="'+esc(av.accent)+'" stroke-width="3" stroke-linecap="round" opacity=".62"/>'
+    : (av.animal === 'shiba' ? '<path d="M35 22c3 8 7 12 13 12s10-4 13-12" fill="#fff7ed" opacity=".86"/>' : '');
+  return '<div class="avatar ai" style="--avatar-a:'+esc(av.a)+';--avatar-b:'+esc(av.b)+'">'
+    + '<svg class="animal-svg" viewBox="0 0 96 96" aria-hidden="true">'
+    + '<defs><linearGradient id="'+gid+'bg" x1="18" y1="8" x2="80" y2="88"><stop stop-color="'+esc(av.a)+'"/><stop offset="1" stop-color="'+esc(av.b)+'"/></linearGradient></defs>'
+    + '<circle cx="48" cy="48" r="43" fill="url(#'+gid+'bg)" opacity=".28"/>'
+    + '<path d="M22 88c5-17 16-25 26-25s21 8 26 25H22z" fill="rgba(5,7,11,.18)"/>'
+    + ears
+    + faceShape
+    + forehead
+    + '<circle cx="36" cy="50" r="5" fill="#111827"/><circle cx="60" cy="50" r="5" fill="#111827"/>'
+    + '<circle cx="38" cy="48" r="1.6" fill="#fff"/><circle cx="62" cy="48" r="1.6" fill="#fff"/>'
+    + '<circle cx="31" cy="59" r="4.5" fill="#fb7185" opacity=".2"/><circle cx="65" cy="59" r="4.5" fill="#fb7185" opacity=".2"/>'
+    + muzzle
+    + '<ellipse cx="48" cy="61" rx="5" ry="3.7" fill="#111827"/>'
+    + '<path d="M48 64v4M48 68c-4 4-9 4-12 0M48 68c4 4 9 4 12 0" fill="none" stroke="#111827" stroke-width="2.4" stroke-linecap="round"/>'
+    + (av.animal === 'cat' ? '<path d="M28 61h13M27 67h13M55 61h13M56 67h13" stroke="#111827" stroke-width="2" stroke-linecap="round" opacity=".5"/>' : '')
+    + '</svg>'
+    + (crown?'<span class="avatar-crown" aria-hidden="true">★</span>':'')
+    + '</div>';
+}
+function personaIndexByName(name){
+  return PERSONAS.findIndex(function(p){ return p.name === name; });
+}
+function personaPhotoStyle(index){
+  var row = Math.max(0, Math.floor(index / 2));
+  return '--photo-x:'+(index % 2 ? '100%' : '0%')+';--photo-y:'+([0,33.333,66.667,100][row] || 0)+'%';
+}
+function personaPhotoHTML(index, className, label){
+  return '<div class="persona-photo '+esc(className || '')+'" style="'+personaPhotoStyle(index)+'" role="img" aria-label="'+esc(label || 'プロフィール写真')+'"></div>';
+}
+avatarHTML = function(profile, crown){
+  var name = profile && profile.name || '?';
+  var index = personaIndexByName(name);
+  if (index >= 0){
+    return '<div class="avatar persona-photo" style="'+personaPhotoStyle(index)+'" role="img" aria-label="'+esc(name)+'さんのプロフィール写真">'
+      + (crown?'<span class="avatar-crown" aria-hidden="true">★</span>':'')+'</div>';
+  }
+  var dataUrl = profile && profile.avatar && profile.avatar.dataUrl;
+  if (dataUrl){
+    return '<div class="avatar uploaded"><img src="'+esc(dataUrl)+'" alt="'+esc(name)+'さんのプロフィール写真">'
+      + (crown?'<span class="avatar-crown" aria-hidden="true">★</span>':'')+'</div>';
+  }
+  return '<div class="avatar self-avatar" aria-label="'+esc(name)+'さん">'+esc(String(name).slice(0,1).toUpperCase())+'</div>';
+};
+function trustBoostFromReviews(reviews){
+  var n = (reviews || []).length;
+  return Math.min(24, n * 6);
+}
+function updateReachScore(m){
+  if (!state.reach) state.reach = {};
+  state.reach[m.id] = {
+    score: 100 + trustBoostFromReviews(m.reviewed),
+    updatedAt: Date.now()
+  };
+}
+function applyMetLevelProgress(id){
+  if (!state.profile || !state.profile.tags || !state.profile.tags[id]) return 'none';
+  if (!state.tagProgress) state.tagProgress = {};
+  var current = state.profile.tags[id] || 0;
+  if (current < 2){
+    state.profile.tags[id] = 2;
+    return 'progress';
+  }
+  if (current >= MAX_TAG_LEVEL) return 'none';
+  state.tagProgress[id] = (state.tagProgress[id] || 0) + 1;
+  var need = state.premium ? 1 : Math.min(5, Math.max(2, current));
+  if (state.tagProgress[id] >= need){
+    state.profile.tags[id] = Math.min(MAX_TAG_LEVEL, current + 1);
+    state.tagProgress[id] = 0;
+    return 'upgraded';
+  }
+  return 'progress';
+}
+function profileLine(p){
+  var d = p.details || p;
+  return [d.job, d.income, d.height].filter(function(v){ return v && v !== '未設定'; }).join(' / ');
+}
+
+/* ---- like economy ---- */
+var DAILY_FREE = 30, INITIAL_FREE = 30;
+// Free beta likes roll over at 04:00 to discourage automated spam.
+function likeDayKey(){
+  var d = new Date(Date.now() - 4*3600*1000);
+  return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+function refreshLikes(){
+  if (!state.profile) return;
+  if (!state.likes) state.likes = { free: INITIAL_FREE, paid: 0, day: likeDayKey() };
+  if (state.likes.day !== likeDayKey()){
+    state.likes.free = DAILY_FREE;   // 無料分は午前4時に再配布（前日分は消滅）
+    state.likes.day = likeDayKey();
+    save();
+  }
+}
+function totalLikes(){ return state.likes ? state.likes.free : 0; }
+function spendLike(){
+  refreshLikes();
+  if (state.likes.free > 0){ state.likes.free--; save(); return true; }
+  return false;
+}
+
+/* ================= helpers ================= */
+function $(sel){ return document.querySelector(sel); }
+function show(id){
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('on'); });
+  $('#s-'+id).classList.add('on');
+  document.querySelectorAll('.tab').forEach(function(t){ t.setAttribute('aria-current', t.getAttribute('data-go')===id ? 'true' : 'false'); });
+  window.scrollTo(0,0);
+}
+function toast(msg){
+  var t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove('on'); }, 2600);
+}
+function sheet(html){
+  $('#sheet').innerHTML = html;
+  $('#overlay').classList.add('on');
+}
+function closeSheet(){ $('#overlay').classList.remove('on'); }
+$('#overlay').addEventListener('click', function(e){ if (e.target === this) closeSheet(); });
+
+function userTagIds(){ return state.profile ? Object.keys(state.profile.tags) : []; }
+function lv(id){ return state.profile.tags[id] || 0; }
+function levelLabel(n){ return 'Lv.'+n; }
+function levelText(n){ return 'レベル'+n; }
+function clampLevel(n){ return Math.max(1, Math.min(MAX_TAG_LEVEL, parseInt(n || 1, 10))); }
+function levelStyle(n){
+  var l = clampLevel(n);
+  var palette = [
+    ['#fbbf24','rgba(251,191,36,.13)','rgba(251,191,36,.52)','#05070b'],
+    ['#84cc16','rgba(132,204,22,.13)','rgba(132,204,22,.52)','#05070b'],
+    ['#34d399','rgba(52,211,153,.14)','rgba(52,211,153,.56)','#05070b'],
+    ['#2dd4bf','rgba(45,212,191,.14)','rgba(45,212,191,.56)','#042f2e'],
+    ['#38bdf8','rgba(56,189,248,.14)','rgba(56,189,248,.58)','#05233a'],
+    ['#60a5fa','rgba(96,165,250,.16)','rgba(96,165,250,.6)','#061a3a'],
+    ['#818cf8','rgba(129,140,248,.16)','rgba(129,140,248,.62)','#fff'],
+    ['#a78bfa','rgba(167,139,250,.17)','rgba(167,139,250,.66)','#fff'],
+    ['#f472b6','rgba(244,114,182,.18)','rgba(244,114,182,.68)','#fff'],
+    ['#f8fafc','linear-gradient(120deg,rgba(251,191,36,.2),rgba(244,114,182,.18),rgba(125,211,252,.18))','rgba(248,250,252,.82)','#05070b']
+  ][l-1];
+  return {level:l, badge:palette[0], bg:palette[1], border:palette[2], ink:palette[3], text:l>=7 ? '#fff' : '#dff7ff'};
+}
+function tagChip(id, withLv){
+  return tagPill(id, lv(id), withLv);
+}
+function tagPill(id, level, withLv){
+  var t = TAG_BY_ID[id]; if (!t) return '';
+  var l = clampLevel(level || 1), st = levelStyle(l);
+  var style = '--tag-c:'+st.text+';--tag-bg:'+st.bg+';--tag-border:'+st.border+';--tag-badge:'+st.badge+';--tag-badge-ink:'+st.ink;
+  return '<span class="tag l'+l+'" style="'+esc(style)+'">'+esc(t.label)+(withLv && l>0 ? '<span class="tag-level">'+levelLabel(l)+'</span>' : '')+'</span>';
+}
+function nextDays(n){
+  var out=[], names=['日','月','火','水','木','金','土'];
+  for (var i=1;i<=n;i++){
+    var d = new Date(Date.now()+i*86400000);
+    out.push((d.getMonth()+1)+'/'+d.getDate()+' ('+names[d.getDay()]+')');
+  }
+  return out;
+}
+
+/* ================= candidates ================= */
+// During the public beta, every core matching feature is free.
+function matchThreshold(){ return 1; }
+var SHARE_COUNTS = [5,4,3,2,3,1,2,1];
+function buildCandidates(){
+  var mine = userTagIds();
+  var th = matchThreshold();
+  return PERSONAS.map(function(p,i){
+    var shareN = Math.min(mine.length, SHARE_COUNTS[i % SHARE_COUNTS.length]);
+    var shared = mine.slice(0, shareN);
+    var l2 = shared.filter(function(id){ return lv(id)>=2; }).length;
+    var areaShared = shared.some(function(id){ return TAG_BY_ID[id].cat==='area'; });
+    var pass = shared.length >= th;
+    var score = Math.min(98, 60 + shared.length*6 + l2*2);
+    var likes = 18 + ((i+3) * 17 + p.age * 3 + shared.length * 11) % 160;
+    return {i:i, p:p, shared:shared, l2:l2, areaShared:areaShared, pass:pass, score:score, likes:likes};
+  });
+}
+function filterCandidatesByGender(cands){
+  if (genderFilterMode() !== 'opposite') return cands;
+  var opp = oppositeGender(state.profile && state.profile.gender);
+  if (!hasTagPlus() || !opp) return cands;
+  return cands.filter(function(c){ return c.p.gender === opp; });
+}
+function profileCompleteness(){
+  if (!state.profile) return 0;
+  ensureProfileDetails(state.profile);
+  var d = state.profile.details || {};
+  var fields = ['job','income','height','residence','education','alcohol','bio'];
+  var done = fields.filter(function(k){ return d[k] && d[k] !== '未設定'; }).length;
+  var tagScore = Math.min(3, userTagIds().length >= 8 ? 3 : Math.floor(userTagIds().length / 3));
+  return Math.min(100, Math.round(((done + tagScore) / (fields.length + 3)) * 100));
+}
+function candidatePool(){
+  var already = matchedCandidateIds();
+  var skipped = {};
+  (state.skipped || []).forEach(function(i){ skipped[i] = true; });
+  var d = normalizeDiscover(state.discover);
+  var list = filterCandidatesByGender(buildCandidates()).filter(function(c){
+    return !already[c.i] && !skipped[c.i] && ageMatches(c.p.age, d.age) && areaMatches(c.p.area, d.area);
+  });
+  list.sort(function(a,b){
+    if (d.sort === 'likes') return b.likes - a.likes;
+    if (d.sort === 'ageclose'){
+      var base = 28;
+      return Math.abs(a.p.age - base) - Math.abs(b.p.age - base);
+    }
+    return b.score - a.score;
+  });
+  return list;
+}
+function ageMatches(age, mode){
+  if (!mode || mode === 'all') return true;
+  if (mode === '20s') return age >= 20 && age <= 29;
+  if (mode === '30s') return age >= 30 && age <= 39;
+  if (mode === '24-27') return age >= 24 && age <= 27;
+  if (mode === '28-31') return age >= 28 && age <= 31;
+  return true;
+}
+function areaMatches(area, mode){
+  if (!mode || mode === 'all') return true;
+  return String(area || '').split('・').indexOf(mode) >= 0;
+}
+function areaOptions(){
+  var seen = {}, out = [];
+  PERSONAS.forEach(function(p){
+    String(p.area || '').split('・').forEach(function(a){
+      if (a && !seen[a]){ seen[a] = true; out.push(a); }
+    });
+  });
+  return out;
+}
+function discoverSet(key, value){
+  state.discover = normalizeDiscover(state.discover);
+  state.discover[key] = value;
+  save();
+  renderHome();
+}
+function discoverSummary(){
+  var d = normalizeDiscover(state.discover), parts = [];
+  if (d.age !== 'all') parts.push('年齢 '+ageLabel(d.age));
+  if (d.area !== 'all') parts.push('地域 '+d.area);
+  if (d.place !== 'all') parts.push('待ち合わせ '+placeLabel(d.place));
+  if (d.sort !== 'recommended') parts.push(sortLabel(d.sort));
+  return parts.length ? parts.join(' / ') : '条件なし。おすすめ順で表示中';
+}
+function ageLabel(v){
+  return ({all:'すべて', '20s':'20代', '30s':'30代', '24-27':'24-27歳', '28-31':'28-31歳'})[v] || 'すべて';
+}
+function placeLabel(v){ return ({all:'すべて', cafe:'カフェ', station:'駅'})[v] || 'すべて'; }
+function sortLabel(v){ return ({recommended:'おすすめ順', likes:'いいね多い順', ageclose:'年齢が近い順'})[v] || 'おすすめ順'; }
+function compatibilityReason(c){
+  var tags = c.shared.slice(0,2).map(function(id){ return TAG_BY_ID[id] && TAG_BY_ID[id].label; }).filter(Boolean);
+  if (tags.length >= 2) return tags[0]+'と'+tags[1]+'が共通。初回トークのきっかけが作りやすい相手です。';
+  if (tags.length === 1) return tags[0]+'が共通。話し始める理由が見える相手です。';
+  return 'プロフィール条件が近い相手です。認証タグを増やすと理由がもっと出ます。';
+}
+function dateIntentForCandidate(c){
+  var first = c.shared[0] || 'cafe';
+  var place = normalizeDiscover(state.discover).place;
+  var tpl = PLAN_TPL[first] || PLAN_TPL.cafe;
+  tpl = planTplForPlace(tpl, {area:c.p.area}, first);
+  var when = SUGGEST_WHEN[(c.i + c.shared.length) % SUGGEST_WHEN.length];
+  return {title:tpl.title, spot:tpl.spot, when:when, tag:first, place:place};
+}
+function planTplForPlace(tpl, subject, tagId){
+  var place = normalizeDiscover(state.discover).place;
+  var area = subject && subject.area ? String(subject.area).split('・')[0] : '新宿';
+  var tag = TAG_BY_ID[tagId] ? TAG_BY_ID[tagId].label : '共通タグ';
+  if (place === 'station'){
+    var station = tpl && tpl.stations && tpl.stations[0] ? tpl.stations[0] : area+'駅 改札前';
+    return {title:'駅で合流して30分だけ', spot:station, stations:[station], badge:'駅集合 / 迷いにくい'};
+  }
+  if (place === 'cafe' && (!tpl || !/カフェ|コーヒー/.test(tpl.title + tpl.spot))){
+    return {title:'駅近カフェで'+tag+'の話を60分', spot:'提携カフェ（'+area+'）', stations:[area+'駅 改札前'], badge:'カフェ集合 / TAG SPOT'};
+  }
+  return tpl || {title:'提携カフェで'+tag+'の話を60分', spot:'提携カフェ（'+area+'）', stations:[area+'駅 改札前'], badge:'TAG SPOT'};
+}
+function homeHeroHTML(cands){
+  var passing = cands.filter(function(c){ return c.pass; });
+  var top = passing[0] || cands[0];
+  var pct = profileCompleteness();
+  var html = '<div class="home-hero">';
+  if (top){
+    html += '<div class="for-you-card">'
+      + '<div class="for-you-top"><div><b>今日のFor You</b><span>タグ・距離感・会いやすさから推薦</span></div>'
+      + '<div class="for-you-score">'+top.score+'%</div></div>'
+      + '<div class="for-you-reason">'+esc(top.p.name)+'さん: '+esc(compatibilityReason(top))+'</div>'
+      + '<div class="for-you-actions">'
+      + '<button class="btn btn-ghost" data-profile="'+top.i+'">詳しく見る</button>'
+      + '<button class="btn btn-primary" data-appeal="'+top.i+'">いいねする</button>'
+      + '</div></div>';
+  }
+  if (pct < 90){
+    html += '<div class="profile-meter">プロフィール充実度 '+pct+'%<i><span style="width:'+pct+'%"></span></i></div>';
+  }
+  return html + '</div>';
+}
+function dateBoardHTML(cands){
+  var list = cands.filter(function(c){ return c.pass; }).slice(0,3);
+  if (!list.length) return '';
+  var place = normalizeDiscover(state.discover).place;
+  var html = '<div class="date-board">'
+    + '<div class="date-board-head"><b>今日のおでかけ募集</b><span>'+esc(placeLabel(place))+'で探す</span></div>';
+  list.forEach(function(c){
+    var d = dateIntentForCandidate(c);
+    html += '<div class="date-row">'
+      + avatarHTML({name:c.p.name, avatar:makeAvatar(c.p.name)}, false)
+      + '<div><h3>'+esc(d.title)+'</h3><div class="meta">'+esc(c.p.name)+'さん / '+esc(d.when)+' / '+esc(d.spot)+'</div></div>'
+      + '<button class="btn btn-primary" data-date-invite="'+c.i+'">誘う</button>'
+      + '</div>';
+  });
+  return html + '</div>';
+}
+function candidateCardHTML(c, locked){
+  var d = dateIntentForCandidate(c);
+  var html = '<article class="panel cand'+(locked?' cand-locked':'')+'">'
+    + personaPhotoHTML(c.i, 'cand-photo', c.p.name+'さんのプロフィール写真')
+    + '<div class="cand-photo-label"><b>'+esc(c.p.name)+', '+c.p.age+'</b><span>'+c.score+'% MATCH</span></div>'
+    + '<div class="cand-head">'
+    + '<div><div class="meta">'+genderLabel(c.p.gender)+' / '+esc(c.p.area)+' / '+esc(c.p.vibe)+'</div>'
+    + '<div class="meta">'+esc(profileLine(c.p))+'</div></div>'
+    + '<div class="score">'+c.score+'%</div>'
+    + '</div>'
+    + '<div class="cand-kicker">'+esc(compatibilityReason(c))+'</div>'
+    + '<div class="chips">'+c.shared.map(function(id){ return tagChip(id,true); }).join('')+'</div>'
+    + '<div class="compat-grid">'
+    + '<div class="compat-item"><b>'+c.shared.length+'</b><span>共通タグ</span></div>'
+    + '<div class="compat-item"><b>'+c.likes+'</b><span>もらったいいね</span></div>'
+    + '<div class="compat-item"><b>'+esc(d.when)+'</b><span>誘いやすい時間</span></div>'
+    + '</div>'
+    + '<div class="rule-box">'
+    + '<div class="rule-line"><span>共通認証タグ</span><b class="'+(c.pass?'pass':'')+'">'+c.shared.length+' / '+matchThreshold()+'</b></div>'
+    + '<div class="rule-line"><span>おすすめ予定</span><b>'+esc(d.title)+'</b></div>'
+    + '</div>';
+  if (locked){
+    html += '<div class="cand-cta"><button class="btn btn-ghost" data-profile="'+c.i+'">プロフィール</button>'
+      + '<button class="btn btn-primary" data-appeal="'+c.i+'">いいねする</button></div>';
+  } else {
+    html += '<div class="card-actions">'
+      + '<button class="btn btn-ghost icon-btn" data-skip="'+c.i+'" aria-label="見送り"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>'
+      + '<button class="btn btn-primary btn-like" data-appeal="'+c.i+'">'
+      + '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.3C.4 8.5 2 5 5.3 5c2 0 3.4 1.1 4.2 2.3C10.3 6.1 11.7 5 13.7 5 17 5 18.6 8.5 17 11.7 14.5 16.4 12 21 12 21z"></path></svg>'
+      + 'いいねする</button>'
+      + '<button class="btn btn-ghost icon-btn" data-profile="'+c.i+'" aria-label="プロフィール"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></button>'
+      + '</div>';
+  }
+  return html + '</article>';
+}
+function searchFiltersHTML(){
+  var d = normalizeDiscover(state.discover);
+  var mode = genderFilterMode();
+  var myGender = state.profile && state.profile.gender;
+  var canOpposite = !!oppositeGender(myGender);
+  var html = '<div class="search-filters">'
+    + '<div class="filter-head"><div><b>探す条件</b><span>表示する相手・年齢・地域・並び順をまとめて調整</span></div>'
+    + '<div class="premium-state">'+esc(sortLabel(d.sort))+'</div></div>'
+    + '<div class="audience-filter">'
+    + '<button class="btn '+(mode==='all'?'btn-primary':'btn-outline')+'" data-gfilter="all">全員</button>'
+    + '<button class="btn '+(mode==='opposite'?'btn-primary':'btn-ghost')+'" data-gfilter="opposite">'
+    + (hasTagPlus() ? (canOpposite ? '異性だけ' : '性別を設定') : '異性だけ（P）')+'</button>'
+    + '</div>'
+    + '<div class="filter-row">'
+    + selectFieldHTML('年齢', 'age', [
+      ['all','すべて'], ['20s','20代'], ['30s','30代'], ['24-27','24-27歳'], ['28-31','28-31歳']
+    ], d.age)
+    + selectFieldHTML('地域', 'area', [['all','すべて']].concat(areaOptions().map(function(a){ return [a,a]; })), d.area)
+    + selectFieldHTML('並び順', 'sort', [
+      ['recommended','おすすめ'], ['likes','いいね多い順'], ['ageclose','年齢近い順']
+    ], d.sort)
+    + '</div>'
+    + '<div class="filter-summary">'+esc(discoverSummary())+'</div>'
+    + '<div class="place-filter">'
+    + placeButtonHTML('all', d.place)
+    + placeButtonHTML('cafe', d.place)
+    + placeButtonHTML('station', d.place)
+    + '</div>'
+    + '</div>';
+  return html;
+}
+function selectFieldHTML(label, key, options, current){
+  return '<label class="select-field"><span>'+esc(label)+'</span><select data-discover="'+esc(key)+'">'
+    + options.map(function(o){ return '<option value="'+esc(o[0])+'"'+(o[0]===current?' selected':'')+'>'+esc(o[1])+'</option>'; }).join('')
+    + '</select></label>';
+}
+function placeButtonHTML(value, current){
+  return '<button class="btn '+(value===current?'btn-primary':'btn-ghost')+'" data-place-filter="'+esc(value)+'">'+esc(placeLabel(value))+'</button>';
+}
+function genderFilterHTML(){
+  var mode = genderFilterMode();
+  var myGender = state.profile && state.profile.gender;
+  var canOpposite = !!oppositeGender(myGender);
+  return '<div class="filter-toggle">'
+    + '<div class="filter-head"><div><b>表示する相手</b><span>デフォルトは同性・異性を分けず、タグが合う人を表示</span></div>'
+    + '<div class="premium-state">'+(mode==='opposite'?'異性のみ':'全員')+'</div></div>'
+    + '<div class="filter-actions">'
+    + '<button class="btn '+(mode==='all'?'btn-primary':'btn-outline')+'" data-gfilter="all">全員</button>'
+    + '<button class="btn '+(mode==='opposite'?'btn-primary':'btn-ghost')+'" data-gfilter="opposite">'
+    + (hasTagPlus() ? (canOpposite ? '異性だけ' : '性別を設定') : '異性だけ（P）')+'</button>'
+    + '</div></div>';
+}
+
+/* ================= onboarding ================= */
+var ob = {step:1, name:'', gender:'', adult:false, avatar:null, picked:{}, proofs:{}};
+function renderOnboard(){
+  var el = $('#s-onboard');
+  var html = '<div class="steps">'+[1,2,3].map(function(n){ return '<i class="'+(ob.step>=n?'on':'')+'"></i>'; }).join('')+'</div>';
+
+  if (ob.step===1){
+    html += '<h2 class="screen-title">東京で、ちゃんと会える人を。</h2>'
+      + '<p class="screen-sub">公開ベータはすべて無料です。入力内容はこの端末だけに保存され、実ユーザーには送信されません。</p>'
+      + '<div class="panel pad">'
+      + '<div class="field"><label for="ob-name">ニックネーム</label><input id="ob-name" maxlength="12" placeholder="例: あな" value="'+esc(ob.name)+'"></div>'
+      + '<div class="field"><label>プロフィール写真</label><div class="avatar-maker">'
+      + avatarHTML({name:ob.name || '?', avatar:ob.avatar}, false)
+      + '<p>顔がわかる明るい写真を1枚選んでください。端末内のプレビューにだけ使います。</p>'
+      + '<input id="ob-avatar-file" type="file" accept="image/*" hidden>'
+      + '<button class="btn btn-ghost btn-sm" id="ob-avatar" type="button">写真を選ぶ</button>'
+      + '</div></div>'
+      + '<div class="field"><label>あなたの性別（任意）</label><div class="chips">'
+      + genderOptionHTML('woman', ob.gender) + genderOptionHTML('man', ob.gender) + genderOptionHTML('other', ob.gender)
+      + '</div></div>'
+      + '<label class="consent-row"><input id="ob-adult" type="checkbox" '+(ob.adult?'checked':'')+'><span><b>18歳以上です</b><br>利用規約・安全ガイドラインを確認し、年齢確認が完了するまで実ユーザーとの連絡機能は使えないことに同意します。</span></label>'
+      + '<button class="btn btn-primary" id="ob-next1">次へ：タグを選ぶ</button>'
+      + '</div>';
+  }
+  if (ob.step===2){
+    var cats = [
+      ['hobby','趣味'],
+      ['food','食べ物・お酒'],
+      ['outing','お出かけ'],
+      ['culture','カルチャー'],
+      ['sports','スポーツ'],
+      ['pet','ペット'],
+      ['life','ライフスタイル'],
+      ['value','価値観']
+    ];
+    html += '<h2 class="screen-title">タグを選ぶ</h2>'
+      + '<p class="screen-sub">5個以上。マッチングアプリでよく使うキーワードから、あなたっぽいものを選んでください。</p>';
+    cats.forEach(function(c){
+      html += '<div class="cat-label">'+c[1]+'</div><div class="chips">';
+      TAGS.filter(function(t){ return t.cat===c[0]; }).forEach(function(t){
+        html += '<button class="chip-btn" data-tag="'+t.id+'" aria-pressed="'+(ob.picked[t.id]?'true':'false')+'">'+esc(t.label)+'</button>';
+      });
+      html += '</div>';
+    });
+    html += '<div class="ob-status" id="ob-status"></div>'
+      + '<div style="display:grid;gap:9px;margin-top:14px">'
+      + '<button class="btn btn-primary" id="ob-next2">次へ：タグを証明する</button>'
+      + '<button class="btn btn-outline" id="ob-back1">戻る</button>'
+      + '</div>';
+  }
+  if (ob.step===3){
+    html += '<h2 class="screen-title">タグを証明する</h2>'
+      + '<p class="screen-sub">端末の写真フォルダにある体験写真で確認します。認証した写真はプロフィールに証拠として掲載されます。</p>'
+      + '<div class="panel pad" id="ob-verify-list">';
+    Object.keys(ob.picked).forEach(function(id){
+      var t = TAG_BY_ID[id], v = VERIFY[t.verify], done = ob.picked[id]>0;
+      html += '<div class="verify-row">'
+        + '<div><span class="vname">'+esc(t.label)+'</span><span class="vtype">'+v.name+'</span></div>'
+        + '<div class="spacer"></div>'
+        + (done ? '<span class="lv l'+ob.picked[id]+'">'+levelLabel(ob.picked[id])+' 認証済み</span>'
+                : '<button class="btn btn-ghost btn-sm" data-verify="'+id+'">証明する</button>')
+        + '</div>';
+    });
+    html += '</div>'
+      + '<div style="display:grid;gap:9px;margin-top:14px">'
+      + '<button class="btn btn-outline" id="ob-verify-all">体験用にすべて証明する</button>'
+      + '<button class="btn btn-primary" id="ob-done">はじめる</button>'
+      + '<button class="btn btn-outline" id="ob-back2">戻る</button>'
+      + '</div>';
+  }
+  el.innerHTML = html;
+
+  if (ob.step===1){
+    el.querySelectorAll('[data-ob-gender]').forEach(function(b){
+      b.addEventListener('click', function(){
+        ob.name = $('#ob-name').value.trim();
+        ob.gender = b.getAttribute('data-ob-gender');
+        renderOnboard();
+      });
+    });
+    $('#ob-avatar').addEventListener('click', function(){ $('#ob-avatar-file').click(); });
+    $('#ob-avatar-file').addEventListener('change', function(){
+      var file = this.files && this.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(){ ob.name = $('#ob-name').value.trim(); ob.avatar = {dataUrl:reader.result}; renderOnboard(); toast('プロフィール写真を追加しました'); };
+      reader.readAsDataURL(file);
+    });
+    $('#ob-adult').addEventListener('change', function(){ ob.adult = this.checked; });
+    $('#ob-next1').addEventListener('click', function(){
+      ob.name = $('#ob-name').value.trim();
+      if (!ob.name){ toast('ニックネームを入力してください'); return; }
+      ob.adult = $('#ob-adult').checked;
+      if (!ob.adult){ toast('18歳以上の確認が必要です'); return; }
+      ob.step = 2; renderOnboard();
+    });
+  }
+  if (ob.step===2){
+    el.querySelectorAll('[data-tag]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var id = b.getAttribute('data-tag');
+        if (ob.picked[id] !== undefined){ delete ob.picked[id]; b.setAttribute('aria-pressed','false'); }
+        else { ob.picked[id] = 0; b.setAttribute('aria-pressed','true'); }
+        obStatus();
+      });
+    });
+    $('#ob-back1').addEventListener('click', function(){ ob.step=1; renderOnboard(); });
+    $('#ob-next2').addEventListener('click', function(){
+      if (!obValid().ok){ toast(obValid().msg); return; }
+      ob.step = 3; renderOnboard();
+    });
+    obStatus();
+  }
+  if (ob.step===3){
+    el.querySelectorAll('[data-verify]').forEach(function(b){
+      b.addEventListener('click', function(){ openVerify(b.getAttribute('data-verify')); });
+    });
+    $('#ob-verify-all').addEventListener('click', function(){
+      if (!ob.proofs) ob.proofs = {};
+      Object.keys(ob.picked).forEach(function(id){
+        ob.picked[id] = VERIFY[TAG_BY_ID[id].verify].level;
+        ob.proofs[id] = makeProof(id);
+      });
+      renderOnboard(); toast('写真フォルダからすべてのタグを認証しました（体験）');
+    });
+    $('#ob-back2').addEventListener('click', function(){ ob.step=2; renderOnboard(); });
+    $('#ob-done').addEventListener('click', function(){
+      var rest = Object.keys(ob.picked).filter(function(id){ return ob.picked[id]===0; });
+      if (rest.length){ toast('未認証のタグが'+rest.length+'個あります'); return; }
+      state.profile = {name: ob.name, gender: ob.gender, adultConfirmed:true, avatar: ob.avatar, details:{}, tags: ob.picked, proofs: ob.proofs || {}};
+      ensureProfileDetails(state.profile);
+      ensureTagProofs(state.profile);
+      state.likes = { free: INITIAL_FREE, paid: 0, day: likeDayKey() };  // 初回登録ボーナス
+      save();
+      trackEvent('tagtokyo_onboarding_complete', {tag_count:Object.keys(ob.picked).length, gender:ob.gender || 'unspecified'});
+      $('#tabbar').classList.add('on');
+      renderHome(); renderBoard(); show('home');
+      toast('ようこそ、'+ob.name+'さん。無料いいね30個を用意しました');
+    });
+  }
+}
+function genderOptionHTML(id, current){
+  return '<button class="chip-btn" type="button" data-ob-gender="'+id+'" aria-pressed="'+(current===id?'true':'false')+'">'+genderLabel(id)+'</button>';
+}
+function obValid(){
+  var ids = Object.keys(ob.picked);
+  var photo = ids.filter(function(id){ return TAG_BY_ID[id] && TAG_BY_ID[id].verify === 'photo'; }).length;
+  if (ids.length<5) return {ok:false, msg:'あと'+(5-ids.length)+'個タグを選んでください'};
+  if (photo<5) return {ok:false, msg:'キーワードを5個以上選んでください'};
+  return {ok:true};
+}
+function obStatus(){
+  var s = $('#ob-status'); if (!s) return;
+  var v = obValid(), n = Object.keys(ob.picked).length;
+  s.innerHTML = '選択中: <b>'+n+'</b> / 5個以上' + (v.ok ? ' — <b>OK!</b> 次へ進めます' : ' — '+esc(v.msg));
+  s.className = 'ob-status'+(v.ok?' ok':'');
+}
+var VERIFY_STEPS = {
+  photo:    ['写真フォルダを読み込み中…', '体験写真として確認…', 'プロフィール掲載用に保存…'],
+  question: ['回答を読み込み中…', '価値観の一貫性をチェック…'],
+  log:      ['行動ログを集計中…', '利用傾向を判定…'],
+  location: ['現在地を取得中…', '東京エリアを確認…']
+};
+function openVerify(id){
+  var t = TAG_BY_ID[id], v = VERIFY[t.verify];
+  sheet('<h3>「'+esc(t.label)+'」を証明</h3><p class="sub">'+v.name+' — '+v.desc+'</p>'
+    + '<div class="actions">'
+    + '<button class="btn btn-primary" id="v-go">'+v.action+'</button>'
+    + '<button class="btn btn-outline" id="v-cancel">キャンセル</button>'
+    + '</div>');
+  $('#v-go').addEventListener('click', function(){ runVerify(id); });
+  $('#v-cancel').addEventListener('click', closeSheet);
+}
+function runVerify(id){
+  var t = TAG_BY_ID[id], v = VERIFY[t.verify];
+  var steps = VERIFY_STEPS[t.verify] || ['認証中…'];
+  $('#sheet').innerHTML =
+      '<div class="verify-anim">'
+    + '<div class="verify-scan" id="v-scan"><div class="verify-scan-line"></div><span class="verify-scan-tag">'+esc(t.label)+'</span></div>'
+    + '<div class="verify-bar"><i id="v-bar"></i></div>'
+    + '<div class="verify-step" id="v-step">'+esc(steps[0])+'</div>'
+    + '</div>';
+  var bar = $('#v-bar'), step = $('#v-step');
+  var i = 0, n = steps.length, per = 620;
+  // kick the bar
+  setTimeout(function(){ if (bar) bar.style.width = '100%'; }, 30);
+  var iv = setInterval(function(){
+    i++;
+    if (i < n){ if (step) step.textContent = steps[i]; }
+  }, per);
+  setTimeout(function(){
+    clearInterval(iv);
+    ob.picked[id] = v.level;
+    if (!ob.proofs) ob.proofs = {};
+    ob.proofs[id] = makeProof(id);
+    var scan = $('#v-scan');
+    $('#sheet').innerHTML =
+        '<div class="verify-anim">'
+      + '<div class="verify-done" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div>'
+      + '<h3 style="text-align:center;margin-top:6px">認証完了</h3>'
+      + '<p class="sub" style="text-align:center">写真フォルダの証拠写真で「'+esc(t.label)+'」を<b style="color:#bbf7d0">'+levelText(v.level)+'</b>として証明しました。</p>'
+      + '<div class="actions"><button class="btn btn-primary" id="v-ok">続ける</button></div>';
+    var ok = $('#v-ok');
+    if (ok) ok.addEventListener('click', function(){ closeSheet(); renderOnboard(); });
+    // auto-advance shortly after
+    setTimeout(function(){ if (document.getElementById('v-ok')){ closeSheet(); renderOnboard(); } }, 1400);
+  }, per * n + 200);
+}
+
+/* ================= discover ================= */
+function renderHome(){
+  var el = $('#s-home');
+  refreshLikes();
+  var th = matchThreshold();
+  var lk = state.likes || {free:0,paid:0};
+  var html = '<h2 class="screen-title">さがす</h2>'
+    + '<p class="screen-sub"><b style="color:var(--soft)">お互いの「いいね」＋共通の認証タグ'+th+'つ以上</b>でマッチ。公開ベータ中は全機能を無料で使えます。</p>'
+    + '<div class="like-bank">'
+    + '<div class="like-bank-main"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.3C.4 8.5 2 5 5.3 5c2 0 3.4 1.1 4.2 2.3C10.3 6.1 11.7 5 13.7 5 17 5 18.6 8.5 17 11.7 14.5 16.4 12 21 12 21z"></path></svg>'
+    + '<b>'+totalLikes()+'</b><span>いいね</span></div>'
+    + '<div class="premium-state">FREE BETA</div>'
+    + '<div class="like-bank-detail">無料β枠 '+lk.free+'（毎日30・午前4時に更新）／ クレジットカード登録不要</div>'
+    + '</div>'
+    + searchFiltersHTML();
+  var activeCount = matches().filter(function(m){ return !m.closed; }).length;
+  if (activeCount){
+    html += '<div class="banner">進行中のマッチが'+activeCount+'件あります。トークごとに予定を立てられます。</div>';
+  }
+  var cands = candidatePool();
+  html += homeHeroHTML(cands);
+  html += likeInboxHTML(cands);
+  html += dateBoardHTML(cands);
+  var passing = cands.filter(function(c){ return c.pass; });
+  var locked = cands.filter(function(c){ return !c.pass && c.shared.length >= 1; });
+  passing.forEach(function(c){
+    html += candidateCardHTML(c, false);
+  });
+  if (locked.length){
+    if (hasTagPlus()){
+      html += '<div class="blocked-note">共通タグが0の相手は表示していません。証明された接点がある人だけ。</div>';
+    } else {
+      html += '<div class="cat-label" style="margin-top:18px">共通タグから見つかった相手</div>';
+      locked.forEach(function(c){
+        html += candidateCardHTML(c, true);
+      });
+    }
+  }
+  if (!passing.length && !locked.length){
+    html += '<div class="blocked-note">この条件で表示できる相手がいません。年齢・地域・待ち合わせ場所を「すべて」に戻すと候補が広がります。</div>';
+  }
+  el.innerHTML = html;
+  bindGenderFilter();
+  bindSearchFilters();
+  el.querySelectorAll('[data-appeal]').forEach(function(b){
+    b.addEventListener('click', function(){ openAppeal(parseInt(b.getAttribute('data-appeal'),10)); });
+  });
+  el.querySelectorAll('[data-incoming-like]').forEach(function(b){
+    b.addEventListener('click', function(){ openIncomingLike(parseInt(b.getAttribute('data-incoming-like'),10)); });
+  });
+  el.querySelectorAll('[data-date-invite]').forEach(function(b){
+    b.addEventListener('click', function(){ openDateInvite(parseInt(b.getAttribute('data-date-invite'),10)); });
+  });
+  el.querySelectorAll('[data-skip]').forEach(function(b){
+    b.addEventListener('click', function(){ skipCandidate(parseInt(b.getAttribute('data-skip'),10)); });
+  });
+  el.querySelectorAll('[data-profile]').forEach(function(b){
+    b.addEventListener('click', function(){ openCandidateProfile(parseInt(b.getAttribute('data-profile'),10)); });
+  });
+  el.querySelectorAll('[data-unlock]').forEach(function(b){
+    b.addEventListener('click', function(){
+      openPremium();
+    });
+  });
+}
+function likeInboxHTML(cands){
+  var incoming = cands.filter(function(c){ return c.shared.length >= 1; }).slice(0,3);
+  if (!incoming.length) return '';
+  var html = '<div class="panel like-inbox">'
+    + '<div class="like-inbox-head"><b>あなたへのいいね</b><span>'+incoming.length+'件</span></div>'
+    + '<div class="like-inbox-list">';
+  incoming.forEach(function(c){
+    var first = c.shared[0] && TAG_BY_ID[c.shared[0]] ? TAG_BY_ID[c.shared[0]].label : '共通タグ';
+    html += '<div class="like-inbox-row">'
+      + avatarHTML({name:c.p.name, avatar:makeAvatar(c.p.name)}, false)
+      + '<div><h3>'+esc(c.p.name)+', '+c.p.age+'</h3>'
+      + '<div class="meta">'+esc(first)+'を見ていいね · '+genderLabel(c.p.gender)+'</div></div>'
+      + '<button class="btn btn-primary" data-incoming-like="'+c.i+'">いいね返す</button>'
+      + '</div>';
+  });
+  return html + '</div></div>';
+}
+function skipCandidate(i){
+  if (!state.skipped) state.skipped = [];
+  if (state.skipped.indexOf(i) < 0) state.skipped.push(i);
+  save();
+  renderHome();
+  toast('見送りました');
+}
+function openDateInvite(i){
+  var c = buildCandidates()[i];
+  if (!c) return;
+  var d = dateIntentForCandidate(c);
+  sheet('<h3>'+esc(c.p.name)+'さんを誘う</h3>'
+    + '<p class="sub">'+esc(d.title)+' / '+esc(d.spot)+' / '+esc(d.when)+'。予定のきっかけつきでいいねを送ります。</p>'
+    + '<div class="chips" style="margin:8px 0 4px">'+c.shared.slice(0,3).map(function(id){ return tagChip(id,true); }).join('')+'</div>'
+    + '<div class="actions">'
+    + '<button class="btn btn-primary" id="date-send">この予定でいいね</button>'
+    + '<button class="btn btn-ghost" id="date-profile">プロフィールを見る</button>'
+    + '<button class="btn btn-outline" id="date-close">閉じる</button></div>');
+  $('#date-send').addEventListener('click', function(){
+    sendLike(i, d.title+'、'+d.when+'あたりで一緒に行けたら嬉しいです。');
+  });
+  $('#date-profile').addEventListener('click', function(){ closeSheet(); openCandidateProfile(i); });
+  $('#date-close').addEventListener('click', closeSheet);
+}
+function openModeSheet(mode){
+  if (mode === 'diagnosis'){
+    sheet('<h3>相性診断</h3><p class="sub">回答すると、今日のFor Youの理由が増えます。公開ベータでは選んだ価値観タグを体験用の認証済みタグとして追加します。</p>'
+      + '<div class="chips" id="diag-tags">'
+      + ['serious','friend','slow','indoor','morning','animal'].map(function(id){ return '<button class="chip-btn" data-diag-tag="'+id+'">'+esc(TAG_BY_ID[id].label)+'</button>'; }).join('')
+      + '</div><div class="actions"><button class="btn btn-primary" id="diag-save">選んだタグを追加</button><button class="btn btn-outline" id="diag-close">閉じる</button></div>');
+    var picked = {};
+    $('#diag-tags').querySelectorAll('[data-diag-tag]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var id = b.getAttribute('data-diag-tag');
+        picked[id] = !picked[id];
+        b.setAttribute('aria-pressed', picked[id] ? 'true' : 'false');
+      });
+    });
+    $('#diag-save').addEventListener('click', function(){
+      Object.keys(picked).forEach(function(id){
+        if (!picked[id]) return;
+        state.profile.tags[id] = Math.max(state.profile.tags[id] || 0, 2);
+        if (!state.profile.proofs) state.profile.proofs = {};
+        state.profile.proofs[id] = makeProof(id);
+      });
+      save(); closeSheet(); renderHome(); renderMe();
+      toast('相性診断タグを追加しました');
+    });
+    $('#diag-close').addEventListener('click', closeSheet);
+    return;
+  }
+  if (mode === 'tag'){
+    sheet('<h3>好みカード</h3><p class="sub">よく使うキーワードを増やすと、候補・会話・予定提案が広がります。</p>'
+      + '<div class="chips" id="fav-tags">'
+      + TAGS.filter(function(t){ return !state.profile.tags[t.id]; }).slice(0,16).map(function(t){ return '<button class="chip-btn" data-fav-tag="'+t.id+'">'+esc(t.label)+'</button>'; }).join('')
+      + '</div><div class="actions"><button class="btn btn-primary" id="fav-save">選んだカードを認証</button><button class="btn btn-outline" id="fav-close">閉じる</button></div>');
+    var fav = {};
+    $('#fav-tags').querySelectorAll('[data-fav-tag]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var id = b.getAttribute('data-fav-tag');
+        fav[id] = !fav[id];
+        b.setAttribute('aria-pressed', fav[id] ? 'true' : 'false');
+      });
+    });
+    $('#fav-save').addEventListener('click', function(){
+      Object.keys(fav).forEach(function(id){
+        if (!fav[id]) return;
+        state.profile.tags[id] = 2;
+        if (!state.profile.proofs) state.profile.proofs = {};
+        state.profile.proofs[id] = makeProof(id);
+      });
+      save(); closeSheet(); renderHome(); renderMe();
+      toast('好みカードを追加しました');
+    });
+    $('#fav-close').addEventListener('click', closeSheet);
+    return;
+  }
+  sheet('<h3>安心設定</h3><p class="sub">TAG TOKYOでは写真フォルダ認証タグ、合流QR、マッチ後評価を組み合わせて、会える相手の信頼度を裏側で調整します。</p>'
+    + '<ul class="check-list" style="margin:4px 0 0">'
+    + '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span>写真で証明できるタグだけプロフィール表示</span></li>'
+    + '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span>当日合流はQRで相互確認</span></li>'
+    + '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span>評価が高い人ほど表示範囲が広がる</span></li>'
+    + '</ul><div class="actions"><button class="btn btn-primary" id="safe-close">閉じる</button></div>');
+  $('#safe-close').addEventListener('click', closeSheet);
+}
+
+/* ================= board ================= */
+function seedBoardPosts(){
+  return PERSONAS.map(function(p,i){ return {p:p, i:i}; })
+    .filter(function(x){ return x.p.gender === 'woman'; })
+    .map(function(x,k){
+      var tags = ['cafe','movie','book','sweets'];
+      var tag = tags[k % tags.length], place = k % 2 ? 'station' : 'cafe';
+      return {
+        id:'seed-board-'+x.i,
+        ci:x.i,
+        owner:'persona',
+        name:x.p.name,
+        age:x.p.age,
+        gender:x.p.gender,
+        area:x.p.area,
+        place:place,
+        when:['今日 19:30','今から1時間','明日 12:00','今日 21:00'][k % 4],
+        tag:tag,
+        title:place === 'station' ? '駅で合流して少し話したい' : 'カフェで軽く会いたい',
+        message:[
+          '仕事終わりに60分だけ話せる人いますか？',
+          '予定が空いたので、駅集合でさくっと会いたいです。',
+          '静かな場所で話せる人だと嬉しいです。',
+          '帰る前に少しだけ会える人を探してます。'
+        ][k % 4],
+        likes:12 + k * 7,
+        createdAt:Date.now() - (k+1) * 1800000,
+        closed:false
+      };
+    });
+}
+function boardPosts(){
+  if (!state.boardPosts) state.boardPosts = seedBoardPosts();
+  return state.boardPosts.filter(function(p){ return !p.closed; });
+}
+function renderBoard(){
+  var el = $('#s-board');
+  if (!state.profile) return;
+  var gender = state.profile.gender;
+  var html = '<h2 class="screen-title">募集</h2>'
+    + '<p class="screen-sub">すぐ会いたい人の掲示板。女性は無料で投稿、男性は投稿にいいねしてマッチします。</p>'
+    + '<div class="board-rule">'
+    + '<div class="panel"><b>女性</b><span>無料で募集を書き込めます。テキスト入力なしで選択式。</span></div>'
+    + '<div class="panel"><b>男性</b><span>投稿にいいね。マッチ後すぐ予定へ。</span></div>'
+    + '</div>';
+  if (gender === 'woman'){
+    html += '<button class="btn btn-primary" id="board-new">無料で募集を書く</button>';
+  } else if (gender === 'man'){
+    html += '<div class="blocked-note">男性は募集投稿には書き込めません。気になる募集にいいねしてマッチします。</div>';
+  } else {
+    html += '<div class="blocked-note">募集投稿は女性無料、男性はいいねでマッチする設計です。プロフィールの性別設定から切り替えられます。</div>';
+  }
+  var posts = boardPosts();
+  if (!posts.length){
+    html += '<div class="panel board-empty" style="margin-top:12px">今出ている募集はありません。</div>';
+  } else {
+    html += '<div class="cat-label">今すぐ会いたい募集</div>';
+    posts.forEach(function(post){ html += boardPostHTML(post); });
+  }
+  el.innerHTML = html;
+  var nb = $('#board-new');
+  if (nb) nb.addEventListener('click', openBoardPostSheet);
+  el.querySelectorAll('[data-board-like]').forEach(function(b){
+    b.addEventListener('click', function(){ likeBoardPost(b.getAttribute('data-board-like')); });
+  });
+  el.querySelectorAll('[data-board-profile]').forEach(function(b){
+    b.addEventListener('click', function(){ openBoardProfile(b.getAttribute('data-board-profile')); });
+  });
+  el.querySelectorAll('[data-board-close]').forEach(function(b){
+    b.addEventListener('click', function(){ closeBoardPost(b.getAttribute('data-board-close')); });
+  });
+}
+function boardPostHTML(post){
+  var mine = post.owner === 'me';
+  var liked = (state.boardLiked || []).indexOf(post.id) >= 0 || matches().some(function(m){ return m.boardPostId === post.id; });
+  var tag = TAG_BY_ID[post.tag] ? TAG_BY_ID[post.tag].label : '共通タグ';
+  var html = '<article class="board-post">'
+    + '<div class="board-post-top">'
+    + avatarHTML({name:post.name, avatar:makeAvatar(post.name)}, false)
+    + '<div><h3>'+esc(post.name)+', '+post.age+'</h3>'
+    + '<div class="meta">'+genderLabel(post.gender)+' / '+esc(post.area)+' / '+(post.place==='station'?'駅集合':'カフェ集合')+'</div></div>'
+    + '</div>'
+    + '<div class="board-post-main"><b>'+esc(post.title)+'</b><p>'+esc(post.message)+'</p></div>'
+    + '<div class="board-tags">'
+    + '<span class="board-badge">'+esc(post.when)+'</span>'
+    + '<span class="board-badge">'+esc(tag)+'</span>'
+    + '<span class="board-badge">'+post.likes+'いいね</span>'
+    + '</div>';
+  if (mine){
+    html += '<div class="board-actions"><button class="btn btn-outline" data-board-close="'+esc(post.id)+'">募集を終了</button>'
+      + '<button class="btn btn-ghost" disabled>男性からのいいね待ち</button></div>';
+  } else if (state.profile.gender === 'man'){
+    html += '<div class="board-actions"><button class="btn btn-ghost" data-board-profile="'+esc(post.id)+'">プロフィール</button>'
+      + '<button class="btn btn-primary" data-board-like="'+esc(post.id)+'"'+(liked?' disabled':'')+'>'+(liked?'いいね済み':'いいねでマッチ')+'</button></div>';
+  } else {
+    html += '<div class="board-actions"><button class="btn btn-ghost" data-board-profile="'+esc(post.id)+'">プロフィール</button>'
+      + '<button class="btn btn-outline" disabled>男性のみいいね</button></div>';
+  }
+  return html + '</article>';
+}
+function openBoardPostSheet(){
+  if (!state.profile || state.profile.gender !== 'woman') return;
+  var tagIds = userTagIds().filter(function(id){ return TAG_BY_ID[id]; }).slice(0,8);
+  if (!tagIds.length) tagIds = ['cafe','movie','book'];
+  var areas = areaOptions();
+  var html = '<h3>募集を書く</h3><p class="sub">女性は無料で投稿できます。募集文は選択式で、男性はいいねでマッチします。</p>'
+    + '<div class="choice-label">待ち合わせ</div><div class="chips" id="board-place">'
+    + '<button class="chip-btn" data-board-place="cafe" aria-pressed="true">カフェ</button>'
+    + '<button class="chip-btn" data-board-place="station" aria-pressed="false">駅</button></div>'
+    + '<div class="choice-label">時間</div><div class="chips" id="board-when">'
+    + ['今から1時間','今日 19:30','今日 21:00','明日 12:00'].map(function(v,i){ return '<button class="chip-btn" data-board-when="'+esc(v)+'" aria-pressed="'+(i===0?'true':'false')+'">'+esc(v)+'</button>'; }).join('')
+    + '</div>'
+    + '<div class="choice-label">場所</div><div class="chips" id="board-area">'
+    + areas.slice(0,8).map(function(v,i){ return '<button class="chip-btn" data-board-area="'+esc(v)+'" aria-pressed="'+(i===0?'true':'false')+'">'+esc(v)+'</button>'; }).join('')
+    + '</div>'
+    + '<div class="choice-label">きっかけタグ</div><div class="chips" id="board-tag">'
+    + tagIds.map(function(id,i){ return '<button class="chip-btn" data-board-tag="'+esc(id)+'" aria-pressed="'+(i===0?'true':'false')+'">'+esc(TAG_BY_ID[id].label)+'</button>'; }).join('')
+    + '</div>'
+    + '<div class="choice-label">募集文</div><div class="chips" id="board-msg">'
+    + ['60分だけ話せる人いますか？','駅集合でさくっと会いたいです。','静かな場所で話したいです。','予定が空いたので今日会いたいです。'].map(function(v,i){ return '<button class="chip-btn" data-board-msg="'+esc(v)+'" aria-pressed="'+(i===0?'true':'false')+'">'+esc(v)+'</button>'; }).join('')
+    + '</div>'
+    + '<div class="actions"><button class="btn btn-primary" id="board-post-ok">無料で投稿する</button>'
+    + '<button class="btn btn-outline" id="board-post-cancel">閉じる</button></div>';
+  sheet(html);
+  bindSinglePick('#board-place','data-board-place');
+  bindSinglePick('#board-when','data-board-when');
+  bindSinglePick('#board-area','data-board-area');
+  bindSinglePick('#board-tag','data-board-tag');
+  bindSinglePick('#board-msg','data-board-msg');
+  $('#board-post-ok').addEventListener('click', createBoardPost);
+  $('#board-post-cancel').addEventListener('click', closeSheet);
+}
+function bindSinglePick(rootSel, attr){
+  var root = $(rootSel);
+  if (!root) return;
+  root.querySelectorAll('['+attr+']').forEach(function(b){
+    b.addEventListener('click', function(){
+      root.querySelectorAll('['+attr+']').forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true');
+    });
+  });
+}
+function pickedAttr(rootSel, attr){
+  var el = document.querySelector(rootSel+' ['+attr+'][aria-pressed="true"]');
+  return el ? el.getAttribute(attr) : '';
+}
+function createBoardPost(){
+  var place = pickedAttr('#board-place','data-board-place') || 'cafe';
+  var when = pickedAttr('#board-when','data-board-when') || '今から1時間';
+  var area = pickedAttr('#board-area','data-board-area') || '新宿';
+  var tag = pickedAttr('#board-tag','data-board-tag') || 'cafe';
+  var msg = pickedAttr('#board-msg','data-board-msg') || '60分だけ話せる人いますか？';
+  var post = {
+    id:'me-board-'+Date.now().toString(36),
+    owner:'me',
+    name:state.profile.name,
+    age:26,
+    gender:'woman',
+    area:area,
+    place:place,
+    when:when,
+    tag:tag,
+    title:place === 'station' ? '駅で合流して少し話したい' : 'カフェで軽く会いたい',
+    message:msg,
+    likes:0,
+    createdAt:Date.now(),
+    closed:false
+  };
+  state.boardPosts.unshift(post);
+  save(); closeSheet(); renderBoard();
+  toast('募集を無料で投稿しました');
+}
+function closeBoardPost(id){
+  var p = boardPosts().find(function(x){ return x.id === id; });
+  if (!p || p.owner !== 'me') return;
+  p.closed = true;
+  save(); renderBoard();
+  toast('募集を終了しました');
+}
+function openBoardProfile(id){
+  var post = boardPosts().find(function(x){ return x.id === id; });
+  if (!post) return;
+  if (post.ci != null){
+    var c = buildCandidates()[post.ci];
+    publicProfileSheet(c.p, c.shared, {likeIndex:post.ci});
+    return;
+  }
+  sheet('<div class="profile-sheet-head">'+avatarHTML({name:post.name, avatar:makeAvatar(post.name)}, false)
+    + '<div><h3>'+esc(post.name)+'</h3><div class="meta">'+esc(post.area)+' / 募集投稿者</div></div></div>'
+    + '<div class="profile-sheet-note">女性無料の募集投稿です。男性はいいねでマッチします。</div>'
+    + '<div class="actions"><button class="btn btn-outline" id="board-prof-close">閉じる</button></div>');
+  $('#board-prof-close').addEventListener('click', closeSheet);
+}
+function likeBoardPost(id){
+  if (state.profile.gender !== 'man') return;
+  if (!spendLike()){ openBuyLikes(true); return; }
+  var post = boardPosts().find(function(x){ return x.id === id; });
+  if (!post) return;
+  if (!state.boardLiked) state.boardLiked = [];
+  if (state.boardLiked.indexOf(id) < 0) state.boardLiked.push(id);
+  post.likes = (post.likes || 0) + 1;
+  var c = post.ci != null ? buildCandidates()[post.ci] : null;
+  var shared = c ? c.shared : userTagIds().slice(0,3);
+  if (!shared.length) shared = ['cafe'];
+  var m = {
+    id: matchIdFrom({i:post.ci || 99}),
+    ci: post.ci,
+    name: post.name,
+    age: post.age,
+    gender: post.gender,
+    area: post.area,
+    vibe:'今日会いたい',
+    score:c ? c.score : 72,
+    shared:shared,
+    matchedAt:Date.now(),
+    deadline:Date.now() + 24*3600*1000,
+    plan:null,
+    met:false,
+    reviewed:[],
+    boardPostId:id,
+    talk:[
+      {me:true, text:post.title+'の募集を見ていいねしました。'},
+      {me:false, text:'ありがとうございます！'+post.when+'、'+(post.place==='station'?'駅集合':'カフェ')+'で相談しましょう。'}
+    ]
+  };
+  state.match = m;
+  state.activeMatchId = m.id;
+  addOrUpdateMatch(state, m);
+  save();
+  trackEvent('tagtokyo_match', {source:'board', persona:post.name});
+  renderBoard(); renderHome(); renderPlans(); renderTalk();
+  toast(post.name+'さんの募集にいいねしてマッチしました');
+  show('talk');
+}
+function bindSearchFilters(){
+  document.querySelectorAll('[data-discover]').forEach(function(el){
+    el.addEventListener('change', function(){
+      discoverSet(el.getAttribute('data-discover'), el.value);
+      toast('探す条件を更新しました');
+    });
+  });
+  document.querySelectorAll('[data-place-filter]').forEach(function(b){
+    b.addEventListener('click', function(){
+      discoverSet('place', b.getAttribute('data-place-filter'));
+      toast('待ち合わせ場所を'+placeLabel(b.getAttribute('data-place-filter'))+'にしました');
+    });
+  });
+}
+function bindPlusPremium(){
+  var btn = $('#plus-premium');
+  if (!btn) return;
+  btn.addEventListener('click', openPremium);
+}
+function bindGenderFilter(){
+  document.querySelectorAll('[data-gfilter]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var mode = b.getAttribute('data-gfilter');
+      if (mode === 'all'){
+        setGenderFilter('all');
+        renderHome();
+        toast('同性・異性を問わず表示します');
+        return;
+      }
+      if (!hasTagPlus()){
+        openPremium();
+        return;
+      }
+      if (!oppositeGender(state.profile && state.profile.gender)){
+        openGenderSheet(function(){
+          if (oppositeGender(state.profile.gender)){
+            setGenderFilter('opposite');
+            renderHome();
+            toast('異性だけに絞りました');
+          }
+        });
+        return;
+      }
+      setGenderFilter('opposite');
+      renderHome();
+      toast('異性だけに絞りました');
+    });
+  });
+}
+function openGenderSheet(afterSave){
+  var current = state.profile && state.profile.gender || '';
+  sheet('<h3>あなたの性別を設定</h3><p class="sub">異性だけに絞るために使います。通常の検索では同性・異性を問わず表示します。</p>'
+    + '<div class="chips" id="gender-sheet">'
+    + genderOptionHTML('woman', current) + genderOptionHTML('man', current) + genderOptionHTML('other', current)
+    + '</div>'
+    + '<div class="actions"><button class="btn btn-primary" id="gender-save">保存</button>'
+    + '<button class="btn btn-outline" id="gender-cancel">閉じる</button></div>');
+  var picked = current;
+  $('#gender-sheet').querySelectorAll('[data-ob-gender]').forEach(function(b){
+    b.addEventListener('click', function(){
+      picked = b.getAttribute('data-ob-gender');
+      $('#gender-sheet').querySelectorAll('[data-ob-gender]').forEach(function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+    });
+  });
+  $('#gender-save').addEventListener('click', function(){
+    if (!state.profile) return;
+    state.profile.gender = picked;
+    save();
+    closeSheet();
+    renderMe();
+    if (afterSave) afterSave();
+    else toast('性別を保存しました');
+  });
+  $('#gender-cancel').addEventListener('click', closeSheet);
+}
+function openBuyLikes(empty){
+  refreshLikes();
+  sheet('<h3>今日のいいねを使い切りました</h3><p class="sub">公開ベータ中は課金なし。テスト用に10いいねを無料で追加できます。</p>'
+    + '<div class="actions">'
+    + '<button class="btn btn-primary" id="buy-likes">無料で10いいね追加</button>'
+    + '<button class="btn btn-outline" id="buy-cancel">閉じる</button></div>');
+  $('#buy-likes').addEventListener('click', function(){
+    state.likes.free += 10; save();
+    closeSheet(); renderHome();
+    toast('10いいねを無料で追加しました。残り'+totalLikes());
+  });
+  $('#buy-cancel').addEventListener('click', closeSheet);
+}
+function openPremium(){
+  sheet('<h3>公開ベータはすべて無料</h3><p class="sub">検索、いいね、マッチ、トーク、予定作成までクレジットカード登録なしで使えます。</p>'
+    + '<ul class="check-list" style="margin:4px 0 0">'
+    + '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span>共通タグ1つから候補を表示</span></li>'
+    + '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span>詳細検索と異性フィルター</span></li>'
+    + '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span>選択式トークと60分プラン</span></li>'
+    + '</ul>'
+    + '<div class="actions"><button class="btn btn-primary" id="pm-cancel">確認しました</button></div>');
+  $('#pm-cancel').addEventListener('click', closeSheet);
+}
+function openAppeal(i){
+  refreshLikes();
+  if (totalLikes() <= 0){ openBuyLikes(true); return; }
+  var c = buildCandidates()[i];
+  var topics = c.shared.slice(0,3).map(function(id){ return TAG_BY_ID[id].label; });
+  var phrases = topics.map(function(l){ return esc(l)+'の話、ぜひしたいです！'; });
+  phrases.push('共通タグが'+c.shared.length+'個、嬉しいです。よろしくお願いします！');
+  var html = '<h3>'+esc(c.p.name)+'さんにいいね</h3>'
+    + '<p class="sub">いいね1つを使います（残り'+totalLikes()+'）。一言は任意・定型から。お互いのいいねが揃うとマッチ成立です。</p><div class="actions">';
+  phrases.forEach(function(ph,j){ html += '<button class="btn btn-ghost" data-ph="'+j+'">'+ph+'</button>'; });
+  html += '<button class="btn btn-outline" data-ph="-1">一言なしでいいね</button>'
+    + '<button class="btn btn-outline" id="ap-cancel">キャンセル</button></div>';
+  sheet(html);
+  $('#sheet').querySelectorAll('[data-ph]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var j = parseInt(b.getAttribute('data-ph'),10);
+      sendLike(i, j >= 0 ? b.textContent : '');
+    });
+  });
+  $('#ap-cancel').addEventListener('click', closeSheet);
+}
+function openIncomingLike(i){
+  refreshLikes();
+  if (totalLikes() <= 0){ openBuyLikes(true); return; }
+  var c = buildCandidates()[i];
+  if (!c) return;
+  var shared = c.shared.slice(0,3).map(function(id){ return TAG_BY_ID[id] && TAG_BY_ID[id].label; }).filter(Boolean);
+  var html = '<h3>'+esc(c.p.name)+'さんからいいね</h3>'
+    + '<p class="sub">'+esc(c.p.name)+'さんが'+esc(shared[0] || '共通タグ')+'を見て、あなたにいいねしました。いいねを返すとマッチします。</p>'
+    + '<div class="chips" style="margin:8px 0 4px">'+c.shared.slice(0,3).map(function(id){ return tagChip(id,true); }).join('')+'</div>'
+    + '<div class="actions">'
+    + '<button class="btn btn-primary" id="in-like-back">いいね返す</button>'
+    + '<button class="btn btn-ghost" id="in-profile">プロフィールを見る</button>'
+    + '<button class="btn btn-outline" id="in-close">閉じる</button></div>';
+  sheet(html);
+  $('#in-like-back').addEventListener('click', function(){
+    sendLike(i, 'いいねありがとうございます！共通タグの話、ぜひしたいです。');
+  });
+  $('#in-profile').addEventListener('click', function(){ closeSheet(); openCandidateProfile(i); });
+  $('#in-close').addEventListener('click', closeSheet);
+}
+function sendLike(i, phrase){
+  if (!spendLike()){ openBuyLikes(true); return; }
+  var c = buildCandidates()[i];
+  // mutual-like sequence inside the sheet
+  $('#sheet').innerHTML =
+      '<div class="like-anim">'
+    + '<div class="like-burst" id="like-burst" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-10-9.3C.4 8.5 2 5 5.3 5c2 0 3.4 1.1 4.2 2.3C10.3 6.1 11.7 5 13.7 5 17 5 18.6 8.5 17 11.7 14.5 16.4 12 21 12 21z"></path></svg></div>'
+    + '<div class="like-step" id="like-step">'+esc(c.p.name)+'さんに いいね を送信…</div>'
+    + '</div>';
+  var step = $('#like-step');
+  setTimeout(function(){ if (step) step.textContent = c.p.name+'さんからの いいね を確認中…'; }, 900);
+  setTimeout(function(){
+    // mutual like confirmed → match (お互いいいね＋共通タグ)
+    $('#sheet').innerHTML =
+        '<div class="like-anim">'
+      + '<div class="like-done" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-10-9.3C.4 8.5 2 5 5.3 5c2 0 3.4 1.1 4.2 2.3C10.3 6.1 11.7 5 13.7 5 17 5 18.6 8.5 17 11.7 14.5 16.4 12 21 12 21z"></path></svg></div>'
+      + '<h3 style="text-align:center;margin-top:8px">お互いに、いいね！</h3>'
+      + '<p class="sub" style="text-align:center">'+esc(c.p.name)+'さんと共通タグ'+c.shared.length+'つでマッチ成立。選択式メッセージが使えます。</p>'
+      + '<div class="actions"><button class="btn btn-primary" id="like-go">トークとプランへ</button></div>';
+    var talk = [];
+    if (phrase) talk.push({me:true, text:phrase});
+    talk.push({me:false, text:'マッチありがとうございます！'+TAG_BY_ID[c.shared[0]].label+'の話、楽しみです😊'});
+    var m = {
+      id: matchIdFrom(c),
+      ci: i, name: c.p.name, age: c.p.age, gender: c.p.gender, area: c.p.area, vibe: c.p.vibe, score: c.score,
+      shared: c.shared, matchedAt: Date.now(), deadline: Date.now() + 72*3600*1000,
+      plan: null, met: false, reviewed: [], talk: talk
+    };
+    state.match = m;
+    state.activeMatchId = m.id;
+    addOrUpdateMatch(state, m);
+    save();
+    trackEvent('tagtokyo_match', {source:'discover', persona:c.p.name, shared_tags:c.shared.length});
+    var go = function(){ closeSheet(); renderHome(); renderPlans(); renderTalk(); show('talk'); };
+    var gb = $('#like-go'); if (gb) gb.addEventListener('click', go);
+    renderHome(); renderPlans(); renderTalk();
+    toast(c.p.name+'さんとマッチ！選択式メッセージで会う約束を決めましょう');
+  }, 1900);
+}
+
+/* ================= plans ================= */
+function planCandidates(m){
+  m = m || activeMatch();
+  var used = {}, out = [];
+  m.shared.forEach(function(id){
+    if (out.length>=3) return;
+    var tpl = PLAN_TPL[id];
+    if (tpl){
+      tpl = planTplForPlace(tpl, m, id);
+      if (!used[tpl.title]){ used[tpl.title]=1; out.push({tag:id, tpl:tpl}); }
+    }
+  });
+  var i = 0;
+  while (out.length<3){
+    var ids = m.shared && m.shared.length ? m.shared : ['cafe'];
+    var id = ids[i % ids.length]; i++;
+    var fallback = planTplForPlace(null, m, id);
+    var key = fallback.title;
+    if (used[key]){
+      key = key+' '+(out.length+1);
+      fallback = {title:key, spot:fallback.spot, stations:fallback.stations, badge:fallback.badge};
+    }
+    used[key]=1;
+    out.push({tag:id, tpl:fallback});
+  }
+  return out;
+}
+function renderPlans(){
+  var el = $('#s-plans');
+  var list = matches().filter(function(m){ return !m.closed && !m.met; });
+  var ended = matches().filter(function(m){ return !m.closed && m.met; });
+  var tab = document.querySelector('[data-go="plans"]');
+  tab.classList.toggle('has-dot', list.some(function(m){ return !m.plan; }));
+  if (!list.length && !ended.length){
+    el.innerHTML = '<h2 class="screen-title">約束</h2>'
+      + '<p class="screen-sub">マッチすると、相手ごとに予定を確認できます。</p>'
+      + '<div class="panel pad" style="text-align:center;color:var(--muted)">まだ約束はありません。<div style="margin-top:12px"><button class="btn btn-ghost" id="pl-go-home">相手をさがす</button></div></div>'
+      + (state.metCount>0 ? '<div class="blocked-note" style="margin-top:12px">これまでのMet認証: <b>'+state.metCount+'回</b></div>' : '');
+    $('#pl-go-home').addEventListener('click', function(){ show('home'); });
+    return;
+  }
+  var html = '<h2 class="screen-title">約束</h2>'
+    + '<p class="screen-sub">これから会う予定だけを確認できます。終わった約束は詳細を隠し、もう一回誘う導線だけ表示します。</p>';
+  if (list.length){
+    html += '<div class="cat-label">これからの予定</div><div class="match-list">';
+  }
+  list.forEach(function(m){
+    var status = m.plan ? '予定確定' : '予定未確定';
+    html += '<article class="match-card" data-mid="'+esc(m.id)+'">'
+      + '<div class="match-card-top"><div class="avatar">'+esc(m.name[0])+'</div>'
+      + '<div><h3>'+esc(m.name)+', '+m.age+'</h3><div class="meta">'+status+' / '+esc(m.area)+'</div></div></div>'
+      + '<div class="chips">'+m.shared.slice(0,3).map(function(id){ return tagChip(id,true); }).join('')+'</div>';
+    if (!m.plan){
+      html += '<div class="countdown"><span>プラン確定まで</span><b data-cd="'+esc(m.id)+'">--:--:--</b></div>'
+        + '<div class="match-actions"><button class="btn btn-ghost" data-profile-match="'+esc(m.id)+'">プロフィール</button>'
+        + '<button class="btn btn-ghost" data-talk-open="'+esc(m.id)+'">トーク</button>'
+        + '<button class="btn btn-primary" data-plan-for="'+esc(m.id)+'">予定を立てる</button></div>';
+    } else if (!m.met){
+      html += '<div class="ticket" style="margin:0">'
+        + '<div class="t-label">CONFIRMED · 60 MIN</div>'
+        + '<h3>'+esc(m.plan.title)+'</h3>'
+        + '<div class="t-meta">'+esc(m.plan.spot)+'</div>'
+        + '<div class="t-meta">'+esc(m.plan.when)+' · '+esc(m.plan.station)+'</div>'
+        + (m.plan.flex ? '<div class="t-meta">希望: '+esc(m.plan.flex)+'</div>' : '')
+        + '<div class="qr">当日、片方がQRを表示してもう片方が読み取る（体験）</div>'
+        + '</div>'
+        + '<div class="match-actions"><button class="btn btn-ghost" data-profile-match="'+esc(m.id)+'">プロフィール</button>'
+        + '<button class="btn btn-ghost" data-talk-open="'+esc(m.id)+'">トーク</button>'
+        + '<button class="btn btn-primary" data-checkin="'+esc(m.id)+'">合流認証</button></div>';
+    }
+    html += '</article>';
+  });
+  if (list.length) html += '</div>';
+  if (ended.length){
+    html += '<div class="cat-label">もう一回誘う</div><div class="match-list">';
+    ended.forEach(function(m){
+      html += '<article class="match-card" data-mid="'+esc(m.id)+'">'
+        + '<div class="match-card-top"><div class="avatar">'+esc(m.name[0])+'</div>'
+        + '<div><h3>'+esc(m.name)+', '+m.age+'</h3><div class="meta">前に会えた相手 / '+esc(m.area)+'</div></div></div>'
+        + '<div class="match-actions"><button class="btn btn-ghost" data-profile-match="'+esc(m.id)+'">プロフィール</button>'
+        + '<button class="btn btn-primary" data-reinvite="'+esc(m.id)+'">もう一回誘う</button></div>'
+        + '</article>';
+    });
+    html += '</div>';
+  }
+  el.innerHTML = html;
+  bindPlanListActions(el);
+  tickCountdown();
+}
+function reviewHTML(m){
+  var revs = ['楽しかった','話が合った','時間どおり来た','また会いたい'];
+  var html = '<div class="met-card" style="margin:0">'
+    + '<div class="t-label en" style="color:var(--green)">MET VERIFIED</div>'
+    + '<h3>Met認証、成立。</h3>'
+    + '<p>'+esc(m.name)+'さんと実際に会えました。共通タグは最大Lv.10まで育ちます。</p>'
+    + '</div>'
+    + '<div class="choice-label">30秒レビュー（複数可）</div><div class="chips">';
+  revs.forEach(function(r){ html += '<button class="chip-btn" data-rev="'+esc(r)+'" data-mid="'+esc(m.id)+'" aria-pressed="'+(m.reviewed.indexOf(r)>=0?'true':'false')+'">'+esc(r)+'</button>'; });
+  html += '</div><div class="match-actions"><button class="btn btn-ghost" data-profile-match="'+esc(m.id)+'">プロフィール</button>'
+    + '<button class="btn btn-ghost" data-talk-open="'+esc(m.id)+'">トーク</button>'
+    + '<button class="btn btn-primary" data-review-ok="'+esc(m.id)+'">評価を確定</button></div>';
+  return html;
+}
+function bindPlanListActions(root){
+  root.querySelectorAll('[data-talk-open]').forEach(function(b){
+    b.addEventListener('click', function(){ setActiveMatch(b.getAttribute('data-talk-open')); renderTalk(); show('talk'); });
+  });
+  root.querySelectorAll('[data-profile-match]').forEach(function(b){
+    b.addEventListener('click', function(){ openMatchProfile(b.getAttribute('data-profile-match')); });
+  });
+  root.querySelectorAll('[data-plan-for]').forEach(function(b){
+    b.addEventListener('click', function(){ openPlanPicker(b.getAttribute('data-plan-for')); });
+  });
+  root.querySelectorAll('[data-checkin]').forEach(function(b){
+    b.addEventListener('click', function(){ doCheckin(b.getAttribute('data-checkin')); });
+  });
+  root.querySelectorAll('[data-reinvite]').forEach(function(b){
+    b.addEventListener('click', function(){ reinviteMatch(b.getAttribute('data-reinvite')); });
+  });
+  root.querySelectorAll('[data-rev]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var m = matches().find(function(x){ return x.id === b.getAttribute('data-mid'); });
+      if (!m) return;
+      var r = b.getAttribute('data-rev');
+      var idx = m.reviewed.indexOf(r);
+      if (idx>=0){ m.reviewed.splice(idx,1); b.setAttribute('aria-pressed','false'); }
+      else { m.reviewed.push(r); b.setAttribute('aria-pressed','true'); }
+      save();
+    });
+  });
+  root.querySelectorAll('[data-review-ok]').forEach(function(b){
+    b.addEventListener('click', function(){ confirmReview(b.getAttribute('data-review-ok')); });
+  });
+}
+function reinviteMatch(matchId){
+  var old = matches().find(function(x){ return x.id === matchId; });
+  if (!old) return;
+  old.closed = true;
+  var m = {
+    id: matchIdFrom({i:old.ci || 0}),
+    ci: old.ci,
+    name: old.name,
+    age: old.age,
+    gender: old.gender,
+    area: old.area,
+    vibe: old.vibe,
+    score: old.score,
+    shared: old.shared.slice(),
+    matchedAt: Date.now(),
+    deadline: Date.now() + 72*3600*1000,
+    plan: null,
+    met: false,
+    reviewed: [],
+    talk: [
+      {me:true, text:'また会えたら嬉しいです。次の予定も相談したいです。'},
+      {me:false, text:'ぜひ！また予定を決めましょう。'}
+    ]
+  };
+  state.activeMatchId = m.id;
+  state.match = m;
+  addOrUpdateMatch(state, old);
+  addOrUpdateMatch(state, m);
+  save();
+  renderPlans(); renderTalk(); renderHome();
+  show('talk');
+  toast(old.name+'さんをもう一回誘いました');
+}
+function openPlanPicker(matchId){
+  var m = matchId ? setActiveMatch(matchId) : activeMatch();
+  if (!m) return;
+  var html = '<h3>'+esc(m.name)+'さんとの予定</h3><p class="sub">共通タグから60分プランを提案します。日時は確定だけでなく、候補提示や希望時間つきで送れます。</p><div class="actions">';
+  planCandidates(m).forEach(function(pc,j){
+    html += '<button class="btn btn-ghost" data-pick-plan="'+j+'">'
+      + esc(pc.tpl.title)+'<br><span style="font-size:11px;color:var(--muted)">'+esc(pc.tpl.spot)+' / '+esc(pc.tpl.badge)+'</span></button>';
+  });
+  html += '<button class="btn btn-outline" id="pick-cancel">閉じる</button></div>';
+  sheet(html);
+  $('#sheet').querySelectorAll('[data-pick-plan]').forEach(function(b){
+    b.addEventListener('click', function(){ openPlanSheet(parseInt(b.getAttribute('data-pick-plan'),10), m.id); });
+  });
+  $('#pick-cancel').addEventListener('click', closeSheet);
+}
+function openPlanSheet(j, matchId){
+  var m = matchId ? setActiveMatch(matchId) : activeMatch();
+  if (!m) return;
+  var pc = planCandidates(m)[j || 0];
+  var days = nextDays(5), hours = ['17時','18時','19時','20時','21時'], mins = ['00分','15分','30分','45分'];
+  var html = '<h3>'+esc(m.name)+'さんとの予定</h3><p class="sub">'+esc(pc.tpl.title)+' · '+esc(pc.tpl.spot)+' · '+esc(pc.tpl.badge)+'</p>'
+    + '<div class="choice-label">待ち合わせ駅（2人の中間から提案）</div><div class="chips" id="st-chips">';
+  pc.tpl.stations.forEach(function(s,k){ html += '<button class="chip-btn" data-st="'+esc(s)+'" aria-pressed="'+(k===0?'true':'false')+'">'+esc(s)+'</button>'; });
+  html += '</div><div class="choice-label">日時（スクロールで選択）</div>'
+    + '<div class="drum" id="plan-drum">'
+    + drumCol(days, 2) + drumCol(hours, 2) + drumCol(mins, 2)
+    + '</div>'
+    + '<div class="choice-label">日程の柔軟性</div><div class="chips" id="flex-chips">'
+    + '<button class="chip-btn" data-flex="この日時で確定したいです" aria-pressed="true">この日時で確定</button>'
+    + '<button class="chip-btn" data-flex="候補日を3つ出して相談したいです" aria-pressed="false">候補を3つ提示</button>'
+    + '<button class="chip-btn" data-flex="平日19時以降が希望です" aria-pressed="false">平日夜が希望</button>'
+    + '<button class="chip-btn" data-flex="土日のお昼が希望です" aria-pressed="false">土日昼が希望</button>'
+    + '</div>'
+    + '<div class="actions"><button class="btn btn-primary" id="plan-ok">この内容で約束を確定する</button>'
+    + '<button class="btn btn-outline" id="plan-cancel">戻る</button></div>';
+  sheet(html);
+  initDrums($('#plan-drum'));
+  var stChips = $('#sheet').querySelectorAll('[data-st]');
+  stChips.forEach(function(b){
+    b.addEventListener('click', function(){
+      stChips.forEach(function(q){ q.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true');
+    });
+  });
+  var flexChips = $('#sheet').querySelectorAll('[data-flex]');
+  flexChips.forEach(function(b){
+    b.addEventListener('click', function(){
+      flexChips.forEach(function(q){ q.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true');
+    });
+  });
+  $('#plan-cancel').addEventListener('click', closeSheet);
+  $('#plan-ok').addEventListener('click', function(){
+    var sel = [];
+    $('#plan-drum').querySelectorAll('.drum-col').forEach(function(col){
+      var on = col.querySelector('li.on'); sel.push(on ? on.textContent : '');
+    });
+    var st = $('#sheet').querySelector('[data-st][aria-pressed="true"]');
+    var flex = $('#sheet').querySelector('[data-flex][aria-pressed="true"]');
+    var flexText = flex ? flex.getAttribute('data-flex') : 'この日時で確定したいです';
+    m.plan = {
+      title: pc.tpl.title, spot: pc.tpl.spot, badge: pc.tpl.badge, tag: pc.tag,
+      station: st ? st.getAttribute('data-st') : pc.tpl.stations[0],
+      when: sel[0]+' '+sel[1]+sel[2],
+      flex: flexText
+    };
+    m.talk.push({me:true, text:'予定は'+sel[0]+' '+sel[1]+sel[2]+'で、'+flexText});
+    m.talk.push({me:false, text:'約束、確認しました。'+sel[0]+' '+sel[1]+sel[2]+'、楽しみにしてます！'});
+    addOrUpdateMatch(state, m);
+    state.match = m;
+    state.activeMatchId = m.id;
+    save(); closeSheet();
+    trackEvent('tagtokyo_plan_created', {persona:m.name, tag:m.plan.tag});
+    renderPlans(); renderTalk();
+    toast('約束が確定しました');
+  });
+}
+function drumCol(items, onIdx){
+  return '<div class="drum-col"><ul>'+items.map(function(it,i){
+    return '<li class="'+(i===onIdx?'on':'')+'">'+esc(it)+'</li>';
+  }).join('')+'</ul></div>';
+}
+function initDrums(root){
+  root.querySelectorAll('.drum-col').forEach(function(col){
+    var items = col.querySelectorAll('li');
+    var update = function(){
+      var rect = col.getBoundingClientRect(), mid = rect.top + rect.height/2;
+      var best = null, bd = Infinity;
+      items.forEach(function(li){
+        var r = li.getBoundingClientRect();
+        var d = Math.abs(r.top + r.height/2 - mid);
+        if (d < bd){ bd = d; best = li; }
+      });
+      items.forEach(function(li){ li.classList.toggle('on', li===best); });
+    };
+    var init = col.querySelector('li.on');
+    if (init) col.scrollTop = Array.prototype.indexOf.call(items, init) * 44;
+    col.addEventListener('scroll', update, {passive:true});
+    update();
+  });
+}
+function doCheckin(matchId){
+  var m = matchId ? setActiveMatch(matchId) : activeMatch();
+  if (!m || !m.plan) return;
+  sheet('<h3>TAG SPOT 合流認証</h3><p class="sub">'+esc(m.plan.spot)+'で合流したら、片方がQRを表示し、もう片方が読み取ります。</p>'
+    + '<div class="actions">'
+    + '<button class="btn btn-primary" id="qr-show">自分のQRを表示</button>'
+    + '<button class="btn btn-ghost" id="qr-scan">相手のQRを読み取る</button>'
+    + '<button class="btn btn-outline" id="qr-cancel">閉じる</button></div>');
+  $('#qr-show').addEventListener('click', function(){ showCheckinQR(m); });
+  $('#qr-scan').addEventListener('click', function(){ scanCheckinQR(m); });
+  $('#qr-cancel').addEventListener('click', closeSheet);
+}
+function showCheckinQR(m){
+  sheet('<h3>このQRを相手に見せる</h3><p class="sub">'+esc(m.name)+'さんが読み取るとMet認証が成立します。</p>'
+    + '<div class="qr-card">'+qrPatternHTML(m.id)+'<b class="en">TAG-'+esc(m.id.slice(-6).toUpperCase())+'</b></div>'
+    + '<p class="qr-help">正式版では相手端末の読み取り完了で自動確定します。公開ベータでは下のボタンで読み取りを体験できます。</p>'
+    + '<div class="actions"><button class="btn btn-primary" id="qr-read-done">相手が読み取った（体験）</button>'
+    + '<button class="btn btn-outline" id="qr-back">戻る</button></div>');
+  $('#qr-read-done').addEventListener('click', function(){ completeMet(m); });
+  $('#qr-back').addEventListener('click', function(){ doCheckin(m.id); });
+}
+function scanCheckinQR(m){
+  sheet('<h3>相手のQRを読み取る</h3><p class="sub">'+esc(m.name)+'さんの画面に表示されたQRを読み取ります。</p>'
+    + '<div class="scan-frame">QR SCAN</div>'
+    + '<p class="qr-help">実運用ではカメラを起動して、相手のQRを読み取った時点でMet認証します。</p>'
+    + '<div class="actions"><button class="btn btn-primary" id="qr-scan-done">QRを読み取った（体験）</button>'
+    + '<button class="btn btn-outline" id="qr-scan-back">戻る</button></div>');
+  $('#qr-scan-done').addEventListener('click', function(){ completeMet(m); });
+  $('#qr-scan-back').addEventListener('click', function(){ doCheckin(m.id); });
+}
+function qrPatternHTML(seed){
+  var n = 0, s = String(seed || 'TAG');
+  for (var i=0;i<s.length;i++) n += s.charCodeAt(i) * (i+5);
+  var html = '<div class="qr-code" aria-hidden="true">';
+  for (var j=0;j<81;j++){
+    var finder = (j<21 && (j%9<3 || Math.floor(j/9)<3)) || (j%9>5 && Math.floor(j/9)<3) || (j%9<3 && Math.floor(j/9)>5);
+    var on = finder || ((j*n + j*j + n) % 5 < 2);
+    html += '<i class="'+(on?'':'off')+'"></i>';
+  }
+  return html + '</div>';
+}
+function completeMet(m){
+  sheet('<h3>QR読み取り完了</h3><p class="sub">2人の合流を確認しています。</p>'
+    + '<div class="panel pad" id="ci-steps" style="display:grid;gap:10px">'
+    + '<div id="ci-1">あなたの端末を確認中...</div>'
+    + '<div id="ci-2" style="color:var(--muted)">相手の端末を確認中...</div>'
+    + '</div>');
+  setTimeout(function(){ var e=$('#ci-1'); if(e) e.textContent = 'あなた: QR確認完了'; }, 700);
+  setTimeout(function(){ var e=$('#ci-2'); if(e){ e.style.color=''; e.textContent = m.name+'さん: QR確認完了'; } }, 1700);
+  setTimeout(function(){
+    if (!m) return;
+    m.met = true;
+    state.metCount += 1;
+    var upgraded = 0, progressed = 0;
+    m.shared.forEach(function(id){
+      var result = applyMetLevelProgress(id);
+      if (result === 'upgraded') upgraded++;
+      if (result === 'progress') progressed++;
+    });
+    ensureTagProofs(state.profile);
+    m.talk.push({me:false, text:'今日はありがとうございました！'});
+    if (!state.metHistory) state.metHistory = [];
+    state.metHistory.unshift({
+      id: m.id,
+      name: m.name,
+      planTitle: m.plan ? m.plan.title : '',
+      spot: m.plan ? m.plan.spot : '',
+      when: m.plan ? m.plan.when : '',
+      tags: m.shared.slice(0,4),
+      reviews: [],
+      metAt: Date.now()
+    });
+    addOrUpdateMatch(state, m);
+    save(); closeSheet();
+    renderPlans(); renderTalk(); renderMe();
+    toast(upgraded ? 'Met認証が成立。共通タグのレベルが上がりました'
+      : (progressed ? 'Met認証が成立。共通タグのレベル進行が増えました' : 'Met認証が成立。合流履歴を記録しました'));
+  }, 2600);
+}
+function confirmReview(matchId){
+  var m = matches().find(function(x){ return x.id === matchId; });
+  if (!m) return;
+  updateReachScore(m);
+  if (state.metHistory){
+    var rec = state.metHistory.find(function(r){ return r.id === m.id; }) || state.metHistory.find(function(r){ return r.name === m.name; });
+    if (rec) rec.reviews = m.reviewed.slice();
+  }
+  addOrUpdateMatch(state, m);
+  save();
+  renderPlans(); renderMe();
+  toast('評価を確定しました');
+}
+function tickCountdown(){
+  matches().forEach(function(m){
+    var el = document.querySelector('[data-cd="'+m.id+'"]');
+    if (!m || m.plan || !el) return;
+    var left = Math.floor((m.deadline - Date.now())/1000);
+    if (left <= 0){
+      m.closed = true;
+      save();
+      renderHome(); renderPlans(); renderTalk();
+      toast('72時間が経過したため、未確定のマッチは解消されました');
+      return;
+    }
+    var h = Math.floor(left/3600), mm = Math.floor(left%3600/60), s = left%60;
+    el.textContent = String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  });
+}
+setInterval(tickCountdown, 1000);
+
+/* ================= talk ================= */
+function renderTalk(){
+  var el = $('#s-talk');
+  var list = matches().filter(function(m){ return !m.closed; });
+  var m = activeMatch();
+  if (m && m.closed && list.length) m = setActiveMatch(list[0].id);
+  if (!list.length || !m){
+    el.innerHTML = '<h2 class="screen-title">トーク</h2>'
+      + '<p class="screen-sub">マッチすると、選択式トークが開きます。</p>'
+      + '<div class="panel pad" style="text-align:center;color:var(--muted)">進行中のトークはありません。</div>';
+    return;
+  }
+  var html = '<h2 class="screen-title">トーク</h2>'
+    + '<div class="talk-shell">'
+    + '<div class="talk-header">'
+    + avatarHTML({name:m.name, avatar:makeAvatar(m.name)}, false)
+    + '<div class="talk-title"><b>'+esc(m.name)+'さん</b><span>'+esc(m.area || '')+' / '+esc(m.vibe || '')+'</span></div>'
+    + '<div class="talk-header-actions">'
+    + '<button class="btn btn-ghost" id="talk-profile-open">プロフィール</button>'
+    + (m.plan
+      ? '<button class="btn btn-outline" id="talk-plan-open">約束</button>'
+      : '<button class="btn btn-primary" id="talk-plan-open">予定</button>')
+    + '</div></div>'
+    + '<div class="talk-match-strip">';
+  list.forEach(function(x){
+    html += '<button class="chip-btn" data-talk-match="'+esc(x.id)+'" aria-pressed="'+(x.id===m.id?'true':'false')+'">'+esc(x.name)+'</button>';
+  });
+  html += '</div><div class="talk-log" id="talk-log">';
+  (m.talk || []).forEach(function(msg, idx){
+    html += talkMessageHTML(m, msg, idx);
+  });
+  html += '</div>'
+    + '<div class="talk-composer">'
+    + '<div class="composer-bar"><div class="composer-placeholder">返信を選んで送信</div>'
+    + '<button class="composer-send" type="button" aria-label="送信候補"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg></button></div>'
+    + '<div class="quick-replies" id="talk-chips">';
+  talkChips(m).forEach(function(ph){ html += '<button class="chip-btn" data-say="'+esc(ph)+'">'+esc(ph)+'</button>'; });
+  html += '</div>'
+    + aiSuggestHTML(m)
+    + '</div></div>';
+  el.innerHTML = html;
+  el.querySelectorAll('[data-talk-match]').forEach(function(b){
+    b.addEventListener('click', function(){
+      setActiveMatch(b.getAttribute('data-talk-match'));
+      renderTalk();
+    });
+  });
+  $('#talk-plan-open').addEventListener('click', function(){
+    if (m.plan){ renderPlans(); show('plans'); }
+    else openPlanPicker(m.id);
+  });
+  $('#talk-profile-open').addEventListener('click', function(){
+    openMatchProfile(m.id);
+  });
+  var sendBtn = el.querySelector('.composer-send');
+  if (sendBtn) sendBtn.addEventListener('click', function(){
+    var first = el.querySelector('[data-say]');
+    if (first) sendTalkMessage(m, first.getAttribute('data-say'));
+  });
+  el.querySelectorAll('[data-say]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var text = b.getAttribute('data-say');
+      sendTalkMessage(m, text);
+    });
+  });
+  el.querySelectorAll('[data-ai-topic]').forEach(function(b){
+    b.addEventListener('click', function(){
+      sendTalkMessage(m, topicPhrase(b.getAttribute('data-ai-topic'), m));
+    });
+  });
+  el.querySelectorAll('[data-ai-time]').forEach(function(b){
+    b.addEventListener('click', function(){
+      sendTalkMessage(m, b.getAttribute('data-ai-time'));
+    });
+  });
+  var log = $('#talk-log');
+  if (log) log.scrollTop = log.scrollHeight;
+}
+function talkMessageHTML(m, msg, idx){
+  var me = !!msg.me;
+  var label = me ? '' : '<span class="bubble-label">'+esc(m.name)+'</span>';
+  var avatar = me ? '' : '<div class="msg-avatar">'+esc((m.name || '?').charAt(0))+'</div>';
+  return '<div class="message-row'+(me?' me':'')+'">'
+    + avatar
+    + '<div class="message-stack">'+label
+    + '<div class="bubble'+(me?' me':'')+'">'+esc(msg.text)+'</div>'
+    + '<div class="bubble-time">'+talkTime(idx)+'</div>'
+    + '</div></div>';
+}
+function talkTime(idx){
+  var d = new Date(Date.now() - Math.max(0, 9 - idx) * 60000);
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+function sendTalkMessage(m, text){
+  m.talk.push({me:true, text:text});
+  addOrUpdateMatch(state, m);
+  save(); renderTalk();
+  trackEvent('tagtokyo_talk_sent', {persona:m.name, has_plan:!!m.plan});
+  setTimeout(function(){
+    var latest = matches().find(function(x){ return x.id === m.id; });
+    if (!latest) return;
+    latest.talk.push({me:false, text: aiReplyFor(text, latest)});
+    addOrUpdateMatch(state, latest);
+    save();
+    if ($('#s-talk').classList.contains('on')) renderTalk();
+  }, 900);
+}
+function aiSuggestHTML(m){
+  var topics = aiTopics(m);
+  var times = aiTimeSuggestions(m);
+  var items = topics.slice(0,4);
+  if (!m.plan) items = items.concat(times.slice(0,3));
+  var html = '<div class="ai-suggest">'
+    + '<div class="ai-suggest-head"><b>AI候補</b><span>話題から選ぶ</span></div>'
+    + '<div class="chips">';
+  items.forEach(function(t){
+    var attr = times.indexOf(t) >= 0 ? 'data-ai-time' : 'data-ai-topic';
+    html += '<button class="chip-btn" '+attr+'="'+esc(t)+'">'+esc(t)+'</button>';
+  });
+  html += '</div>';
+  return html + '</div>';
+}
+function aiTopics(m){
+  var seen = {}, out = [];
+  var add = function(v){
+    if (!v || seen[v] || out.length>=8) return;
+    seen[v] = 1; out.push(v);
+  };
+  (m.shared || []).forEach(function(id){ if (TAG_BY_ID[id]) add(TAG_BY_ID[id].label); });
+  var text = (m.talk || []).map(function(x){ return x.text; }).join(' ');
+  TAGS.forEach(function(t){ if (text.indexOf(t.label) >= 0) add(t.label); });
+  if (m.plan){ add(m.plan.spot); add(m.plan.when); }
+  String(m.area || '').split('・').forEach(add);
+  add(m.vibe);
+  return out.slice(0,6);
+}
+function aiTimeSuggestions(m){
+  return [
+    '候補日を3つ出します',
+    '平日19時以降が希望です',
+    '土日のお昼なら合わせやすいです',
+    '場所は2人の中間だと助かります'
+  ];
+}
+function topicPhrase(topic, m){
+  if ((m.talk || []).length <= 2) return topic+'の話、最初に聞いてみたいです。最近だとどんな感じですか？';
+  if (m.plan) return '当日は'+topic+'の話をもう少し聞きたいです。';
+  return topic+'が気になりました。会うならその話から入れると話しやすそうです。';
+}
+function aiReplyFor(text, m){
+  if (text.indexOf('候補日') >= 0) return 'ありがとうございます！その中なら合わせられそうです。';
+  if (text.indexOf('平日') >= 0 || text.indexOf('土日') >= 0) return 'その時間帯いいですね。予定候補から選びましょう！';
+  if (text.indexOf('中間') >= 0) return '中間地点ありがたいです。駅の候補を見て決めたいです。';
+  var topics = aiTopics(m);
+  if (topics.length) return topics[(text.length + topics.length) % topics.length]+'、わたしも話しやすいです！';
+  return REPLIES[(text.length + (m.talk || []).length) % REPLIES.length];
+}
+function talkChips(m){
+  var base;
+  if (m.met) base = ['今日はありがとうございました！','またぜひ行きましょう！'];
+  else if (m.plan) base = ['当日、楽しみにしてます！','5分前に着くようにします','少し遅れそうです（5分）','着きました！','時間、少し前後しても大丈夫です'];
+  else base = ['はじめまして！よろしくお願いします','共通タグ多くて嬉しいです','プラン、どれが気になりますか？','希望時間をいくつか出しますね'];
+  m.shared.slice(0,2).forEach(function(id){
+    base.push(TAG_BY_ID[id].label+'の話、当日しましょう！');
+  });
+  return base;
+}
+
+/* ================= me ================= */
+function fmtMetDate(ts){
+  var d = new Date(ts), names=['日','月','火','水','木','金','土'];
+  return (d.getMonth()+1)+'/'+d.getDate()+' ('+names[d.getDay()]+')';
+}
+function metLedgerHTML(){
+  var h = state.metHistory || [];
+  if (!h.length){
+    return '<div class="cat-label">出会えた記録</div>'
+      + '<div class="ledger-empty">まだありません。提携スポットで合流認証すると、'
+      + '「実際に会えた」記録がここに積み上がり、信頼の資産になります。</div>';
+  }
+  var out = '<div class="cat-label">出会えた記録 <span class="ledger-count">'+h.length+'</span></div><div class="ledger">';
+  h.forEach(function(r){
+    out += '<div class="ledger-row">'
+      + '<div class="ledger-rail"><span class="ledger-dot" aria-hidden="true"></span></div>'
+      + '<div class="ledger-body">'
+      + '<div class="ledger-top"><b>'+esc(r.name)+'</b><span class="met-badge">Met</span><span class="ledger-date">'+fmtMetDate(r.metAt)+'</span></div>'
+      + (r.planTitle ? '<div class="ledger-plan">'+esc(r.planTitle)+(r.spot?' · '+esc(r.spot):'')+'</div>' : '')
+      + (r.tags && r.tags.length ? '<div class="chips" style="margin-top:8px">'+r.tags.map(function(id){ return tagChip(id,false); }).join('')+'</div>' : '')
+      + (r.reviews && r.reviews.length ? '<div class="ledger-revs">'+r.reviews.map(function(t){ return '<span class="rev-pill">'+esc(t)+'</span>'; }).join('')+'</div>' : '')
+      + '</div></div>';
+  });
+  out += '</div>';
+  return out;
+}
+function ensureInvite(){
+  if (!state.profile) return '';
+  if (!state.profile.invite){
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', code = '';
+    for (var i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
+    state.profile.invite = code;
+    if (state.invitedCount == null) state.invitedCount = 0;
+    save();
+  }
+  return state.profile.invite;
+}
+function inviteUrl(){
+  return 'https://anadayo.github.io/tag-tokyo/?invite=' + ensureInvite();
+}
+function inviteShareUrl(){
+  var t = '東京で「ちゃんと会える人」とだけ出会えるTAG TOKYO、招待します。私の招待コード【' + ensureInvite() + '】で早期メンバー枠に入れます。';
+  return 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(t) + '&url=' + encodeURIComponent(inviteUrl());
+}
+function inviteCardHTML(){
+  var code = ensureInvite();
+  var invited = state.invitedCount || 0, goal = 5;
+  var pct = Math.min(100, Math.round(invited / goal * 100));
+  return '<div class="cat-label">招待</div>'
+    + '<div class="panel invite-card">'
+    + '<div class="invite-lead">TAG TOKYOは<b>招待制</b>。あなたの招待で入った人と会えるたび、あなたの信頼スコアも上がります。</div>'
+    + '<div class="invite-code-row">'
+    + '<div class="invite-code"><span class="invite-code-label">あなたの招待コード</span><b id="invite-code" class="en">'+esc(code)+'</b></div>'
+    + '<button class="btn btn-outline btn-sm" id="invite-copy" type="button">コピー</button>'
+    + '</div>'
+    + '<div class="invite-prog"><div class="invite-prog-bar"><i style="width:'+pct+'%"></i></div>'
+    + '<span class="invite-prog-label">招待で参加 <b>'+invited+'</b> / '+goal+'人 — '+goal+'人で<b>初期メンバーバッジ</b></span></div>'
+    + '<div style="display:grid;gap:9px;margin-top:14px">'
+    + '<a class="btn btn-primary" id="invite-share" href="'+inviteShareUrl()+'" target="_blank" rel="noopener">'
+    + '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>'
+    + 'Xで招待する</a>'
+    + '<button class="btn btn-ghost btn-sm" id="invite-demo" type="button" style="width:100%">招待が1人参加（体験）</button>'
+    + '</div></div>';
+}
+function bindInvite(){
+  var copy = $('#invite-copy');
+  if (copy) copy.addEventListener('click', function(){
+    var code = ensureInvite();
+    var done = function(){ toast('招待コード '+code+' をコピーしました'); };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(inviteUrl()).then(done, done);
+    } else { done(); }
+  });
+  var demo = $('#invite-demo');
+  if (demo) demo.addEventListener('click', function(){
+    state.invitedCount = (state.invitedCount || 0) + 1;
+    save(); renderMe();
+    toast(state.invitedCount >= 5 ? '5人達成！初期メンバーバッジを獲得しました' : '招待から1人が参加しました（体験）');
+  });
+}
+function premiumCardHTML(){
+  return '<div class="cat-label">料金</div>'
+    + '<div class="panel premium-card">'
+    + '<div class="premium-top">'
+    + '<div><b>公開ベータは完全無料</b><span>検索・いいね・マッチ・トーク・予定作成まで利用できます</span></div>'
+    + '<div class="premium-state">¥0</div>'
+    + '</div>'
+    + '<button class="btn btn-outline" id="premium-manage">無料範囲を確認</button>'
+    + '</div>';
+}
+function profileCardHTML(){
+  ensureProfileDetails(state.profile);
+  var d = state.profile.details;
+  return '<div class="cat-label">プロフィール</div>'
+    + '<div class="panel pad">'
+    + '<div class="profile-grid">'
+    + profileItemHTML('職業', d.job)
+    + profileItemHTML('年収', d.income)
+    + profileItemHTML('身長', d.height)
+    + profileItemHTML('居住地', d.residence)
+    + profileItemHTML('学歴', d.education)
+    + profileItemHTML('お酒', d.alcohol)
+    + '</div>'
+    + '<div class="profile-note">'+esc(d.bio)+'</div>'
+    + '<button class="btn btn-outline btn-sm" id="profile-edit" type="button" style="margin-top:12px;width:100%">プロフィールを編集</button>'
+    + '</div>';
+}
+function profileItemHTML(label, value){
+  return '<div class="profile-item"><span>'+esc(label)+'</span><b>'+esc(value || '未設定')+'</b></div>';
+}
+function proofGalleryHTML(proofs, levels, limit){
+  var ids = Object.keys(proofs).filter(function(id){ return TAG_BY_ID[id]; });
+  if (!ids.length) return '';
+  var shown = ids.slice(0, limit || 6);
+  var html = '<div class="proof-gallery">';
+  shown.forEach(function(id){
+    var proof = proofs[id], l = (levels && levels[id]) || lv(id);
+    html += '<div class="proof-card">'
+      + '<div class="proof-photo" style="--proof-a:'+esc(proof.a)+';--proof-b:'+esc(proof.b)+'"><b>'+esc(proof.file)+'</b></div>'
+      + '<div class="proof-body">'+tagPill(id,l,true)
+      + '<p>'+esc(proof.source || '写真フォルダ')+'確認済み · '+levelLabel(l)+'</p></div>'
+      + '</div>';
+  });
+  if (ids.length > shown.length){
+    html += '<div class="proof-more">ほか '+(ids.length - shown.length)+' 件の<br>認証写真</div>';
+  }
+  html += '</div>';
+  return html;
+}
+function tagProofsHTML(){
+  ensureTagProofs(state.profile);
+  var proofs = state.profile.proofs || {};
+  if (!Object.keys(proofs).length) return '';
+  var html = '<div class="cat-label">タグ認証写真</div>'
+    + '<div class="panel pad">'
+    + '<p class="profile-note" style="margin-top:0">写真フォルダから確認した証拠写真です。プロフィールではタグと認証時の写真をセットで表示します。</p>'
+    + proofGalleryHTML(proofs, state.profile.tags, 6)
+    + '</div>';
+  return html;
+}
+function publicProfileSheet(p, shared, opts){
+  opts = opts || {};
+  var details = profileDetailsForPerson(p);
+  var levels = publicTagLevels(shared, opts.met);
+  var proofs = publicProofs(shared, p.name);
+  var tagHtml = (shared || []).map(function(id){ return tagPill(id, levels[id], true); }).join('');
+  sheet('<div class="profile-sheet-head">'+avatarHTML({name:p.name, avatar:makeAvatar(p.name)}, opts.premium)
+    + '<div><h3>'+esc(p.name)+', '+esc(p.age)+'</h3>'
+    + '<div class="meta">'+genderLabel(p.gender)+' / '+esc(p.area)+' / '+esc(p.vibe || '')+'</div></div></div>'
+    + '<div class="profile-sheet-note">写真フォルダ認証済みのタグだけを表示しています。タグと認証時の写真がプロフィール上でセットになります。</div>'
+    + '<div class="cat-label">プロフィール</div><div class="profile-grid">'
+    + profileItemHTML('職業', details.job)
+    + profileItemHTML('年収', details.income)
+    + profileItemHTML('身長', details.height)
+    + profileItemHTML('居住地', details.residence)
+    + profileItemHTML('学歴', details.education)
+    + profileItemHTML('お酒', details.alcohol)
+    + '</div>'
+    + '<div class="profile-note">'+esc(details.bio)+'</div>'
+    + '<div class="cat-label">共通の認証タグ</div><div class="chips">'+tagHtml+'</div>'
+    + '<div class="cat-label">タグ認証写真</div>'
+    + proofGalleryHTML(proofs, levels, 4)
+    + '<div class="actions">'
+    + (opts.likeIndex != null ? '<button class="btn btn-primary" id="public-like">いいねする</button>' : '')
+    + (opts.matchId ? '<button class="btn btn-primary" id="public-talk">トークへ</button>' : '')
+    + '<button class="btn btn-outline" id="public-close">閉じる</button></div>');
+  var likeBtn = $('#public-like');
+  if (likeBtn) likeBtn.addEventListener('click', function(){ closeSheet(); openAppeal(opts.likeIndex); });
+  var talkBtn = $('#public-talk');
+  if (talkBtn) talkBtn.addEventListener('click', function(){ closeSheet(); setActiveMatch(opts.matchId); renderTalk(); show('talk'); });
+  $('#public-close').addEventListener('click', closeSheet);
+}
+function openCandidateProfile(i){
+  var c = buildCandidates()[i];
+  if (!c) return;
+  publicProfileSheet(c.p, c.shared, {likeIndex:i, premium:hasTagPlus()});
+}
+function openMatchProfile(matchId){
+  var m = matches().find(function(x){ return x.id === matchId; });
+  if (!m) return;
+  var p = personaByIndex(m.ci) || {name:m.name, age:m.age, gender:m.gender, area:m.area, vibe:m.vibe, job:m.job, income:m.income, height:m.height};
+  publicProfileSheet(p, m.shared, {matchId:m.id, met:m.met, premium:false});
+}
+function openProfileEdit(){
+  ensureProfileDetails(state.profile);
+  var d = state.profile.details;
+  sheet('<h3>プロフィールを編集</h3><p class="sub">職業や年収など、よくあるプロフィール項目を選択だけで編集できます。</p>'
+    + '<div class="field"><label for="pf-job">職業</label><select id="pf-job">'
+    + optionsHTML(['未設定','会社員','エンジニア','デザイナー','企画・マーケ','営業','公務員','医療系','教育系','美容系','飲食・サービス','経営者・役員','フリーランス','学生'], d.job)
+    + '</select></div>'
+    + '<div class="field"><label for="pf-income">年収</label><select id="pf-income">'
+    + optionsHTML(['未設定','300万円未満','300-500万円','500-700万円','700-1000万円','1000万円以上'], d.income)
+    + '</select></div>'
+    + '<div class="field"><label for="pf-height">身長</label><select id="pf-height">'
+    + optionsHTML(['未設定','150cm未満','150-154cm','155-159cm','160-164cm','165-169cm','170-174cm','175-179cm','180cm以上'], d.height)
+    + '</select></div>'
+    + '<div class="field"><label for="pf-residence">居住地</label><select id="pf-residence">'
+    + optionsHTML(['東京都','神奈川県','千葉県','埼玉県','その他'], d.residence)
+    + '</select></div>'
+    + '<div class="field"><label for="pf-education">学歴</label><select id="pf-education">'
+    + optionsHTML(['未設定','高校卒','専門卒','大学卒','大学院卒'], d.education)
+    + '</select></div>'
+    + '<div class="field"><label for="pf-alcohol">お酒</label><select id="pf-alcohol">'
+    + optionsHTML(['未設定','飲まない','たまに飲む','よく飲む'], d.alcohol)
+    + '</select></div>'
+    + '<div class="field"><label for="pf-bio">ひとこと</label><select id="pf-bio">'
+    + optionsHTML([
+      PROFILE_DEFAULTS.bio,
+      'まずは気軽に60分で話してみたいです。',
+      '共通の趣味から自然に仲良くなりたいです。',
+      '休日に一緒に出かけられる人と会いたいです。',
+      '落ち着いた場所でゆっくり話すのが好きです。',
+      '友達からでも、ちゃんと会える出会いがいいです。'
+    ], d.bio)
+    + '</select></div>'
+    + '<div class="actions"><button class="btn btn-primary" id="pf-save">保存</button>'
+    + '<button class="btn btn-outline" id="pf-cancel">閉じる</button></div>');
+  $('#pf-save').addEventListener('click', function(){
+    state.profile.details = {
+      job: $('#pf-job').value,
+      income: $('#pf-income').value,
+      height: $('#pf-height').value,
+      residence: $('#pf-residence').value,
+      education: $('#pf-education').value,
+      alcohol: $('#pf-alcohol').value,
+      bio: $('#pf-bio').value
+    };
+    save(); closeSheet(); renderMe();
+    toast('プロフィールを保存しました');
+  });
+  $('#pf-cancel').addEventListener('click', closeSheet);
+}
+function optionHTML(value, current){
+  return '<option value="'+esc(value)+'"'+(value===current?' selected':'')+'>'+esc(value)+'</option>';
+}
+function optionsHTML(values, current){
+  return values.map(function(v){ return optionHTML(v, current); }).join('');
+}
+function selfToolsHTML(){
+  return '<div class="cat-label">自分を整える</div>'
+    + '<div class="mode-grid">'
+    + '<button class="mode-card" data-mode="diagnosis"><b>相性診断</b><span>価値観タグを追加して相性精度を上げる</span></button>'
+    + '<button class="mode-card" data-mode="tag"><b>好みカード</b><span>キーワード追加で候補と会話を広げる</span></button>'
+    + '<button class="mode-card" data-mode="safe"><b>安心設定</b><span>認証・合流・評価の仕組みを確認</span></button>'
+    + '</div>';
+}
+function renderMe(){
+  var el = $('#s-me');
+  var p = state.profile;
+  if (!p) return;
+  ensureProfileDetails(p);
+  ensureTagProofs(p);
+  var ids = userTagIds();
+  var maxLv = ids.reduce(function(n,id){ return Math.max(n, lv(id)); }, 0);
+  var lv10 = ids.filter(function(id){ return lv(id)>=MAX_TAG_LEVEL; }).length;
+  var html = '<h2 class="screen-title">じぶん</h2>'
+    + '<div class="me-head">'+avatarHTML(p, false)
+    + '<div><h3>'+esc(p.name)+' <span class="pm-badge">FREE BETA</span></h3>'
+    + '<div class="meta">東京 / '+genderLabel(p.gender)+' / 18歳以上確認済み（体験用）</div></div></div>'
+    + '<div class="stat-grid">'
+    + '<div class="panel stat"><b>'+ids.length+'</b><span>認証タグ</span></div>'
+    + '<div class="panel stat"><b>'+state.metCount+'</b><span>Met認証</span></div>'
+    + '<div class="panel stat"><b>'+totalLikes()+'</b><span>いいね残</span></div>'
+    + '</div>'
+    + '<div class="cat-label">あなたの認証タグ</div><div class="chips">'
+    + ids.map(function(id){ return tagChip(id,true); }).join('')
+    + '</div>'
+    + (maxLv>0 ? '<div class="blocked-note" style="margin-top:14px">最高'+levelLabel(maxLv)+' / '+MAX_TAG_LEVEL+'。'+(lv10 ? '最大レベル到達タグが'+lv10+'個あります。' : '会えた実績が、次の出会いで優先表示につながります。')+'</div>' : '')
+    + profileCardHTML()
+    + selfToolsHTML()
+    + tagProofsHTML()
+    + premiumCardHTML()
+    + inviteCardHTML()
+    + metLedgerHTML()
+    + '<div class="cat-label">アプリ</div>'
+    + '<div style="display:grid;gap:9px">'
+    + '<button class="btn btn-ghost" id="me-avatar">プロフィール写真を変更</button>'
+    + '<button class="btn btn-outline" id="me-install">ホーム画面に追加（PWA）</button>'
+    + '<button class="btn btn-danger" id="me-reset">体験データをリセット</button>'
+    + '</div>'
+    + '<p class="screen-sub" style="margin-top:14px">公開ベータの体験データは、この端末のlocalStorageにのみ保存され、実ユーザーには送信されません。</p>';
+  el.innerHTML = html;
+  bindInvite();
+  var pm = $('#premium-manage');
+  if (pm) pm.addEventListener('click', openPremium);
+  $('#profile-edit').addEventListener('click', openProfileEdit);
+  el.querySelectorAll('[data-mode]').forEach(function(b){
+    b.addEventListener('click', function(){ openModeSheet(b.getAttribute('data-mode')); });
+  });
+  $('#me-avatar').addEventListener('click', function(){
+    sheet('<h3>プロフィール写真</h3><p class="sub">写真変更は初回登録画面で体験できます。本番版では本人確認済み写真のみ公開されます。</p><div class="actions"><button class="btn btn-primary" id="avatar-close">確認しました</button></div>');
+    $('#avatar-close').addEventListener('click', closeSheet);
+  });
+  $('#me-reset').addEventListener('click', function(){
+    sheet('<h3>体験データをリセット</h3><p class="sub">タグ・マッチ・トークの記録をこの端末から消去します。</p>'
+      + '<div class="actions"><button class="btn btn-danger" id="rs-ok">リセットする</button>'
+      + '<button class="btn btn-outline" id="rs-cancel">キャンセル</button></div>');
+    $('#rs-ok').addEventListener('click', function(){
+      localStorage.removeItem(KEY);
+      location.reload();
+    });
+    $('#rs-cancel').addEventListener('click', closeSheet);
+  });
+  $('#me-install').addEventListener('click', function(){
+    if (window.__bip){ window.__bip.prompt(); return; }
+    sheet('<h3>ホーム画面に追加</h3><p class="sub">iOS Safari: 共有ボタン → 「ホーム画面に追加」。<br>Android Chrome: メニュー → 「アプリをインストール」。</p>'
+      + '<div class="actions"><button class="btn btn-outline" id="in-ok">閉じる</button></div>');
+    $('#in-ok').addEventListener('click', closeSheet);
+  });
+}
+window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); window.__bip = e; });
+
+/* ================= boot ================= */
+document.querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    var id = t.getAttribute('data-go');
+    if (id==='home') renderHome();
+    if (id==='board') renderBoard();
+    if (id==='plans') renderPlans();
+    if (id==='talk') renderTalk();
+    if (id==='me') renderMe();
+    show(id);
+  });
+});
+if (state.profile){
+  $('#tabbar').classList.add('on');
+  renderHome(); renderBoard(); renderPlans(); renderTalk(); renderMe();
+  show('home');
+} else {
+  renderOnboard();
+  show('onboard');
+}
+if ('serviceWorker' in navigator && location.protocol === 'https:'){
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+</body>
+</html>

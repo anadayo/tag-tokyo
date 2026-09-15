@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TAG TOKYO | 出会いを、チャットで終わらせない。</title>
+<meta name="description" content="TAG TOKYOは、認証された共通点がある相手とつながり、72時間以内に東京で会うプランまで決められる、公開ベータ無料のマッチングサービスです。">
+<meta property="og:title" content="TAG TOKYO | 出会いを、チャットで終わらせない。">
+<meta property="og:description" content="証明された共通点 × 60分プラン × 72時間ルール。スワイプ型でも、AI紹介型でも、ディナー型でもない、会うまで設計のマッチング。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://anadayo.github.io/tag-tokyo/">
+<meta property="og:image" content="https://anadayo.github.io/tag-tokyo/assets/ogp.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://anadayo.github.io/tag-tokyo/assets/ogp.png">
+<meta name="twitter:site" content="@anaday_o">
+<link rel="canonical" href="https://anadayo.github.io/tag-tokyo/">
+<link rel="icon" href="app/icon.svg" type="image/svg+xml">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1RKFX1HCCV"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-1RKFX1HCCV', {content_group:'tag_tokyo'});
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type":"Question","name":"なぜ東京限定なんですか？","acceptedAnswer":{"@type":"Answer","text":"「会うまで設計」だからです。初回60分・提携スポット集合を前提にすると、現実的に会える距離=同じ生活圏が必須。まず東京23区で密度を作り、会える体験の質を担保してから拡大します。"}},
+    {"@type":"Question","name":"本人確認や年齢確認はありますか？","acceptedAnswer":{"@type":"Answer","text":"あります。18歳未満は利用不可で、登録時に年齢確認を行います。エリアは位置情報で確認し、相手には大まかなエリアだけを表示。本人確認を経たユーザーは強認証（Level 3）として優先表示されます。"}},
+    {"@type":"Question","name":"業者・ヤリモク・既婚者は混ざりませんか？","acceptedAnswer":{"@type":"Answer","text":"認証済みの共通タグ、年齢確認、選択式メッセージ、通報・ブロック・安全スコアを組み合わせ、使い捨てアカウントや外部誘導を減らす設計です。"}},
+    {"@type":"Question","name":"選択式メッセージだと気持ちが伝わらないのでは？","acceptedAnswer":{"@type":"Answer","text":"TAG TOKYOはチャットで仲良くなる場ではなく、会う約束を最短で決める場です。初回は定型フレーズと日時・駅の選択だけ。気持ちは実際に会った60分で伝えてください。会った後はやり取りの自由度が上がります。"}},
+    {"@type":"Question","name":"初対面で会うのが不安です。","acceptedAnswer":{"@type":"Answer","text":"初回はスタッフのいる提携スポット（TAG SPOT）からのみ。個室・自宅・深夜の繁華街はプラン候補に出しません。チェックイン時刻と場所を友人に共有でき、60分後に安否確認の通知も届きます。"}},
+    {"@type":"Question","name":"料金はかかりますか？","acceptedAnswer":{"@type":"Answer","text":"公開ベータ中は、検索・いいね・マッチ・トーク・予定作成まで、クレジットカード登録なしですべて無料です。"}}
+  ]
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05070b;
+  --ink:#f7f8fb;
+  --muted:#8f99aa;
+  --soft:#c9d0dc;
+  --panel:#0c1018;
+  --panel-2:#111722;
+  --line:rgba(201,208,220,.12);
+  --cyan:#7dd3fc;
+  --violet:#a78bfa;
+  --pink:#f472b6;
+  --green:#34d399;
+  --amber:#fbbf24;
+  --red:#f87171;
+  --radius:14px;
+  --radius-sm:10px;
+  --max:1160px;
+  --shadow:0 24px 60px rgba(0,0,0,.4);
+  --en:"Space Grotesk",-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  line-height:1.78;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+  background:
+    radial-gradient(900px 480px at 82% -10%,rgba(167,139,250,.07),transparent 60%),
+    radial-gradient(700px 420px at -8% 18%,rgba(125,211,252,.06),transparent 60%),
+    linear-gradient(90deg,rgba(255,255,255,.024) 1px,transparent 1px),
+    linear-gradient(180deg,rgba(255,255,255,.016) 1px,transparent 1px);
+  background-size:auto,auto,96px 96px,96px 96px;
+  mask-image:linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,.12) 70%);
+}
+main,header,footer{position:relative;z-index:1}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+::selection{background:rgba(125,211,252,.3)}
+.wrap{width:min(100% - 40px,var(--max));margin:0 auto}
+.en{font-family:var(--en);letter-spacing:.01em}
+
+/* ---------- header ---------- */
+.site-header{
+  position:sticky;
+  top:0;
+  z-index:30;
+  background:rgba(5,7,11,.78);
+  border-bottom:1px solid var(--line);
+  backdrop-filter:blur(18px) saturate(1.3);
+  -webkit-backdrop-filter:blur(18px) saturate(1.3);
+}
+.header-inner{min-height:70px;display:flex;align-items:center;gap:24px}
+.brand{display:flex;align-items:center;gap:10px;min-width:max-content}
+.brand-mark{
+  width:34px;height:34px;display:grid;place-items:center;
+  border:1px solid rgba(201,208,220,.18);
+  border-radius:10px;
+  background:linear-gradient(135deg,rgba(125,211,252,.14),rgba(167,139,250,.12));
+  color:#dbeafe;
+}
+.brand-mark svg{width:20px;height:20px}
+.brand-word{font-family:var(--en);font-weight:700;font-size:18px;line-height:1}
+.brand-word span{font-weight:500;color:var(--soft)}
+.nav{margin-left:auto;display:flex;align-items:center;gap:22px;color:var(--muted);font-size:14px}
+.nav a{transition:color .2s}
+.nav a:hover{color:var(--ink)}
+.header-cta{display:flex;align-items:center;gap:10px}
+.btn{
+  min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:1px solid transparent;border-radius:999px;padding:0 20px;
+  font-weight:700;color:var(--ink);background:var(--panel-2);
+  transition:transform .18s,box-shadow .18s,background .18s,border-color .18s;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn svg{width:18px;height:18px;flex:0 0 auto}
+.btn-primary{
+  color:#05070a;
+  background:linear-gradient(120deg,#e0f2fe,#f7f8fb 55%,#ede9fe);
+  box-shadow:0 10px 30px rgba(186,230,253,.16);
+}
+.btn-primary:hover{box-shadow:0 14px 36px rgba(186,230,253,.24)}
+.btn-outline{border-color:rgba(201,208,220,.2);background:rgba(247,248,251,.04)}
+.btn-ghost{border-color:rgba(125,211,252,.22);background:rgba(125,211,252,.06);color:#d7efff}
+
+/* ---------- hero ---------- */
+.hero{
+  position:relative;
+  min-height:680px;
+  display:grid;
+  align-items:center;
+  overflow:hidden;
+  border-bottom:1px solid var(--line);
+}
+.hero-media{position:absolute;inset:0;z-index:-2}
+.hero-media img{
+  width:100%;height:100%;object-fit:cover;object-position:64% center;
+  filter:saturate(.74) contrast(1.06) brightness(.6);
+}
+.hero::after{
+  content:"";position:absolute;inset:0;z-index:-1;
+  background:
+    linear-gradient(90deg,#05070b 0%,rgba(5,7,11,.97) 34%,rgba(5,7,11,.7) 60%,rgba(5,7,11,.3) 100%),
+    linear-gradient(180deg,rgba(5,7,11,.2),#05070b 100%);
+}
+.hero-copy{width:min(660px,100%);padding:72px 0 64px}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  color:#b9ecff;border:1px solid rgba(125,211,252,.2);
+  background:rgba(125,211,252,.06);border-radius:999px;
+  padding:6px 14px;font-size:12px;font-weight:700;
+}
+.eyebrow svg{width:16px;height:16px}
+h1,h2,h3,p{margin:0}
+h1{
+  margin-top:26px;
+  font-size:56px;line-height:1.14;font-weight:780;letter-spacing:.005em;
+}
+h1 .grad{
+  background:linear-gradient(100deg,#7dd3fc 5%,#a78bfa 55%,#f472b6 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero-lead{margin-top:22px;max-width:600px;color:var(--soft);font-size:17px}
+.hero-lead b{color:var(--ink)}
+.hero-actions{margin-top:28px;display:flex;flex-wrap:wrap;gap:12px}
+.hero-proof{
+  margin-top:30px;display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:640px;
+}
+.proof-tile{
+  min-height:96px;padding:16px;
+  border:1px solid rgba(201,208,220,.14);border-radius:var(--radius);
+  background:rgba(12,16,24,.66);backdrop-filter:blur(10px);
+}
+.proof-tile b{display:block;font-family:var(--en);font-size:24px;line-height:1.15;color:var(--ink)}
+.proof-tile b small{font-size:13px;color:var(--cyan);font-weight:600}
+.proof-tile span{display:block;margin-top:5px;color:var(--muted);font-size:12px;line-height:1.5}
+
+/* ---------- tag marquee ---------- */
+.marquee{
+  border-bottom:1px solid var(--line);
+  padding:16px 0;overflow:hidden;position:relative;
+  background:rgba(12,16,24,.4);
+}
+.marquee::before,.marquee::after{
+  content:"";position:absolute;top:0;bottom:0;width:90px;z-index:2;pointer-events:none;
+}
+.marquee::before{left:0;background:linear-gradient(90deg,var(--bg),transparent)}
+.marquee::after{right:0;background:linear-gradient(-90deg,var(--bg),transparent)}
+.marquee-track{display:flex;gap:10px;width:max-content;animation:scroll 38s linear infinite}
+@keyframes scroll{to{transform:translateX(-50%)}}
+
+/* ---------- sections ---------- */
+.section{padding:108px 0;border-bottom:1px solid rgba(201,208,220,.09)}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:32px;margin-bottom:38px}
+.section-kicker{
+  font-family:var(--en);color:var(--cyan);
+  font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+}
+h2{margin-top:10px;font-size:40px;line-height:1.22;font-weight:780}
+.section-head p{max-width:480px;color:var(--muted)}
+
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+
+.panel{
+  border:1px solid var(--line);border-radius:var(--radius);
+  background:rgba(12,16,24,.78);
+  transition:transform .25s ease,border-color .25s ease;
+}
+.panel:hover{transform:translateY(-3px);border-color:rgba(125,211,252,.26)}
+.panel-pad{padding:24px}
+
+/* ---------- comparison ---------- */
+.compare-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:rgba(12,16,24,.7)}
+table.compare{width:100%;border-collapse:collapse;min-width:860px;font-size:14px}
+.compare th,.compare td{
+  padding:16px 18px;text-align:left;vertical-align:top;
+  border-bottom:1px solid rgba(201,208,220,.09);
+}
+.compare thead th{
+  font-size:13px;color:var(--soft);font-weight:800;
+  border-bottom:1px solid rgba(201,208,220,.16);
+  background:rgba(247,248,251,.03);
+}
+.compare thead th small{display:block;margin-top:2px;color:var(--muted);font-weight:500;font-size:11px}
+.compare tbody tr:last-child td,.compare tbody tr:last-child th{border-bottom:0}
+.compare tbody th{color:var(--muted);font-weight:700;font-size:13px;white-space:nowrap;width:130px}
+.compare td{color:var(--muted)}
+.compare td.us{
+  color:var(--ink);
+  background:linear-gradient(180deg,rgba(125,211,252,.07),rgba(167,139,250,.05));
+  border-left:1px solid rgba(125,211,252,.22);
+  border-right:1px solid rgba(125,211,252,.22);
+  font-weight:600;
+}
+.compare thead th.us{
+  color:#d7efff;background:rgba(125,211,252,.1);
+  border-left:1px solid rgba(125,211,252,.26);
+  border-right:1px solid rgba(125,211,252,.26);
+  border-bottom:1px solid rgba(125,211,252,.3);
+}
+.compare tbody tr:last-child td.us{border-bottom:1px solid rgba(125,211,252,.22)}
+
+/* ---------- flow / demo ---------- */
+.demo-layout{
+  display:grid;grid-template-columns:minmax(0,1fr) 420px;
+  gap:38px;align-items:center;
+}
+.flow-list{display:grid;gap:12px}
+.flow-step{
+  display:grid;grid-template-columns:44px 1fr;gap:14px;padding:18px;
+  border:1px solid var(--line);border-radius:var(--radius);
+  background:rgba(12,16,24,.68);
+}
+.flow-step strong{
+  width:44px;height:44px;display:grid;place-items:center;border-radius:12px;
+  font-family:var(--en);color:#d7efff;
+  background:rgba(125,211,252,.1);border:1px solid rgba(125,211,252,.22);
+}
+.flow-step:nth-child(3) strong{color:#fbe3f1;background:rgba(244,114,182,.1);border-color:rgba(244,114,182,.26)}
+.flow-step:nth-child(4) strong{color:#c9f7e4;background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.26)}
+.flow-step h3{font-size:17px}
+.flow-step p{margin-top:5px;color:var(--muted);font-size:14px}
+
+.phone{
+  width:min(100%,432px);margin:0 auto;
+  border:1px solid rgba(201,208,220,.16);border-radius:26px;padding:10px;
+  background:linear-gradient(160deg,rgba(125,211,252,.08),rgba(167,139,250,.05) 50%,rgba(247,248,251,.03));
+  box-shadow:var(--shadow);
+}
+.phone-screen{
+  min-height:600px;border-radius:18px;overflow:hidden;
+  background:#070c14;border:1px solid rgba(201,208,220,.1);
+}
+.app-top{
+  padding:20px 18px 14px;
+  background:rgba(247,248,251,.035);border-bottom:1px solid rgba(201,208,220,.1);
+}
+.app-top-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.app-logo{font-family:var(--en);font-size:17px;font-weight:700}
+.status-pill{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;
+  color:#bbf7d0;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.28);
+  font-size:12px;font-weight:800;
+}
+.app-copy{margin-top:8px;color:var(--muted);font-size:12px}
+.match-strip{
+  margin:14px 16px 0;padding:13px 14px;
+  display:flex;align-items:center;gap:12px;
+  border:1px solid var(--line);border-radius:var(--radius-sm);background:#0e1521;
+}
+.avatar{
+  width:44px;height:44px;border-radius:50%;flex:0 0 auto;
+  background:linear-gradient(135deg,#2b3a52,#141c2b);
+  border:1px solid rgba(203,213,225,.2);
+}
+.match-strip h3{font-size:16px;line-height:1.3}
+.match-strip span{display:block;color:var(--muted);font-size:12px}
+.score{
+  margin-left:auto;min-width:64px;min-height:42px;display:grid;place-items:center;border-radius:10px;
+  font-family:var(--en);font-weight:700;color:#d7efff;
+  background:rgba(125,211,252,.1);border:1px solid rgba(125,211,252,.24);
+}
+.tag-row{display:flex;flex-wrap:wrap;gap:7px;margin:12px 16px 0}
+.tag{
+  display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:4px 10px;border-radius:999px;
+  font-size:12px;font-weight:700;color:#d7efff;
+  background:rgba(125,211,252,.06);border:1px solid rgba(125,211,252,.2);
+}
+.tag.strong{color:#dcfce7;background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3)}
+.tag.warn{color:#fef3c7;background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3)}
+.tag.pink{color:#fbe3f1;background:rgba(244,114,182,.09);border-color:rgba(244,114,182,.28)}
+.countdown{
+  margin:14px 16px 0;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  border:1px solid rgba(251,191,36,.26);border-radius:var(--radius-sm);
+  background:rgba(251,191,36,.06);font-size:12.5px;color:#fde9b8;
+}
+.countdown b{font-family:var(--en);font-size:16px;font-variant-numeric:tabular-nums;color:#fde047}
+.plan-list{display:grid;gap:9px;margin:14px 16px 0}
+.plan{
+  position:relative;display:grid;gap:3px;padding:13px 14px;text-align:left;width:100%;
+  border:1px solid var(--line);border-radius:var(--radius-sm);background:#0e1521;color:var(--ink);
+  transition:border-color .2s,background .2s;
+}
+.plan:hover{border-color:rgba(125,211,252,.3)}
+.plan[aria-pressed="true"]{border-color:rgba(244,114,182,.46);background:rgba(244,114,182,.07)}
+.plan[aria-pressed="true"]::after{
+  content:"選択中";position:absolute;top:11px;right:12px;
+  font-size:10px;font-weight:800;color:#fbe3f1;
+  border:1px solid rgba(244,114,182,.4);border-radius:999px;padding:2px 8px;
+}
+.plan-when{font-family:var(--en);font-size:12px;color:var(--cyan);font-weight:600}
+.plan-title{font-size:14px;font-weight:700;line-height:1.45}
+.plan-meta{font-size:11.5px;color:var(--muted)}
+.plan-meta em{font-style:normal;color:#bbf7d0}
+.phone-cta{padding:14px 16px 18px}
+
+/* ---------- structured talk ---------- */
+.talk-layout{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:38px;align-items:center}
+.chat-board{padding:22px;display:grid;gap:16px}
+.chat-note{
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;color:#bbf7d0;font-weight:700;
+  border:1px solid rgba(52,211,153,.26);border-radius:999px;
+  background:rgba(52,211,153,.07);padding:6px 12px;width:max-content;
+}
+.chat-note svg{width:14px;height:14px;flex:0 0 auto}
+.bubble{
+  max-width:88%;padding:11px 15px;border-radius:16px;
+  font-size:13.5px;line-height:1.65;
+  border:1px solid var(--line);background:#0e1521;color:var(--soft);
+}
+.bubble-label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:700}
+.bubble.me{
+  margin-left:auto;border-bottom-right-radius:6px;
+  background:rgba(125,211,252,.1);border-color:rgba(125,211,252,.26);color:#e3f5ff;
+}
+.bubble.you{border-bottom-left-radius:6px}
+.choice-block{display:grid;gap:9px}
+.choice-label{font-size:12px;color:var(--muted);font-weight:800}
+.choice-chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip-btn{
+  display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:5px 13px;border-radius:999px;
+  font-size:12.5px;font-weight:700;color:#d7efff;
+  background:rgba(125,211,252,.06);border:1px solid rgba(125,211,252,.2);
+  transition:border-color .2s,background .2s,color .2s;
+}
+.chip-btn:hover{border-color:rgba(125,211,252,.4)}
+.chip-btn[aria-pressed="true"]{
+  color:#fbe3f1;background:rgba(244,114,182,.1);border-color:rgba(244,114,182,.5);
+}
+.drum-wrap{display:grid;gap:9px}
+.drum{
+  position:relative;display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:8px;
+  border:1px solid var(--line);border-radius:var(--radius-sm);background:#0a101b;padding:0 10px;
+}
+.drum::before{
+  content:"";position:absolute;left:8px;right:8px;top:50%;height:44px;transform:translateY(-50%);
+  border-top:1px solid rgba(125,211,252,.24);border-bottom:1px solid rgba(125,211,252,.24);
+  background:rgba(125,211,252,.05);border-radius:8px;pointer-events:none;
+}
+.drum-col{
+  height:132px;overflow-y:auto;scroll-snap-type:y mandatory;
+  scrollbar-width:none;-ms-overflow-style:none;
+  mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent);
+  -webkit-mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent);
+}
+.drum-col::-webkit-scrollbar{display:none}
+.drum-col ul{list-style:none;margin:0;padding:44px 0}
+.drum-col li{
+  height:44px;display:grid;place-items:center;scroll-snap-align:center;
+  color:var(--muted);font-size:13.5px;font-weight:600;
+  font-variant-numeric:tabular-nums;transition:color .15s;
+}
+.drum-col li.on{color:var(--ink);font-weight:800}
+
+/* ---------- features ---------- */
+.feature-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.feature{min-height:226px;padding:24px}
+.mini-icon{
+  width:44px;height:44px;display:grid;place-items:center;margin-bottom:16px;
+  border:1px solid rgba(125,211,252,.2);border-radius:12px;
+  color:#b9ecff;background:rgba(125,211,252,.06);
+}
+.mini-icon svg{width:22px;height:22px}
+.feature h3{font-size:18px;line-height:1.35}
+.feature p{margin-top:8px;color:var(--muted);font-size:14px}
+.tag-cloud{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
+.tag-cloud .tag{font-size:13px}
+
+/* ---------- trust loop ---------- */
+.loop-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;position:relative}
+.loop-card{position:relative;min-height:208px;padding:22px}
+.loop-num{
+  width:38px;height:38px;display:grid;place-items:center;border-radius:11px;
+  font-family:var(--en);font-weight:700;
+  background:rgba(148,163,184,.12);color:var(--soft);
+}
+.loop-card:nth-child(2) .loop-num{background:rgba(125,211,252,.12);color:#b9ecff}
+.loop-card:nth-child(3) .loop-num{background:rgba(244,114,182,.12);color:#fbcfe8}
+.loop-card:nth-child(4) .loop-num{background:rgba(52,211,153,.14);color:#bbf7d0}
+.loop-card h3{margin-top:18px;font-size:18px}
+.loop-card p{margin-top:8px;color:var(--muted);font-size:14px}
+.loop-card::after{
+  content:"→";position:absolute;top:24px;right:-13px;z-index:2;
+  font-family:var(--en);color:var(--muted);font-size:16px;
+}
+.loop-card:last-child::after{content:"⟲";right:18px;color:var(--green)}
+
+/* ---------- spots ---------- */
+.spot-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;align-items:center}
+.spot-board{padding:24px;display:grid;gap:10px}
+.spot-row{
+  display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:center;
+  padding:13px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#0e1521;
+}
+.spot-icon{
+  width:44px;height:44px;display:grid;place-items:center;border-radius:11px;
+  color:#fbcfe8;background:rgba(244,114,182,.09);border:1px solid rgba(244,114,182,.24);
+}
+.spot-icon svg{width:21px;height:21px}
+.spot-row h3{font-size:15px}
+.spot-row span{display:block;color:var(--muted);font-size:12px}
+.spot-badge{
+  font-size:11px;font-weight:800;color:#d7efff;white-space:nowrap;
+  border:1px solid rgba(125,211,252,.26);border-radius:999px;padding:4px 10px;
+  background:rgba(125,211,252,.07);
+}
+
+/* ---------- safety ---------- */
+.safety-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.safety{padding:22px;min-height:210px}
+.safety h3{font-size:17px;line-height:1.4}
+.safety p{margin-top:8px;color:var(--muted);font-size:14px}
+
+/* ---------- price ---------- */
+.billing-toggle{
+  display:inline-flex;gap:4px;margin-bottom:18px;padding:4px;border-radius:999px;
+  border:1px solid var(--line);background:rgba(12,16,24,.7);
+}
+.billing-opt{
+  display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:0 18px;border:0;border-radius:999px;
+  font-weight:700;font-size:14px;color:var(--muted);background:transparent;transition:color .2s,background .2s;
+}
+.billing-opt[aria-pressed="true"]{color:#05070a;background:linear-gradient(120deg,#e0f2fe,#ede9fe)}
+.save-pill{
+  font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;
+  color:#bbf7d0;background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.34);
+}
+.billing-opt[aria-pressed="true"] .save-pill{color:#0a7a52;background:rgba(52,211,153,.3);border-color:transparent}
+.price-grid{display:grid;grid-template-columns:1fr 1.25fr;gap:12px}
+.price-card{padding:30px;position:relative;overflow:hidden}
+.price-card.featured-price{
+  border-color:rgba(167,139,250,.34);
+  background:linear-gradient(170deg,rgba(167,139,250,.1),rgba(12,16,24,.85) 45%);
+}
+.price-ribbon{
+  position:absolute;top:16px;right:-34px;transform:rotate(45deg);
+  padding:4px 40px;font-size:11px;font-weight:800;letter-spacing:.04em;color:#1a1030;
+  background:linear-gradient(120deg,#a78bfa,#7dd3fc);
+}
+.price-label{font-family:var(--en);color:var(--muted);font-size:13px;font-weight:700;letter-spacing:.08em}
+.price{margin-top:8px;font-family:var(--en);font-size:46px;line-height:1;font-weight:700}
+.price small{font-size:15px;color:var(--muted);font-weight:500;font-family:inherit}
+.price-note{margin-top:8px;color:var(--muted);font-size:12.5px;min-height:18px}
+.founding-banner{
+  margin-top:12px;padding:22px 24px;display:flex;align-items:center;gap:18px;
+  border:1px solid rgba(251,191,36,.3);border-radius:var(--radius);
+  background:linear-gradient(120deg,rgba(251,191,36,.09),rgba(167,139,250,.06) 70%,rgba(12,16,24,.85));
+}
+.founding-icon{
+  width:48px;height:48px;flex:0 0 auto;display:grid;place-items:center;border-radius:12px;
+  color:#fde047;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.34);
+}
+.founding-icon svg{width:24px;height:24px}
+.founding-body{flex:1;min-width:0}
+.founding-body h3{font-size:17px}
+.founding-body p{margin-top:5px;color:var(--soft);font-size:13.5px;line-height:1.7}
+.founding-body b{color:#fde9b8}
+.founding-banner .btn{flex:0 0 auto}
+@media (max-width:680px){
+  .founding-banner{flex-direction:column;align-items:flex-start;gap:14px}
+  .founding-banner .btn{width:100%}
+  .billing-toggle{display:flex}
+  .billing-opt{flex:1;justify-content:center;padding:0 10px}
+}
+.check-list{display:grid;gap:10px;margin:20px 0 0;padding:0;list-style:none}
+.check-list li{display:grid;grid-template-columns:22px 1fr;gap:10px;color:var(--soft)}
+.check-list svg{width:18px;height:18px;color:#86efac;margin-top:5px}
+
+/* ---------- faq ---------- */
+.faq-list{display:grid;gap:10px}
+.faq-item{
+  border:1px solid var(--line);border-radius:var(--radius);
+  background:rgba(12,16,24,.78);overflow:hidden;
+  transition:border-color .2s;
+}
+.faq-item[open]{border-color:rgba(125,211,252,.3)}
+.faq-item summary{
+  list-style:none;cursor:pointer;
+  display:flex;align-items:center;gap:14px;
+  padding:18px 20px;font-size:16px;font-weight:760;line-height:1.5;color:var(--ink);
+}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-mark{margin-left:auto;position:relative;width:16px;height:16px;flex:0 0 auto}
+.faq-mark::before,.faq-mark::after{
+  content:"";position:absolute;left:50%;top:50%;background:var(--cyan);border-radius:2px;
+  transition:transform .25s ease;
+}
+.faq-mark::before{width:14px;height:2px;transform:translate(-50%,-50%)}
+.faq-mark::after{width:2px;height:14px;transform:translate(-50%,-50%)}
+.faq-item[open] .faq-mark::after{transform:translate(-50%,-50%) scaleY(0)}
+.faq-body{padding:0 20px 20px;color:var(--muted);font-size:14px;line-height:1.85}
+
+/* ---------- waitlist ---------- */
+.waitlist{display:grid;grid-template-columns:1fr 430px;gap:36px;align-items:center}
+.wait-form{padding:26px}
+.field{display:grid;gap:8px;margin-bottom:14px}
+.field label{font-size:13px;color:var(--soft);font-weight:800}
+.field input,.field select{
+  width:100%;min-height:48px;color:var(--ink);
+  border:1px solid rgba(201,208,220,.16);border-radius:12px;padding:0 14px;background:#0a101b;
+  transition:border-color .2s;
+}
+.field input:focus,.field select:focus{border-color:rgba(125,211,252,.4);outline:none}
+.field input.invalid,.field select.invalid{border-color:rgba(248,113,113,.6)}
+.fine-print{margin-top:12px;color:var(--muted);font-size:12px;line-height:1.6}
+.linklike{
+  background:none;border:0;padding:0;color:var(--cyan);font:inherit;cursor:pointer;
+  text-decoration:underline;text-underline-offset:2px;
+}
+.done-check{
+  width:54px;height:54px;display:grid;place-items:center;border-radius:50%;margin-bottom:14px;
+  color:#062c1c;background:linear-gradient(135deg,#34d399,#7dd3fc);
+}
+.done-check svg{width:28px;height:28px}
+.done-title{font-size:22px;font-weight:780;line-height:1.4}
+.done-sub{margin-top:8px;color:var(--soft);font-size:14px;line-height:1.7}
+.done-sub b{color:#bbf7d0}
+#wait-share svg{width:18px;height:18px}
+.invite-banner[hidden]{display:none}
+.invite-banner{
+  display:flex;align-items:center;gap:10px;margin-bottom:18px;
+  padding:12px 16px;border-radius:12px;font-size:13.5px;line-height:1.6;color:#ede9fe;
+  border:1px solid rgba(167,139,250,.4);
+  background:linear-gradient(120deg,rgba(167,139,250,.14),rgba(125,211,252,.08));
+}
+.invite-banner svg{width:20px;height:20px;flex:0 0 auto;color:#c4b5fd}
+.invite-banner b{color:#fff;letter-spacing:.04em}
+
+.site-footer{padding:36px 0 50px;color:var(--muted)}
+.footer-inner{
+  display:flex;justify-content:space-between;gap:24px;
+  border-top:1px solid rgba(201,208,220,.1);padding-top:24px;
+}
+.footer-links{display:flex;gap:16px;flex-wrap:wrap}
+.only-mobile{display:none}
+
+@media (max-width:960px){
+  .nav{display:none}
+  h1{font-size:46px}
+  h2{font-size:33px}
+  .hero{min-height:620px}
+  .hero::after{
+    background:
+      linear-gradient(90deg,#05070b 0%,rgba(5,7,11,.92) 44%,rgba(5,7,11,.46) 100%),
+      linear-gradient(180deg,rgba(5,7,11,.18),#05070b 100%);
+  }
+  .demo-layout,.waitlist,.price-grid,.spot-layout,.talk-layout{grid-template-columns:1fr}
+  .feature-grid,.safety-grid,.loop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .loop-card:nth-child(2)::after{content:none}
+}
+@media (max-width:680px){
+  .wrap{width:min(100% - 28px,var(--max))}
+  .header-inner{min-height:62px}
+  .brand-word{font-size:15px}
+  .header-cta .btn-primary{min-height:42px;padding:0 15px}
+  .header-cta .btn-outline{display:none}
+  .hero{min-height:auto;align-items:end;padding-top:170px}
+  .hero-media img{object-position:66% top}
+  .hero::after{
+    background:
+      linear-gradient(180deg,rgba(5,7,11,.14) 0%,rgba(5,7,11,.62) 34%,#05070b 72%),
+      linear-gradient(90deg,rgba(5,7,11,.88),rgba(5,7,11,.22));
+  }
+  .hero-copy{padding:30px 0 46px}
+  h1{font-size:31px;line-height:1.22}
+  h2{font-size:27px;line-height:1.34}
+  h2 br{display:none}
+  .hero-lead{font-size:15px;line-height:1.85}
+  .hero-proof{gap:6px;margin-top:22px}
+  .proof-tile{min-height:96px;padding:10px}
+  .proof-tile b{font-size:19px}
+  .proof-tile span{font-size:11px;line-height:1.4}
+  .section{padding:60px 0}
+  .section-head{display:block}
+  .section-head p{margin-top:14px}
+  .panel-pad,.feature,.safety,.price-card,.wait-form,.loop-card,.spot-board,.chat-board{padding:18px}
+  .feature-grid,.safety-grid,.loop-grid{grid-template-columns:1fr}
+  .loop-card{min-height:0}
+  .loop-card::after{content:none!important}
+  .flow-step{grid-template-columns:38px 1fr;padding:16px;gap:12px}
+  .flow-step strong{width:38px;height:38px}
+  .phone{border-radius:22px;padding:8px}
+  .phone-screen{min-height:560px;border-radius:16px}
+  .footer-inner{display:block}
+  .footer-links{margin-top:14px}
+  .only-mobile{display:inline}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="#top" aria-label="TAG TOKYO トップへ">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4.8a2 2 0 0 1 2-2H12a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8Z"></path>
+          <path d="M7.5 7.5h.01"></path>
+        </svg>
+      </span>
+      <span class="brand-word">TAG <span>TOKYO</span></span>
+    </a>
+    <nav class="nav" aria-label="主要ナビゲーション">
+      <a href="#position">ポジション</a>
+      <a href="#match">仕組み</a>
+      <a href="#talk">選択式トーク</a>
+      <a href="#loop">信頼ループ</a>
+      <a href="#spot">TAG SPOT</a>
+      <a href="#price">料金</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="header-cta">
+      <a class="btn btn-outline" href="#waitlist" data-cta="header_waitlist_outline">事前登録</a>
+      <a class="btn btn-primary" href="#waitlist" data-cta="header_waitlist">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+        事前登録
+      </a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="hero-media" aria-hidden="true">
+      <img src="assets/tag-tokyo-hero.png" alt="">
+    </div>
+    <div class="wrap">
+      <div class="hero-copy">
+        <div class="eyebrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-4"></path></svg>
+          東京限定・認証タグ × 会うまで設計のマッチング
+        </div>
+        <h1>出会いを、<br>チャットで<span class="grad">終わらせない。</span></h1>
+        <p class="hero-lead">TAG TOKYOは、<b>証明された共通点がある相手</b>とつながる東京限定サービス。マッチしたら、共通タグから生成された<b>東京の60分プラン</b>を選ぶだけ。メッセージも待ち合わせも<b>選択式</b>で、<b>公開ベータ中はすべて無料</b>です。</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#waitlist" data-cta="hero_waitlist">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M7 10 12 5l5 5"></path><path d="M12 5v12"></path></svg>
+            事前登録する
+          </a>
+          <a class="btn btn-ghost" href="app/" data-cta="hero_app">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M12 18h.01"></path></svg>
+            無料ベータを試す
+          </a>
+          <a class="btn btn-outline" href="#match">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>
+            仕組みを見る
+          </a>
+        </div>
+        <div class="hero-proof" aria-label="主要条件">
+          <div class="proof-tile"><b>¥0</b><span>公開ベータ中は検索から予定作成まですべて無料</span></div>
+          <div class="proof-tile"><b>72<small>h</small></b><span>プラン確定の期限。だらだらチャットは発生しない</span></div>
+          <div class="proof-tile"><b>60<small>min</small></b><span>初回は提携スポットで短く会う設計</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track" id="marquee-track">
+      <span class="tag strong">カフェ巡り L2</span><span class="tag">名画座 L2</span><span class="tag pink">新宿 L2</span><span class="tag">サウナ L2</span><span class="tag warn">連絡はゆっくり L1</span><span class="tag strong">ポケカ L3</span><span class="tag">古着 L2</span><span class="tag pink">下北沢 L2</span><span class="tag">夜型 L1</span><span class="tag strong">真剣交際 L2</span><span class="tag">読書 L2</span><span class="tag pink">北千住 L2</span><span class="tag">ボドゲ L2</span><span class="tag warn">お酒飲まない L1</span><span class="tag strong">ライブ通い L2</span><span class="tag">自炊 L1</span><span class="tag pink">吉祥寺 L2</span><span class="tag">個人開発 L3</span>
+    </div>
+  </div>
+
+  <section class="section" id="position">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div>
+          <div class="section-kicker">Position</div>
+          <h2>スワイプ型でも、AI紹介型でも、<br>ディナー型でもない。</h2>
+        </div>
+        <p>2026年、ユーザーの79%が「マッチングアプリ疲れ」を訴え、大手は会員を減らしています。原因はマッチ後の「終わらないチャット」。TAG TOKYOは入口の信頼と出口の体験を両方設計します。</p>
+      </div>
+      <div class="compare-scroll reveal">
+        <table class="compare">
+          <thead>
+            <tr>
+              <th scope="col" style="width:130px"></th>
+              <th scope="col" class="us">TAG TOKYO</th>
+              <th scope="col">スワイプ型<small>Tinder / タップル など</small></th>
+              <th scope="col">AI紹介型<small>with / Ravit など</small></th>
+              <th scope="col">ディナー型<small>Timeleft など</small></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">出会いの入口</th>
+              <td class="us">認証済みの共通タグ1つ以上</td>
+              <td>顔写真の第一印象</td>
+              <td>診断テスト＋AIレコメンド</td>
+              <td>アルゴリズム抽選のグループ</td>
+            </tr>
+            <tr>
+              <th scope="row">共通点の信頼性</th>
+              <td class="us">写真・行動ログ・位置情報で証明</td>
+              <td>自己申告のまま</td>
+              <td>自己申告の回答ベース</td>
+              <td>性格診断のみ</td>
+            </tr>
+            <tr>
+              <th scope="row">マッチした後</th>
+              <td class="us">60分プランを選んで会う約束</td>
+              <td>終わらないチャット</td>
+              <td>チャット中心は同じ</td>
+              <td>いきなり6人ディナー</td>
+            </tr>
+            <tr>
+              <th scope="row">メッセージ</th>
+              <td class="us">定型フレーズの選択式のみ</td>
+              <td>自由入力（暴言・勧誘リスク）</td>
+              <td>自由入力＋AI添削</td>
+              <td>当日までほぼ会話なし</td>
+            </tr>
+            <tr>
+              <th scope="row">滞留・ゴースト</th>
+              <td class="us">72時間で確定 or 自動解消</td>
+              <td>放置マッチが大量に堆積</td>
+              <td>会話が続かず自然消滅</td>
+              <td>当日まで相手がわからない</td>
+            </tr>
+            <tr>
+              <th scope="row">会う場所の安全</th>
+              <td class="us">提携スポット＋チェックイン認証</td>
+              <td>個人任せ</td>
+              <td>個人任せ</td>
+              <td>レストランという公共空間</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="match">
+    <div class="wrap demo-layout">
+      <div class="reveal">
+        <div class="section-kicker">How it works</div>
+        <h2>証明して、いいねして、<br>選んで、会う。</h2>
+        <p class="hero-lead" style="margin-top:18px">マッチは入口にすぎません。AIは「相手探し」ではなく「2人の共通点から会うプランを作る」ことに使います。文章力もチャットの体力も、もういりません。</p>
+        <div class="flow-list" style="margin-top:28px">
+          <article class="flow-step">
+            <strong>1</strong>
+            <div><h3>タグを証明する</h3><p>趣味・価値観・恋愛観・東京エリアを、写真、質問回答、行動ログ、位置情報で認証。</p></div>
+          </article>
+          <article class="flow-step">
+            <strong>2</strong>
+            <div><h3>共通点がある人と、お互いいいね</h3><p>表示されるのは認証済みの共通タグがある相手だけ。お互いに「いいね」が揃って、はじめてマッチ成立です。</p></div>
+          </article>
+          <article class="flow-step">
+            <strong>3</strong>
+            <div><h3>選択式メッセージ＆プラン</h3><p>マッチ後は定型フレーズの選択式メッセージでやりとり。共通タグ × 2人のエリア × 空き時間からAIが60分プランを3つ提案し、選んだ瞬間に日時と場所が決まります。</p></div>
+          </article>
+          <article class="flow-step">
+            <strong>4</strong>
+            <div><h3>会うと、信頼が上がる</h3><p>提携スポットでQRチェックイン。2人揃うと「Met認証」が付き、共通タグがLevel 3へ昇格します。</p></div>
+          </article>
+        </div>
+      </div>
+      <div class="phone reveal" aria-label="TAG TOKYO アプリ画面イメージ">
+        <div class="phone-screen">
+          <div class="app-top">
+            <div class="app-top-row">
+              <div class="app-logo">TAG TOKYO</div>
+              <div class="status-pill">マッチ成立</div>
+            </div>
+            <p class="app-copy">共通タグからプランを生成しました。1つ選ぶと約束が確定します。</p>
+          </div>
+          <div class="match-strip">
+            <div class="avatar" aria-hidden="true"></div>
+            <div>
+              <h3>Rin, 27</h3>
+              <span>新宿・中野 / まずは友達から</span>
+            </div>
+            <div class="score">92%</div>
+          </div>
+          <div class="tag-row" aria-label="2人の共通認証タグ">
+            <span class="tag strong">カフェ L2</span>
+            <span class="tag strong">名画座 L2</span>
+            <span class="tag pink">新宿 L2</span>
+            <span class="tag">サウナ L2</span>
+            <span class="tag warn">連絡ゆっくり L1</span>
+          </div>
+          <div class="countdown">
+            <span>プラン確定まで</span>
+            <b id="countdown-num">71:24:08</b>
+          </div>
+          <div class="plan-list" role="group" aria-label="提案された3つのプラン">
+            <button class="plan" type="button" aria-pressed="true">
+              <span class="plan-when">FRI 19:30 · 60min</span>
+              <span class="plan-title">新宿御苑前のブックカフェで1杯だけ</span>
+              <span class="plan-meta">タグ: カフェ × 読書 · <em>TAG SPOT / 1杯目100円引き</em></span>
+            </button>
+            <button class="plan" type="button" aria-pressed="false">
+              <span class="plan-when">SAT 16:40 · 60min</span>
+              <span class="plan-title">名画座のレイトショー前にコーヒー</span>
+              <span class="plan-meta">タグ: 名画座 × 新宿 · 上映前に解散できる設計</span>
+            </button>
+            <button class="plan" type="button" aria-pressed="false">
+              <span class="plan-when">SUN 11:00 · 60min</span>
+              <span class="plan-title">サウナ後の外気浴トーク（男女別→カフェ集合）</span>
+              <span class="plan-meta">タグ: サウナ · <em>TAG SPOT / チェックインでMet認証</em></span>
+            </button>
+          </div>
+          <div class="phone-cta">
+            <a class="btn btn-primary" href="app/" style="width:100%">無料ベータでこの流れを体験する</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="talk">
+    <div class="wrap talk-layout">
+      <div class="reveal">
+        <div class="section-kicker">Structured Talk</div>
+        <h2>メッセージは、<br>書かない。選ぶ。</h2>
+        <p class="hero-lead" style="margin-top:18px">自由入力のチャットは、ありません。会話はシーンに合わせて提示される<b>定型フレーズを選ぶだけ</b>。待ち合わせは<b>2人の中間にある駅</b>から選び、日時は<b>スクロールで合わせるだけ</b>。NGワードも、失礼な一言も、「何て返そう」の悩みも、構造的に発生しません。</p>
+        <div class="flow-list" style="margin-top:28px">
+          <article class="flow-step">
+            <strong>✓</strong>
+            <div><h3>フレーズはAIがシーン別に提案</h3><p>共通タグや確定したプランに合わせて、ちょうどいい選択肢だけを表示します。</p></div>
+          </article>
+          <article class="flow-step">
+            <strong>✓</strong>
+            <div><h3>駅で待ち合わせ</h3><p>2人のよく行くエリアの中間から候補駅と出口を提示。住所のやり取りは不要です。</p></div>
+          </article>
+          <article class="flow-step">
+            <strong>✓</strong>
+            <div><h3>自由入力ゼロ＝送れない安全</h3><p>暴言、外部SNS誘導、ビジネス勧誘は「送る手段がない」ので届きません。</p></div>
+          </article>
+        </div>
+      </div>
+      <div class="panel chat-board reveal" aria-label="選択式メッセージの体験画面">
+        <div class="chat-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          このトークは定型フレーズしか送れません
+        </div>
+        <div class="bubble you"><span class="bubble-label">Rin</span>金曜のブックカフェ、楽しみにしてます ☕</div>
+        <div class="bubble me" id="me-bubble">こちらこそ、よろしくお願いします！</div>
+        <div class="choice-block">
+          <div class="choice-label">返信を選ぶ</div>
+          <div class="choice-chips" data-choice-group data-bubble="me-bubble">
+            <button class="chip-btn" type="button" aria-pressed="true">こちらこそ、よろしくお願いします！</button>
+            <button class="chip-btn" type="button" aria-pressed="false">おすすめの本、持っていきますね 📚</button>
+            <button class="chip-btn" type="button" aria-pressed="false">当日、5分前に着くようにします</button>
+          </div>
+        </div>
+        <div class="choice-block">
+          <div class="choice-label">待ち合わせ駅（2人の中間から提案）</div>
+          <div class="choice-chips" data-choice-group>
+            <button class="chip-btn" type="button" aria-pressed="true">新宿御苑前駅 1番出口</button>
+            <button class="chip-btn" type="button" aria-pressed="false">新宿三丁目駅 C5</button>
+            <button class="chip-btn" type="button" aria-pressed="false">中野駅 北口</button>
+          </div>
+        </div>
+        <div class="drum-wrap">
+          <div class="choice-label">日時（スクロールで選択）</div>
+          <div class="drum" aria-label="日時選択の体験画面">
+            <div class="drum-col"><ul><li>6/18 (木)</li><li>6/19 (金)</li><li class="on">6/20 (土)</li><li>6/21 (日)</li><li>6/22 (月)</li></ul></div>
+            <div class="drum-col"><ul><li>17時</li><li>18時</li><li class="on">19時</li><li>20時</li><li>21時</li></ul></div>
+            <div class="drum-col"><ul><li>00分</li><li>15分</li><li class="on">30分</li><li>45分</li></ul></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="tags">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div>
+          <div class="section-kicker">Verified Tags</div>
+          <h2>タグは、選ぶだけで終わらせない。</h2>
+        </div>
+        <p>タグごとに認証条件、難易度、有効期限、スコア重みを設定。Level 0（未認証）からLevel 3（強認証）まで、信頼度でマッチングの重みが変わります。</p>
+      </div>
+      <div class="feature-grid">
+        <article class="panel feature reveal">
+          <div class="mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"></path><circle cx="12" cy="13" r="3"></circle></svg></div>
+          <h3>写真認証</h3>
+          <p>カフェ、ポケカ、料理、古着、サウナ、ライブ、読書など。ネット転載やAI生成画像は禁止。</p>
+          <div class="tag-cloud"><span class="tag">カフェ</span><span class="tag">ポケカ</span><span class="tag">サウナ</span></div>
+        </article>
+        <article class="panel feature reveal">
+          <div class="mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path><path d="M8 9h8"></path><path d="M8 13h6"></path></svg></div>
+          <h3>質問認証</h3>
+          <p>真剣交際、まずは友達から、連絡はゆっくり、価値観重視など、回答内容で確認。</p>
+          <div class="tag-cloud"><span class="tag">真剣交際</span><span class="tag">自然体</span></div>
+        </article>
+        <article class="panel feature reveal">
+          <div class="mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v5l3 2"></path><circle cx="12" cy="12" r="10"></circle></svg></div>
+          <h3>行動ログ認証</h3>
+          <p>夜型、朝型、返信頻度、利用時間帯など、アプリ内の行動傾向から自動で判定。</p>
+          <div class="tag-cloud"><span class="tag">夜型</span><span class="tag">メッセージ派</span></div>
+        </article>
+        <article class="panel feature reveal">
+          <div class="mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
+          <h3>エリア認証</h3>
+          <p>東京在住確認、よく行くエリア、位置情報判定。相手には大まかなエリアだけ表示。</p>
+          <div class="tag-cloud"><span class="tag">新宿</span><span class="tag">北千住</span><span class="tag">下北沢</span></div>
+        </article>
+        <article class="panel feature reveal">
+          <div class="mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 11 3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></div>
+          <h3>Met認証</h3>
+          <p>提携スポットで2人揃ってQRチェックインすると付与される、TAG TOKYOだけの最上位認証。「実際に会えた人」だけが持てます。</p>
+          <div class="tag-cloud"><span class="tag strong">Met × 3</span><span class="tag strong">ドタキャン 0</span></div>
+        </article>
+        <article class="panel feature reveal">
+          <div class="mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.07 0l3.54-3.54a5 5 0 0 0-7.07-7.07L11.5 4.43"></path><path d="M14 11a5 5 0 0 0-7.07 0L3.39 14.54a5 5 0 0 0 7.07 7.07l2.04-2.04"></path></svg></div>
+          <h3>外部連携認証</h3>
+          <p>将来的にSpotify、Steam、GitHub、Stravaなどと連携し、活動実績を証明。</p>
+          <div class="tag-cloud"><span class="tag">個人開発</span><span class="tag">音楽制作</span></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="loop">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div>
+          <div class="section-kicker">Trust Loop</div>
+          <h2>会うほど、信頼される。</h2>
+        </div>
+        <p>既存アプリでは、何百回マッチしても信頼は積み上がりません。TAG TOKYOでは「実際に会えた」という事実そのものが、次の出会いの資産になります。</p>
+      </div>
+      <div class="loop-grid">
+        <article class="panel loop-card reveal"><div class="loop-num">1</div><h3>会う約束が決まる</h3><p>72時間以内にプランを確定。決まらなければマッチは静かに解消され、どちらの評価も下がりません。</p></article>
+        <article class="panel loop-card reveal"><div class="loop-num">2</div><h3>チェックインする</h3><p>提携スポットのQRに2人揃ってチェックイン。位置と時間で「会った」が客観的に記録されます。</p></article>
+        <article class="panel loop-card reveal"><div class="loop-num">3</div><h3>30秒レビュー</h3><p>「話が合った」「時間どおり来た」「また会いたい」をワンタップで相互評価。長文レビューは不要です。</p></article>
+        <article class="panel loop-card reveal"><div class="loop-num">4</div><h3>タグがL3へ昇格</h3><p>会えた実績で共通タグが強認証に。無断キャンセルや遅刻は安全スコアを減点し、表示順に反映します。</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="spot">
+    <div class="wrap spot-layout">
+      <div class="reveal">
+        <div class="section-kicker">TAG SPOT</div>
+        <h2>初回は、東京の<br>「いい店」から始まる。</h2>
+        <p class="hero-lead" style="margin-top:18px">カフェ、サウナ、ボドゲカフェ、名画座、ギャラリー。タグと相性のいい東京の店舗と提携し、初回の60分はスタッフのいる安心な場所からスタート。チェックインで特典が付き、店には新しいお客さんが届く、三方よしの設計です。</p>
+        <div class="tag-cloud" style="margin-top:22px">
+          <span class="tag pink">新宿</span><span class="tag pink">渋谷</span><span class="tag pink">下北沢</span><span class="tag pink">吉祥寺</span><span class="tag pink">北千住</span><span class="tag pink">錦糸町</span><span class="tag pink">秋葉原</span>
+        </div>
+      </div>
+      <div class="panel spot-board reveal" aria-label="TAG SPOTの例">
+        <div class="spot-row">
+          <div class="spot-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 1 1 0 8h-1"></path><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path><line x1="6" x2="6" y1="2" y2="4"></line><line x1="10" x2="10" y1="2" y2="4"></line><line x1="14" x2="14" y1="2" y2="4"></line></svg></div>
+          <div><h3>ブックカフェ（新宿御苑前）</h3><span>タグ: カフェ × 読書 · 静かに話せる2人席</span></div>
+          <div class="spot-badge">1杯目割引</div>
+        </div>
+        <div class="spot-row">
+          <div class="spot-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"></rect><path d="M7 12h.01"></path><path d="M17 10v4"></path><path d="M12 10v4"></path></svg></div>
+          <div><h3>ボードゲームカフェ（下北沢）</h3><span>タグ: ボドゲ · 初対面でも会話が自然に始まる</span></div>
+          <div class="spot-badge">60分席を予約</div>
+        </div>
+        <div class="spot-row">
+          <div class="spot-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20"></path><path d="M7 12a5 5 0 0 1 10 0"></path><path d="M5 16h14"></path><path d="M7 20h10"></path></svg></div>
+          <div><h3>サウナ＆カフェ（錦糸町）</h3><span>タグ: サウナ · 男女別で入って、ラウンジ集合</span></div>
+          <div class="spot-badge">Met認証対応</div>
+        </div>
+        <div class="spot-row">
+          <div class="spot-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"></rect><path d="m10 8 5 3-5 3Z"></path></svg></div>
+          <div><h3>名画座（新宿）</h3><span>タグ: 映画 · 上映前の30分カフェ＋観たら解散もOK</span></div>
+          <div class="spot-badge">半券で特典</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="safety">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div>
+          <div class="section-kicker">Safety First</div>
+          <h2>危ない出会いを、設計から遠ざける。</h2>
+        </div>
+        <p>18歳未満の利用不可、年齢確認、通報・ブロック、NGワード検知を前提に、「会う」までの動線そのものを安全に設計します。</p>
+      </div>
+      <div class="safety-grid">
+        <article class="panel safety reveal"><h3>初回は提携スポットから</h3><p>初対面の待ち合わせはスタッフのいるTAG SPOTを推奨。個室・自宅・夜の繁華街はプラン候補に出しません。</p></article>
+        <article class="panel safety reveal"><h3>見守りチェックイン</h3><p>チェックイン時刻と場所を、登録した友人にワンタップで共有可能。60分後に安否確認の通知が届きます。</p></article>
+        <article class="panel safety reveal"><h3>自由入力ゼロ</h3><p>メッセージは選択式のみ。NGワード、暴言、LINE誘導、ビジネス勧誘は「送る手段がない」ので発生しません。</p></article>
+        <article class="panel safety reveal"><h3>安全スコア</h3><p>通報、ブロック率、ドタキャン、同文大量送信を減点対象に。スコアが低い相手はそもそも表示されません。</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="price">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div>
+          <div class="section-kicker">Price</div>
+          <h2>公開ベータは、すべて無料。</h2>
+        </div>
+        <p>検索、いいね、マッチ、選択式トーク、60分プラン作成までクレジットカード登録なしで利用できます。</p>
+      </div>
+      <div class="billing-toggle reveal" aria-label="公開ベータ料金"><span class="save-pill">クレジットカード登録不要</span></div>
+      <div class="price-grid">
+        <article class="panel price-card reveal">
+          <div class="price-label">FREE</div>
+          <div class="price">0<small>円</small></div>
+          <p class="price-note">クレジットカード登録なしで、ずっと無料。</p>
+          <ul class="check-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span><b>共通タグ1つ以上</b>でマッチ候補</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span>同時マッチは3枠まで（だから1人に向き合える）</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span>AIによる60分プラン提案 3案</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span>TAG SPOT特典・Met認証</span></li>
+          </ul>
+        </article>
+        <article class="panel price-card featured-price reveal">
+          <div class="price-ribbon">BETA MEMBER</div>
+          <div class="price-label">ALL FEATURES</div>
+          <div class="price"><span id="price-amount">0</span><small id="price-unit">円</small></div>
+          <p class="price-note" id="price-note">公開ベータ中は追加機能も無料です。</p>
+          <ul class="check-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span><b>詳細検索・足あと</b>を無料開放</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span>マッチ枠の拡張、プラン再生成・日時候補の追加が無制限</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span>詳細検索、足あと、返信率・Met実績が高い相手の表示</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg><span>広告非表示、タグ認証の優先審査、人気スポットの優先予約</span></li>
+          </ul>
+        </article>
+      </div>
+      <div class="founding-banner reveal">
+        <div class="founding-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 15 8l6 .9-4.5 4.3 1.1 6L12 16.8 6.4 19.2l1.1-6L3 8.9 9 8z"></path></svg>
+        </div>
+        <div class="founding-body">
+          <h3>初期メンバー特典</h3>
+          <p>事前登録した先着ユーザーには、プロフィールに<b>初期メンバーバッジ</b>を付与予定。招待した友達が5人参加すると、先行機能のテストにも参加できます。</p>
+        </div>
+        <a class="btn btn-primary" href="#waitlist" data-cta="founding_waitlist">枠を確保する</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="faq">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div>
+          <div class="section-kicker">FAQ</div>
+          <h2>気になることに、<br>先に答えます。</h2>
+        </div>
+        <p>マッチングアプリで一番大事なのは「安全」と「本気度」。TAG TOKYO がどう設計しているかをまとめました。</p>
+      </div>
+      <div class="faq-list reveal">
+        <details class="faq-item">
+          <summary>なぜ東京限定なんですか？<span class="faq-mark" aria-hidden="true"></span></summary>
+          <div class="faq-body">「会うまで設計」だからです。初回60分・提携スポット集合を前提にすると、現実的に会える距離=同じ生活圏が必須。まず東京23区で密度を作り、会える体験の質を担保してから拡大します。</div>
+        </details>
+        <details class="faq-item">
+          <summary>本人確認や年齢確認はありますか？<span class="faq-mark" aria-hidden="true"></span></summary>
+          <div class="faq-body">あります。18歳未満は利用不可で、登録時に年齢確認を行います。エリアは位置情報で確認し、相手には大まかなエリアだけを表示。本人確認を経たユーザーは強認証（Level 3）として優先表示されます。</div>
+        </details>
+        <details class="faq-item">
+          <summary>業者・ヤリモク・既婚者は混ざりませんか？<span class="faq-mark" aria-hidden="true"></span></summary>
+          <div class="faq-body">認証済みの共通タグ、年齢確認、選択式メッセージを組み合わせ、使い捨てアカウントや外部誘導を減らします。通報・ブロック・安全スコアも本番公開の必須機能として実装します。</div>
+        </details>
+        <details class="faq-item">
+          <summary>「選択式メッセージ」だと気持ちが伝わらないのでは？<span class="faq-mark" aria-hidden="true"></span></summary>
+          <div class="faq-body">TAG TOKYO はチャットで仲良くなる場ではなく、会う約束を最短で決める場です。だから初回は定型フレーズと日時・駅の選択だけ。気持ちは、実際に会った60分で伝えてください。会った後はやり取りの自由度が上がります。</div>
+        </details>
+        <details class="faq-item">
+          <summary>初対面で会うのが不安です。<span class="faq-mark" aria-hidden="true"></span></summary>
+          <div class="faq-body">初回はスタッフのいる提携スポット（TAG SPOT）からのみ。個室・自宅・深夜の繁華街はプラン候補に出しません。チェックイン時刻と場所を友人にワンタップ共有でき、60分後に安否確認の通知も届きます。</div>
+        </details>
+        <details class="faq-item">
+          <summary>料金はかかりますか？<span class="faq-mark" aria-hidden="true"></span></summary>
+          <div class="faq-body">公開ベータ中は、検索・いいね・マッチ・トーク・予定作成までクレジットカード登録なしですべて無料です。将来の有料機能はコア機能を塞がない追加オプションとして検討します。</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="waitlist">
+    <div class="wrap waitlist">
+      <div class="reveal">
+        <div class="invite-banner" id="invite-banner" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v11h16V10"></path><path d="M2 7h20v3H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"></path></svg>
+          <span>招待コード <b id="invite-banner-code"></b> で来ました。<b>早期メンバー枠</b>で登録できます。</span>
+        </div>
+        <div class="section-kicker">Waitlist</div>
+        <h2>東京で、ちゃんと会える人を待つ。</h2>
+        <p class="hero-lead">初期展開は東京23区中心。恋人探し、趣味友、ご飯友達、カフェ友達から始めたい人に向けて、PWA版から検証予定です。</p>
+        <div class="tag-cloud" style="margin-top:24px">
+          <span class="tag strong">東京在住</span>
+          <span class="tag">18歳以上</span>
+          <span class="tag pink">新宿</span>
+          <span class="tag pink">渋谷</span>
+          <span class="tag pink">秋葉原</span>
+          <span class="tag pink">北千住</span>
+          <span class="tag pink">下北沢</span>
+          <span class="tag pink">吉祥寺</span>
+          <span class="tag pink">錦糸町</span>
+        </div>
+      </div>
+      <form class="panel wait-form reveal" id="wait-form" novalidate>
+        <div class="field">
+          <label for="email">メールアドレス</label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="area">よく行くエリア</label>
+          <select id="area" name="area" required>
+            <option value="">選択してください</option>
+            <option>新宿</option>
+            <option>渋谷</option>
+            <option>池袋</option>
+            <option>秋葉原</option>
+            <option>上野</option>
+            <option>北千住</option>
+            <option>下北沢</option>
+            <option>吉祥寺</option>
+            <option>錦糸町</option>
+            <option>その他の東京エリア</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" type="submit" style="width:100%" data-cta="waitlist_submit">事前登録する</button>
+        <p class="fine-print" id="form-status" aria-live="polite">登録は無料。リリース情報を優先的にお知らせします。実運用時は年齢確認・東京在住確認・利用規約同意を含む登録フローになります。</p>
+      </form>
+      <div class="panel wait-form reveal" id="wait-done" hidden>
+        <div class="done-check" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+        </div>
+        <h3 class="done-title">事前登録、完了しました。</h3>
+        <p class="done-sub">あなたは早期登録 <b id="wait-pos" class="en">#1</b> 番目です。<span id="wait-area-label"></span>エリアでの展開が近づいたら、優先してご案内します。</p>
+        <div style="display:grid;gap:9px;margin-top:18px">
+          <a class="btn btn-primary" id="wait-share" href="#" target="_blank" rel="noopener" data-cta="share_x">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
+            Xで友達を誘う（早期枠が増えます）
+          </a>
+          <a class="btn btn-ghost" href="app/" data-cta="app_from_waitlist">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M12 18h.01"></path></svg>
+            無料ベータを試す
+          </a>
+        </div>
+        <p class="fine-print" style="margin-top:12px">登録内容はこの端末に保存されています。<button type="button" id="wait-undo" class="linklike">登録を取り消す</button></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div>
+      <div class="brand-word">TAG <span>TOKYO</span></div>
+      <p>出会いを、チャットで終わらせない。</p>
+    </div>
+    <div class="footer-links">
+      <a href="#position">ポジション</a>
+      <a href="#match">仕組み</a>
+      <a href="#talk">選択式トーク</a>
+      <a href="#loop">信頼ループ</a>
+      <a href="#spot">TAG SPOT</a>
+      <a href="#price">料金</a>
+      <a href="#faq">FAQ</a>
+      <a href="#waitlist">事前登録</a>
+      <a href="app/">無料ベータ</a>
+      <a href="safety.html">安全ガイド</a>
+      <a href="privacy.html">プライバシー</a>
+      <a href="terms.html">利用規約</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // marquee: duplicate track contents for seamless loop
+  var track = document.getElementById('marquee-track');
+  if (track) track.innerHTML += track.innerHTML;
+
+  // scroll reveal
+  if (!reduce && 'IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, {threshold:.12, rootMargin:'0px 0px -40px 0px'});
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  } else {
+    document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in'); });
+  }
+
+  // demo countdown (71:24:08 -> ticking down)
+  var num = document.getElementById('countdown-num');
+  if (num && !reduce) {
+    var total = 71*3600 + 24*60 + 8;
+    setInterval(function(){
+      total = total > 0 ? total - 1 : 72*3600;
+      var h = Math.floor(total/3600), m = Math.floor(total%3600/60), s = total%60;
+      num.textContent = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    }, 1000);
+  }
+
+  // demo plan selection
+  var plans = document.querySelectorAll('.plan');
+  plans.forEach(function(p){
+    p.addEventListener('click', function(){
+      plans.forEach(function(q){ q.setAttribute('aria-pressed','false'); });
+      p.setAttribute('aria-pressed','true');
+    });
+  });
+
+  // structured talk: choice chips (one active per group, optionally echoed into a bubble)
+  document.querySelectorAll('[data-choice-group]').forEach(function(group){
+    var chips = group.querySelectorAll('.chip-btn');
+    chips.forEach(function(c){
+      c.addEventListener('click', function(){
+        chips.forEach(function(q){ q.setAttribute('aria-pressed','false'); });
+        c.setAttribute('aria-pressed','true');
+        var target = group.getAttribute('data-bubble');
+        if (target) {
+          var b = document.getElementById(target);
+          if (b) b.textContent = c.textContent;
+        }
+      });
+    });
+  });
+
+  // structured talk: drum picker (highlight the item snapped to center)
+  document.querySelectorAll('.drum-col').forEach(function(col){
+    var items = col.querySelectorAll('li');
+    var update = function(){
+      var rect = col.getBoundingClientRect(), mid = rect.top + rect.height/2;
+      var best = null, bd = Infinity;
+      items.forEach(function(li){
+        var r = li.getBoundingClientRect();
+        var d = Math.abs(r.top + r.height/2 - mid);
+        if (d < bd) { bd = d; best = li; }
+      });
+      items.forEach(function(li){ li.classList.toggle('on', li === best); });
+    };
+    var init = col.querySelector('li.on');
+    if (init) col.scrollTop = Array.prototype.indexOf.call(items, init) * 44;
+    col.addEventListener('scroll', update, {passive:true});
+    update();
+  });
+
+  // ---- analytics helper (no-op until a real GA4 ID is set) ----
+  function trackEvent(name, params){
+    try { if (typeof gtag === 'function') gtag('event', name, params || {}); } catch(e){}
+  }
+  // generic CTA tracking
+  document.querySelectorAll('[data-cta]').forEach(function(el){
+    el.addEventListener('click', function(){ trackEvent('cta_click', {cta: el.getAttribute('data-cta')}); });
+  });
+
+  // ---- pricing: monthly / annual toggle ----
+  (function(){
+    var amount = document.getElementById('price-amount');
+    var unit = document.getElementById('price-unit');
+    var note = document.getElementById('price-note');
+    var opts = document.querySelectorAll('.billing-opt');
+    var PRICING = {
+      monthly: { amount: '0', unit: '円', note: '公開ベータ中はすべて無料です。' },
+      annual:  { amount: '0', unit: '円', note: 'クレジットカード登録は不要です。' }
+    };
+    if (!amount || !opts.length) return;
+    opts.forEach(function(b){
+      b.addEventListener('click', function(){
+        var key = b.getAttribute('data-billing');
+        opts.forEach(function(o){ o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+        var p = PRICING[key];
+        amount.textContent = p.amount; unit.textContent = p.unit; note.textContent = p.note;
+        trackEvent('billing_toggle', { plan: key });
+      });
+    });
+  })();
+
+  // ---- invite: acknowledge ?invite=CODE from a referral link ----
+  try {
+    var inviteCode = new URLSearchParams(location.search).get('invite');
+    if (inviteCode && /^[A-Z0-9]{4,10}$/.test(inviteCode)) {
+      var ib = document.getElementById('invite-banner');
+      var ibc = document.getElementById('invite-banner-code');
+      if (ib && ibc) { ibc.textContent = inviteCode; ib.hidden = false; }
+      trackEvent('invite_landing', { code: inviteCode });
+    }
+  } catch(e){}
+
+  // ---- waitlist: capture + success state + X-share growth loop ----
+  var WKEY = 'tagtokyo-waitlist';
+  var form = document.getElementById('wait-form');
+  var done = document.getElementById('wait-done');
+  var status = document.getElementById('form-status');
+  var SHARE_TEXT = '東京で「ちゃんと会える人」とだけ出会えるTAG TOKYOの事前登録をしました。証明された共通点でマッチして、72時間以内に会う約束まで決まるらしい。';
+  var SHARE_URL = 'https://anadayo.github.io/tag-tokyo/';
+
+  function shareHref(){
+    return 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(SHARE_TEXT) + '&url=' + encodeURIComponent(SHARE_URL);
+  }
+  function showDone(rec){
+    if (!form || !done) return;
+    form.hidden = true;
+    done.hidden = false;
+    var pos = document.getElementById('wait-pos');
+    if (pos) pos.textContent = '#' + (rec.pos || 1);
+    var al = document.getElementById('wait-area-label');
+    if (al) al.textContent = rec.area ? '「' + rec.area + '」' : '';
+    var sh = document.getElementById('wait-share');
+    if (sh) sh.setAttribute('href', shareHref());
+  }
+  // restore on reload
+  try {
+    var saved = JSON.parse(localStorage.getItem(WKEY));
+    if (saved && saved.email) showDone(saved);
+  } catch(e){}
+
+  if (form) {
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var email = document.getElementById('email');
+      var area = document.getElementById('area');
+      var emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
+      var areaOk = !!area.value;
+      email.classList.toggle('invalid', !emailOk);
+      area.classList.toggle('invalid', !areaOk);
+      if (!emailOk){ status.textContent = '正しいメールアドレスを入力してください。'; email.focus(); return; }
+      if (!areaOk){ status.textContent = 'よく行くエリアを選択してください。'; area.focus(); return; }
+
+      // pseudo position: stable per-device, seeded for social proof
+      var base = 327;
+      var rec = { email: email.value.trim(), area: area.value, pos: base + Math.floor(Math.random()*40), ts: Date.now() };
+      try { localStorage.setItem(WKEY, JSON.stringify(rec)); } catch(e){}
+      trackEvent('waitlist_submit', { area: rec.area });
+
+      // OPTIONAL real backend: set FORM_ENDPOINT to a Formspree URL to also collect server-side.
+      var FORM_ENDPOINT = '';
+      if (FORM_ENDPOINT) {
+        fetch(FORM_ENDPOINT, {
+          method:'POST', headers:{'Accept':'application/json','Content-Type':'application/json'},
+          body: JSON.stringify({ email: rec.email, area: rec.area })
+        }).catch(function(){});
+      }
+      showDone(rec);
+      done.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+    });
+  }
+  var undo = document.getElementById('wait-undo');
+  if (undo) undo.addEventListener('click', function(){
+    try { localStorage.removeItem(WKEY); } catch(e){}
+    if (done) done.hidden = true;
+    if (form) { form.hidden = false; form.reset(); }
+    if (status) status.textContent = '登録を取り消しました。';
+    trackEvent('waitlist_undo');
+  });
+})();
+</script>
+</body>
+</html>

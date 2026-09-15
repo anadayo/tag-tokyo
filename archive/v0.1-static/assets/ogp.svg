@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" font-family="-apple-system,'Hiragino Sans','Helvetica Neue',Arial,sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a0f18"/>
+      <stop offset="1" stop-color="#05070b"/>
+    </linearGradient>
+    <radialGradient id="glowV" cx="85%" cy="-5%" r="70%">
+      <stop offset="0" stop-color="#a78bfa" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#a78bfa" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowC" cx="-5%" cy="20%" r="60%">
+      <stop offset="0" stop-color="#7dd3fc" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#7dd3fc" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tag" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7dd3fc"/>
+      <stop offset=".55" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glowV)"/>
+  <rect width="1200" height="630" fill="url(#glowC)"/>
+
+  <!-- brand -->
+  <g transform="translate(80 74)">
+    <g transform="scale(1.7)" fill="none" stroke="url(#tag)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4.8a2 2 0 0 1 2-2H12a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8Z"/>
+      <path d="M7.5 7.5h.01"/>
+    </g>
+    <text x="58" y="32" font-size="30" font-weight="700" letter-spacing="2" fill="#f7f8fb">TAG <tspan fill="#c9d0dc" font-weight="500">TOKYO</tspan></text>
+  </g>
+
+  <!-- eyebrow pill -->
+  <g transform="translate(80 196)">
+    <rect width="560" height="46" rx="23" fill="#7dd3fc" fill-opacity=".07" stroke="#7dd3fc" stroke-opacity=".28"/>
+    <text x="28" y="30" font-size="20" font-weight="700" fill="#b9ecff">東京限定・認証タグ × 会うまで設計のマッチング</text>
+  </g>
+
+  <!-- headline -->
+  <text x="78" y="350" font-size="78" font-weight="800" fill="#f7f8fb" letter-spacing="1">出会いを、チャットで</text>
+  <text x="78" y="446" font-size="78" font-weight="800" letter-spacing="1" fill="url(#tag)">終わらせない。</text>
+
+  <!-- sub stats -->
+  <g transform="translate(80 510)" fill="#c9d0dc" font-size="24" font-weight="600">
+    <text x="0" y="28"><tspan fill="#7dd3fc" font-weight="800" font-size="30">5+</tspan>  認証共通タグ</text>
+    <text x="300" y="28"><tspan fill="#fbbf24" font-weight="800" font-size="30">72h</tspan>  で約束 or 解消</text>
+    <text x="640" y="28"><tspan fill="#34d399" font-weight="800" font-size="30">60min</tspan>  提携スポットで</text>
+  </g>
+
+  <!-- accent line -->
+  <rect x="0" y="618" width="1200" height="12" fill="url(#tag)"/>
+</svg>
