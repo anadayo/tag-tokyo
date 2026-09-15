@@ -9,12 +9,12 @@ import {
 import { track } from "@/lib/analytics";
 import { sampleCrossings } from "@/lib/demo-profiles";
 import {
-  COSMETICS, drawSpotReward, getLevelProgress, INITIAL_GROWTH, PROFILE_UNLOCKS,
+  COSMETICS, drawSpotReward, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_UNLOCKS,
   TAG_SPOTS, TOKYO_AREAS,
 } from "@/lib/game";
 import { isInsideTokyo, requestPrivateLocation } from "@/lib/location";
 import { hasSupabase, supabase } from "@/lib/supabase";
-import type { CrossItem, GrowthState, TabId, TagDuration, TagSessionState } from "@/lib/types";
+import type { CrossItem, EditableProfile, GrowthState, TabId, TagDuration, TagSessionState } from "@/lib/types";
 
 const INITIAL_SESSION: TagSessionState = {
   active: false,
@@ -306,7 +306,7 @@ function MatchScreen() {
   );
 }
 
-function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagicLink, growth, buyCosmetic }: {
+function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagicLink, growth, buyCosmetic, equipCosmetic, profile, setProfile }: {
   verified: boolean;
   setVerified: (value: boolean) => void;
   email: string;
@@ -315,15 +315,47 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
   sendMagicLink: () => void;
   growth: GrowthState;
   buyCosmetic: (id: string) => void;
+  equipCosmetic: (id: string) => void;
+  profile: EditableProfile;
+  setProfile: (profile: EditableProfile) => void;
 }) {
   const progress = getLevelProgress(growth.totalEarnedExp);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(profile);
+  const equippedTitle = COSMETICS.find((item) => item.id === growth.equippedTitle)?.name;
+  const profileFields: Array<{ key: keyof EditableProfile; label: string; level: number; placeholder: string; long?: boolean }> = [
+    { key: "displayName", label: "表示名", level: 1, placeholder: "表示名" },
+    { key: "bio", label: "自己紹介", level: 1, placeholder: "あなたらしさが伝わる自己紹介", long: true },
+    { key: "weekend", label: "休日の過ごし方", level: 3, placeholder: "休日は何をしていますか？", long: true },
+    { key: "romance", label: "恋愛観", level: 5, placeholder: "どんな関係を築きたいですか？", long: true },
+    { key: "contactFrequency", label: "連絡頻度", level: 5, placeholder: "理想の連絡頻度" },
+    { key: "values", label: "大切にしている価値観", level: 7, placeholder: "大切にしたいこと", long: true },
+    { key: "lifestyle", label: "生活スタイル", level: 7, placeholder: "朝型・夜型など" },
+    { key: "work", label: "仕事について", level: 9, placeholder: "仕事への向き合い方", long: true },
+    { key: "moneyStyle", label: "お金の使い方", level: 9, placeholder: "貯蓄・趣味など" },
+    { key: "marriageView", label: "結婚観", level: 11, placeholder: "将来について", long: true },
+    { key: "extraBio", label: "自己紹介追加枠", level: 11, placeholder: "もう少し伝えたいこと", long: true },
+  ];
+
+  function openEditor() {
+    setDraft(profile);
+    setEditing(true);
+    track("tagtokyo_profile_editor_opened");
+  }
+
+  function saveProfile() {
+    setProfile({ ...draft, displayName: draft.displayName.trim() || "あなた" });
+    setEditing(false);
+    track("tagtokyo_profile_updated", { unlocked_level: progress.level });
+  }
+
   return (
     <section className="screen">
       <header className="screen-header"><div><span>ME</span><h2>プロフィール</h2></div></header>
-      <div className="me-card">
-        <div className={`me-avatar ${growth.equippedFrame ? "has-frame" : ""}`}>A</div>
-        <div><h3>あなた <span className="profile-level">Lv.{progress.level}</span></h3><p>東京で育つ、あなたのプロフィール</p></div>
-        <button aria-label="プロフィール編集"><ChevronRight /></button>
+      <div className={`me-card profile-showcase ${growth.equippedBackground ? `equip-${growth.equippedBackground}` : ""}`}>
+        <div className={`me-avatar ${growth.equippedFrame ? `equip-${growth.equippedFrame}` : ""}`}>{profile.displayName.slice(0, 1).toUpperCase()}</div>
+        <div>{equippedTitle && <small className="equipped-title">{equippedTitle}</small>}<h3>{profile.displayName} <span className="profile-level">Lv.{progress.level}</span></h3><p>{profile.bio}</p></div>
+        <button aria-label="プロフィール編集" onClick={openEditor}><ChevronRight /></button>
       </div>
       <div className="settings-card growth-card">
         <div className="section-heading"><div><small>PROFILE GROWTH</small><h3>自分を育てる</h3></div><strong>{growth.availableExp.toLocaleString()} EXP</strong></div>
@@ -337,11 +369,17 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
         </div>
       </div>
       <div className="settings-card cosmetic-card">
-        <div className="section-heading"><div><small>EXP SHOP</small><h3>プロフィール装飾</h3></div><ShoppingBag /></div>
-        <div className="cosmetic-list">
+        <div className="section-heading"><div><small>DRESS UP</small><h3>装飾アイテム</h3></div><ShoppingBag /></div>
+        <p className="cosmetic-intro">見た目を確認して、EXPで交換。取得後はいつでも装備できます。</p>
+        <div className="cosmetic-grid">
           {COSMETICS.map((item) => {
             const owned = growth.ownedCosmetics.includes(item.id);
-            return <div key={item.id} className="cosmetic-item"><span className="cosmetic-swatch" style={{ background: item.color }} /><span><b>{item.name}</b><small>{item.kind}</small></span><button disabled={owned || growth.availableExp < item.cost} onClick={() => buyCosmetic(item.id)}>{owned ? "取得済み" : `${item.cost} EXP`}</button></div>;
+            const equipped = growth.equippedFrame === item.id || growth.equippedBackground === item.id || growth.equippedTitle === item.id;
+            return <article key={item.id} className="cosmetic-tile">
+              <div className={`cosmetic-visual visual-${item.slot}`} style={{ "--item-color": item.color } as React.CSSProperties}><span>{item.slot === "title" ? "Aa" : "A"}</span></div>
+              <div><small>{item.kind}</small><b>{item.name}</b></div>
+              <button disabled={equipped || (!owned && growth.availableExp < item.cost)} onClick={() => owned ? equipCosmetic(item.id) : buyCosmetic(item.id)}>{equipped ? "装備中" : owned ? "装備する" : `${item.cost} EXP`}</button>
+            </article>;
           })}
         </div>
       </div>
@@ -365,6 +403,21 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
         <p><b>位置情報の扱い</b></p>
         <p>すれ違い判定だけに利用し、生の位置情報は数時間から24時間以内に削除します。他ユーザーへ現在地や正確な距離を公開しません。</p>
       </div>
+      {editing && <div className="profile-editor-overlay" role="dialog" aria-modal="true" aria-label="プロフィール編集">
+        <div className="profile-editor">
+          <header><div><small>EDIT PROFILE</small><h3>プロフィールを編集</h3></div><button aria-label="編集を閉じる" onClick={() => setEditing(false)}>×</button></header>
+          <p className="editor-guide">Lv.{progress.level}までの項目を編集できます</p>
+          <div className="editor-fields">
+            {profileFields.map((field) => {
+              const unlocked = progress.level >= field.level;
+              return <label key={field.key} className={!unlocked ? "locked-field" : ""}><span>{field.label}{!unlocked && <small><LockKeyhole />Lv.{field.level}で解放</small>}</span>{field.long
+                ? <textarea disabled={!unlocked} value={draft[field.key]} placeholder={field.placeholder} maxLength={field.key === "bio" || field.key === "extraBio" ? 500 : 160} onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))} />
+                : <input disabled={!unlocked} value={draft[field.key]} placeholder={field.placeholder} maxLength={60} onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))} />}</label>;
+            })}
+          </div>
+          <div className="editor-actions"><button onClick={() => setEditing(false)}>キャンセル</button><button onClick={saveProfile}>保存する</button></div>
+        </div>
+      </div>}
     </section>
   );
 }
@@ -378,6 +431,7 @@ export default function TagTokyoApp() {
   const [email, setEmail] = useState("");
   const [authNotice, setAuthNotice] = useState("");
   const [growth, setGrowth] = useState<GrowthState>(INITIAL_GROWTH);
+  const [profile, setProfile] = useState<EditableProfile>(INITIAL_PROFILE);
   const crossings = useMemo(() => sampleCrossings(MY_TAGS), []);
 
   useEffect(() => {
@@ -400,6 +454,20 @@ export default function TagTokyoApp() {
   useEffect(() => {
     window.localStorage.setItem("tagtokyo_growth_preview_v1", JSON.stringify(growth));
   }, [growth]);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("tagtokyo_profile_preview_v1");
+    if (!saved) return;
+    try {
+      const restored = JSON.parse(saved) as EditableProfile;
+      const timeout = window.setTimeout(() => setProfile({ ...INITIAL_PROFILE, ...restored }), 0);
+      return () => window.clearTimeout(timeout);
+    } catch { /* Ignore invalid preview state. */ }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("tagtokyo_profile_preview_v1", JSON.stringify(profile));
+  }, [profile]);
 
   useEffect(() => {
     if (!session.active || !session.expiresAt) return;
@@ -469,9 +537,23 @@ export default function TagTokyoApp() {
       ...current,
       availableExp: current.availableExp - item.cost,
       ownedCosmetics: [...current.ownedCosmetics, id],
-      equippedFrame: item.kind === "フレーム" ? id : current.equippedFrame,
+      equippedFrame: item.slot === "frame" ? id : current.equippedFrame,
+      equippedBackground: item.slot === "background" ? id : current.equippedBackground,
+      equippedTitle: item.slot === "title" ? id : current.equippedTitle,
     }));
     track("tagtokyo_cosmetic_exchanged", { cosmetic_id: id, exp_cost: item.cost });
+  }
+
+  function equipCosmetic(id: string) {
+    const item = COSMETICS.find((candidate) => candidate.id === id);
+    if (!item || !growth.ownedCosmetics.includes(id)) return;
+    setGrowth((current) => ({
+      ...current,
+      equippedFrame: item.slot === "frame" ? id : current.equippedFrame,
+      equippedBackground: item.slot === "background" ? id : current.equippedBackground,
+      equippedTitle: item.slot === "title" ? id : current.equippedTitle,
+    }));
+    track("tagtokyo_cosmetic_equipped", { cosmetic_id: id });
   }
 
   return (
@@ -481,7 +563,7 @@ export default function TagTokyoApp() {
       {tab === "cross" && <CrossScreen crossings={crossings} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} />}
       {tab === "match" && <MatchScreen />}
-      {tab === "me" && <MeScreen verified={verified} setVerified={setVerified} email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} growth={growth} buyCosmetic={buyCosmetic} />}
+      {tab === "me" && <MeScreen verified={verified} setVerified={setVerified} email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} />}
       <BottomNav tab={tab} onChange={(next) => {
         setTab(next);
         window.scrollTo({ top: 0, behavior: "instant" });

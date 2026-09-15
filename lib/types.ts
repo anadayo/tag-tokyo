@@ -33,7 +33,23 @@ export type GrowthState = {
   areaContributions: Record<string, number>;
   ownedCosmetics: string[];
   equippedFrame: string | null;
+  equippedBackground?: string | null;
+  equippedTitle?: string | null;
   spotClaims: Record<string, string>;
+};
+
+export type EditableProfile = {
+  displayName: string;
+  bio: string;
+  weekend: string;
+  romance: string;
+  contactFrequency: string;
+  values: string;
+  lifestyle: string;
+  work: string;
+  moneyStyle: string;
+  marriageView: string;
+  extraBio: string;
 };
 
 export type TokyoArea = {

@@ -8,6 +8,8 @@ export const INITIAL_GROWTH: GrowthState = {
   areaContributions: { kitasenju: 2400 },
   ownedCosmetics: [],
   equippedFrame: null,
+  equippedBackground: null,
+  equippedTitle: null,
   spotClaims: {},
 };
 
@@ -27,10 +29,27 @@ export const TAG_SPOTS: TagSpot[] = [
 ];
 
 export const COSMETICS = [
-  { id: "frame-mint", name: "TOKYO MINT", kind: "フレーム", cost: 500, color: "#21c78a" },
-  { id: "frame-coral", name: "CROSS CORAL", kind: "フレーム", cost: 800, color: "#ff5f69" },
-  { id: "title-walker", name: "東京ウォーカー", kind: "称号", cost: 1000, color: "#ffd75e" },
+  { id: "frame-mint", name: "TOKYO MINT", kind: "フレーム", slot: "frame", cost: 500, color: "#21c78a" },
+  { id: "frame-coral", name: "CROSS CORAL", kind: "フレーム", slot: "frame", cost: 800, color: "#ff5f69" },
+  { id: "background-night", name: "TOKYO NIGHT", kind: "背景", slot: "background", cost: 800, color: "#25242b" },
+  { id: "title-walker", name: "東京ウォーカー", kind: "称号", slot: "title", cost: 1000, color: "#ffd75e" },
+  { id: "title-cafe", name: "カフェ開拓中", kind: "称号", slot: "title", cost: 1000, color: "#b88a63" },
+  { id: "background-season", name: "SEASON LIGHT", kind: "季節背景", slot: "background", cost: 2000, color: "#92b5c7" },
 ];
+
+export const INITIAL_PROFILE = {
+  displayName: "あなた",
+  bio: "東京のカフェと散歩が好きです。気軽に話せるとうれしいです。",
+  weekend: "新しいお店を探すか、映画を観ています",
+  romance: "まずはゆっくり話したい",
+  contactFrequency: "1日数回くらい",
+  values: "お互いの時間を大切にしたい",
+  lifestyle: "朝型・休日は外出多め",
+  work: "",
+  moneyStyle: "",
+  marriageView: "",
+  extraBio: "",
+};
 
 export const PROFILE_UNLOCKS = [
   { level: 1, label: "基本プロフィール" },

@@ -52,7 +52,10 @@ create table public.cosmetics (
 insert into public.cosmetics (id,name,kind,exp_cost,rarity) values
   ('frame-mint','TOKYO MINT','frame',500,'normal'),
   ('frame-coral','CROSS CORAL','frame',800,'normal'),
+  ('background-night','TOKYO NIGHT','background',800,'normal'),
   ('title-walker','東京ウォーカー','title',1000,'normal'),
+  ('title-cafe','カフェ開拓中','title',1000,'normal'),
+  ('background-season','SEASON LIGHT','seasonal',2000,'rare'),
   ('spot-rare','TAG SPOT限定装飾','seasonal',null,'rare'),
   ('spot-sr','BOOST','boost',null,'sr'),
   ('spot-ssr','SUPER BOOST','super_boost',null,'ssr')
