@@ -1,4 +1,4 @@
-export type TabId = "home" | "cross" | "match" | "me";
+export type TabId = "home" | "cross" | "map" | "match" | "me";
 export type TagDuration = 30 | 60 | 180;
 
 export type DemoProfile = {
@@ -25,4 +25,32 @@ export type TagSessionState = {
   startedAt: number | null;
   expiresAt: number | null;
   areaLabel: string | null;
+};
+
+export type GrowthState = {
+  totalEarnedExp: number;
+  availableExp: number;
+  areaContributions: Record<string, number>;
+  ownedCosmetics: string[];
+  equippedFrame: string | null;
+  spotClaims: Record<string, string>;
+};
+
+export type TokyoArea = {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  champion: string;
+  championPoints: number;
+  championLevel: number;
+  isDemo: true;
+};
+
+export type TagSpot = {
+  id: string;
+  name: string;
+  areaId: string;
+  x: number;
+  y: number;
 };

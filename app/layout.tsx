@@ -6,14 +6,14 @@ const siteUrl = "https://anadayo.github.io/tag-tokyo/";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "TAG TOKYO | 東京ですれ違った人と、あとからつながる。",
-  description: "現在地を公開せず、東京で同じ時間帯にすれ違った人と相互TAGでつながるマッチングPWA。",
+  title: "TAG TOKYO | 東京を歩くほど、出会いと自分が育つ。",
+  description: "現在地を公開せず、東京でのすれ違い、EXPによるプロフィール成長、無料TAG SPOTを楽しめるマッチングPWA。",
   applicationName: "TAG TOKYO",
   manifest: "/tag-tokyo/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "TAG TOKYO" },
   openGraph: {
     title: "TAG TOKYO",
-    description: "東京ですれ違った人と、あとからつながる。",
+    description: "東京を歩くほど、出会いと自分が育つ。",
     url: siteUrl,
     siteName: "TAG TOKYO",
     images: [{ url: "/tag-tokyo/ogp.png", width: 1200, height: 630 }],

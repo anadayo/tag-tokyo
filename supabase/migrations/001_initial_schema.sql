@@ -157,8 +157,9 @@ create or replace function public.start_tag_session(
 declare v_user uuid; v_session uuid;
 begin
   select id into v_user from public.users
-    where auth_user_id = auth.uid() and age_verified and status = 'active' and not is_demo;
-  if v_user is null then raise exception 'age verification required'; end if;
+    where auth_user_id = auth.uid() and age_verified and birth_date <= current_date - interval '20 years'
+      and status = 'active' and not is_demo;
+  if v_user is null then raise exception '20+ age verification required'; end if;
   if p_duration_minutes not in (30, 60, 180) then raise exception 'invalid duration'; end if;
   if p_latitude < 35.49 or p_latitude > 35.90 or p_longitude < 138.94 or p_longitude > 139.93 then
     raise exception 'TAG ON is available only in Tokyo';
