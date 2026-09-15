@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Bell, ChevronRight, Clock3, Gift, HeartHandshake, Home, LockKeyhole, LogOut, Map,
+  Bell, ChevronRight, Clock3, Crown, Gift, HeartHandshake, Home, LockKeyhole, LogOut, Map,
   MapPin, MessageCircle, Minus, OctagonAlert, Plus, Power, ShieldCheck, ShoppingBag,
   Sparkles, Star, Trophy, UserRound, UsersRound, Zap,
 } from "lucide-react";
@@ -306,7 +306,7 @@ function MatchScreen() {
   );
 }
 
-function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagicLink, growth, buyCosmetic, equipCosmetic, profile, setProfile }: {
+function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagicLink, growth, buyCosmetic, equipCosmetic, profile, setProfile, isOwner }: {
   verified: boolean;
   setVerified: (value: boolean) => void;
   email: string;
@@ -318,6 +318,7 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
   equipCosmetic: (id: string) => void;
   profile: EditableProfile;
   setProfile: (profile: EditableProfile) => void;
+  isOwner: boolean;
 }) {
   const progress = getLevelProgress(growth.totalEarnedExp);
   const [editing, setEditing] = useState(false);
@@ -352,6 +353,7 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
   return (
     <section className="screen">
       <header className="screen-header"><div><span>ME</span><h2>プロフィール</h2></div></header>
+      {isOwner && <div className="owner-note"><Crown /><span><b>OWNER MODE</b><small>全プロフィール項目と装飾を自由に確認できます</small></span></div>}
       <div className={`me-card profile-showcase ${growth.equippedBackground ? `equip-${growth.equippedBackground}` : ""}`}>
         <div className={`me-avatar ${growth.equippedFrame ? `equip-${growth.equippedFrame}` : ""}`}>{profile.displayName.slice(0, 1).toUpperCase()}</div>
         <div>{equippedTitle && <small className="equipped-title">{equippedTitle}</small>}<h3>{profile.displayName} <span className="profile-level">Lv.{progress.level}</span></h3><p>{profile.bio}</p></div>
@@ -378,7 +380,7 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
             return <article key={item.id} className="cosmetic-tile">
               <div className={`cosmetic-visual visual-${item.slot}`} style={{ "--item-color": item.color } as React.CSSProperties}><span>{item.slot === "title" ? "Aa" : "A"}</span></div>
               <div><small>{item.kind}</small><b>{item.name}</b></div>
-              <button disabled={equipped || (!owned && growth.availableExp < item.cost)} onClick={() => owned ? equipCosmetic(item.id) : buyCosmetic(item.id)}>{equipped ? "装備中" : owned ? "装備する" : `${item.cost} EXP`}</button>
+              <button disabled={equipped || (!isOwner && !owned && growth.availableExp < item.cost)} onClick={() => owned ? equipCosmetic(item.id) : buyCosmetic(item.id)}>{equipped ? "装備中" : owned ? "装備する" : isOwner ? "自由に試着" : `${item.cost} EXP`}</button>
             </article>;
           })}
         </div>
@@ -406,10 +408,10 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
       {editing && <div className="profile-editor-overlay" role="dialog" aria-modal="true" aria-label="プロフィール編集">
         <div className="profile-editor">
           <header><div><small>EDIT PROFILE</small><h3>プロフィールを編集</h3></div><button aria-label="編集を閉じる" onClick={() => setEditing(false)}>×</button></header>
-          <p className="editor-guide">Lv.{progress.level}までの項目を編集できます</p>
+          <p className="editor-guide">{isOwner ? "オーナーはすべての項目を編集できます" : `Lv.${progress.level}までの項目を編集できます`}</p>
           <div className="editor-fields">
             {profileFields.map((field) => {
-              const unlocked = progress.level >= field.level;
+              const unlocked = isOwner || progress.level >= field.level;
               return <label key={field.key} className={!unlocked ? "locked-field" : ""}><span>{field.label}{!unlocked && <small><LockKeyhole />Lv.{field.level}で解放</small>}</span>{field.long
                 ? <textarea disabled={!unlocked} value={draft[field.key]} placeholder={field.placeholder} maxLength={field.key === "bio" || field.key === "extraBio" ? 500 : 160} onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))} />
                 : <input disabled={!unlocked} value={draft[field.key]} placeholder={field.placeholder} maxLength={60} onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))} />}</label>;
@@ -432,6 +434,7 @@ export default function TagTokyoApp() {
   const [authNotice, setAuthNotice] = useState("");
   const [growth, setGrowth] = useState<GrowthState>(INITIAL_GROWTH);
   const [profile, setProfile] = useState<EditableProfile>(INITIAL_PROFILE);
+  const [isOwner, setIsOwner] = useState(false);
   const crossings = useMemo(() => sampleCrossings(MY_TAGS), []);
 
   useEffect(() => {
@@ -468,6 +471,35 @@ export default function TagTokyoApp() {
   useEffect(() => {
     window.localStorage.setItem("tagtokyo_profile_preview_v1", JSON.stringify(profile));
   }, [profile]);
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client) {
+      if (new URLSearchParams(window.location.search).get("owner-preview") === "1") {
+        const timeout = window.setTimeout(() => setIsOwner(true), 0);
+        return () => window.clearTimeout(timeout);
+      }
+      return;
+    }
+
+    const connectedClient = client;
+    let active = true;
+    async function syncOwnerRole() {
+      const { data: { user } } = await connectedClient.auth.getUser();
+      if (!user) {
+        if (active) setIsOwner(false);
+        return;
+      }
+      const { data } = await connectedClient.from("users").select("role").eq("auth_user_id", user.id).maybeSingle();
+      if (active) setIsOwner(data?.role === "owner");
+    }
+    void syncOwnerRole();
+    const { data: { subscription } } = connectedClient.auth.onAuthStateChange(() => void syncOwnerRole());
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (!session.active || !session.expiresAt) return;
@@ -530,23 +562,32 @@ export default function TagTokyoApp() {
     setAuthNotice(error ? error.message : "ログインリンクをメールへ送りました");
   }
 
-  function buyCosmetic(id: string) {
+  async function buyCosmetic(id: string) {
     const item = COSMETICS.find((candidate) => candidate.id === id);
-    if (!item || growth.availableExp < item.cost || growth.ownedCosmetics.includes(id)) return;
+    if (!item || (!isOwner && growth.availableExp < item.cost) || growth.ownedCosmetics.includes(id)) return;
+    if (supabase) {
+      const { error } = isOwner
+        ? await supabase.rpc("owner_unlock_cosmetics")
+        : await supabase.rpc("exchange_cosmetic", { p_cosmetic_id: id });
+      if (error) {
+        setAuthNotice(error.message);
+        return;
+      }
+    }
     setGrowth((current) => ({
       ...current,
-      availableExp: current.availableExp - item.cost,
+      availableExp: isOwner ? current.availableExp : current.availableExp - item.cost,
       ownedCosmetics: [...current.ownedCosmetics, id],
       equippedFrame: item.slot === "frame" ? id : current.equippedFrame,
       equippedBackground: item.slot === "background" ? id : current.equippedBackground,
       equippedTitle: item.slot === "title" ? id : current.equippedTitle,
     }));
-    track("tagtokyo_cosmetic_exchanged", { cosmetic_id: id, exp_cost: item.cost });
+    track(isOwner ? "tagtokyo_owner_cosmetic_previewed" : "tagtokyo_cosmetic_exchanged", { cosmetic_id: id, exp_cost: isOwner ? 0 : item.cost });
   }
 
   function equipCosmetic(id: string) {
     const item = COSMETICS.find((candidate) => candidate.id === id);
-    if (!item || !growth.ownedCosmetics.includes(id)) return;
+    if (!item || (!isOwner && !growth.ownedCosmetics.includes(id))) return;
     setGrowth((current) => ({
       ...current,
       equippedFrame: item.slot === "frame" ? id : current.equippedFrame,
@@ -563,7 +604,7 @@ export default function TagTokyoApp() {
       {tab === "cross" && <CrossScreen crossings={crossings} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} />}
       {tab === "match" && <MatchScreen />}
-      {tab === "me" && <MeScreen verified={verified} setVerified={setVerified} email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} />}
+      {tab === "me" && <MeScreen verified={verified} setVerified={setVerified} email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} isOwner={isOwner} />}
       <BottomNav tab={tab} onChange={(next) => {
         setTab(next);
         window.scrollTo({ top: 0, behavior: "instant" });

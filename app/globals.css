@@ -126,6 +126,11 @@ button { color: inherit; }
 .me-card p { margin-top: 3px; color: var(--muted); font-size: 10px; }
 .me-card button { border: 0; background: transparent; }
 .me-card button svg { width: 19px; color: var(--muted); }
+.owner-note { margin-bottom: 10px; padding: 11px 12px; display: flex; align-items: center; gap: 10px; border: 1px solid #dfbb43; border-radius: 8px; background: #fff9df; color: #604900; }
+.owner-note > svg { width: 21px; flex: 0 0 auto; }
+.owner-note span { display: grid; gap: 2px; }
+.owner-note b { font-size: 10px; }
+.owner-note small { font-size: 8px; line-height: 1.4; }
 .profile-showcase { min-height: 94px; transition: background-color .2s, color .2s; }
 .profile-showcase.equip-background-night { border-color: #3e3b43; background: #25242b; color: white; }
 .profile-showcase.equip-background-season { border-color: #9fc5d7; background: linear-gradient(135deg, #e9f8fb, #fff4d9 55%, #ffe7e9); }
