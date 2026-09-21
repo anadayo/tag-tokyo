@@ -373,6 +373,27 @@ function MatchScreen({ matches, onClear }: { matches: CrossItem[]; onClear: () =
   );
 }
 
+function FeedbackPanel() {
+  const [rating, setRating] = useState<number | null>(null);
+  const [topic, setTopic] = useState("わかりやすさ");
+  const [sent, setSent] = useState(false);
+  const topics = ["わかりやすさ", "プロフィール", "MAP・EXP", "安心感", "もっと使いたい機能"];
+
+  function submit() {
+    if (!rating) return;
+    track("tagtokyo_preview_feedback", { rating, topic });
+    setSent(true);
+  }
+
+  return <div className="settings-card feedback-card">
+    <div className="section-heading"><div><small>PREVIEW FEEDBACK</small><h3>このデモ、どうだった？</h3></div><Star /></div>
+    <p>個人情報なしで、仮公開の改善に使う評価だけ送れます。</p>
+    <div className="rating-row" aria-label="満足度">{[1, 2, 3, 4, 5].map((value) => <button key={value} className={rating && value <= rating ? "selected" : ""} onClick={() => { setRating(value); setSent(false); }} aria-label={`${value}点`}>{value}</button>)}</div>
+    <label className="feedback-topic"><span>一番改善してほしいところ</span><select value={topic} onChange={(event) => { setTopic(event.target.value); setSent(false); }}>{topics.map((item) => <option key={item}>{item}</option>)}</select></label>
+    <button className="primary-wide" disabled={!rating || sent} onClick={submit}>{sent ? "評価を受け付けました" : "匿名で評価を送る"}</button>
+  </div>;
+}
+
 function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagicLink, growth, buyCosmetic, equipCosmetic, profile, setProfile, isOwner, liveEnabled }: {
   verified: boolean;
   setVerified: (value: boolean) => void;
@@ -503,6 +524,7 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
         <p>{liveEnabled ? "年齢確認済みの参加者だけが交流機能を利用できます。" : "実在ユーザー同士のTAG・MATCH・メッセージはまだ有効化していません。"}</p>
         <ul><li>現在地・正確な距離は非公開</li><li>ブロック・通報を常時利用可能</li><li>18歳未満は利用不可</li></ul>
       </div>
+      <FeedbackPanel />
       {editing && <div className="profile-editor-overlay" role="dialog" aria-modal="true" aria-label="プロフィール編集">
         <div className="profile-editor">
           <header><div><small>EDIT PROFILE</small><h3>プロフィールを編集</h3></div><button aria-label="編集を閉じる" onClick={() => setEditing(false)}>×</button></header>
