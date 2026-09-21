@@ -104,8 +104,9 @@ button { color: inherit; }
 .card-actions { display: grid; grid-template-columns: .8fr 1.5fr; gap: 8px; margin-top: 15px; }
 .card-actions button { min-height: 44px; border-radius: 8px; font-size: 11px; font-weight: 800; }
 .detail-button { border: 1px solid var(--line); background: white; }
-.tag-button { border: 0; display: flex; align-items: center; justify-content: center; gap: 5px; background: #e8e5e5; color: #898386; }
+.tag-button { border: 0; display: flex; align-items: center; justify-content: center; gap: 5px; background: var(--ink); color: white; }
 .tag-button svg { width: 15px; }
+.tag-button.is-tagged, .tag-button:disabled { background: #e8e5e5; color: #898386; }
 
 .empty-state { padding: 48px 28px; text-align: center; border: 1px solid var(--line); border-radius: 8px; background: white; }
 .empty-icon { width: 64px; height: 64px; margin: 0 auto 16px; display: grid; place-items: center; border-radius: 50%; background: var(--mint-soft); color: #0a8f61; }
@@ -119,9 +120,30 @@ button { color: inherit; }
 .rule-list span { display: grid; gap: 3px; }
 .rule-list b { font-size: 13px; }
 .rule-list small { color: var(--muted); font-size: 10px; }
+.match-count { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 50%; background: var(--coral); color: white; font-size: 12px; font-weight: 900; }
+.demo-match-list { display: grid; gap: 8px; }
+.demo-match { min-height: 68px; padding: 10px; display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; background: white; }
+.demo-match > div { display: grid; gap: 4px; }
+.demo-match b { font-size: 12px; }
+.demo-match small { color: var(--muted); font-size: 9px; }
+.demo-match > span { padding: 4px 6px; border-radius: 4px; background: #f1eeef; color: #706a6c; font-size: 8px; font-weight: 900; }
+.message-preview { margin-top: 14px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: white; }
+.message-preview > small { color: var(--coral); font-size: 8px; font-weight: 900; }
+.message-preview h3 { margin: 3px 0 12px; font-size: 15px; }
+.message-options { display: grid; gap: 7px; }
+.message-options button { padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: #fbf9f8; color: #575154; font-size: 10px; line-height: 1.5; text-align: left; }
+.message-options button.selected { border-color: var(--mint); background: var(--mint-soft); color: #087d55; }
+.message-bubble { min-height: 50px; margin-top: 12px; padding: 11px; border-radius: 8px 8px 2px 8px; background: var(--mint-soft); color: #087d55; font-size: 10px; line-height: 1.6; }
+.demo-reset { width: 100%; margin-top: 12px; border: 0; background: transparent; color: var(--muted); font-size: 10px; text-decoration: underline; }
 
 .me-card { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: white; }
 .me-avatar { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: white; font-size: 20px; font-weight: 900; }
+.avatar-upload { position: relative; cursor: pointer; overflow: visible; }
+.avatar-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.profile-photo { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+.avatar-camera { position: absolute; right: -3px; bottom: -3px; width: 21px; height: 21px; display: grid; place-items: center; border: 2px solid white; border-radius: 50%; background: var(--coral); color: white; }
+.avatar-camera svg { width: 11px; }
+.photo-notice { display: block; margin-top: 4px; color: #087d55; font-size: 8px; line-height: 1.4; }
 .me-card h3, .me-card p { margin: 0; }
 .me-card p { margin-top: 3px; color: var(--muted); font-size: 10px; }
 .me-card button { border: 0; background: transparent; }
@@ -157,6 +179,12 @@ button { color: inherit; }
 .setting-link.danger { color: #c33d46; }
 .settings-card.compact p { margin: 0; font-size: 11px; line-height: 1.7; color: var(--muted); }
 .settings-card.compact p:first-child { margin-bottom: 5px; color: var(--ink); }
+.launch-status { border-color: #cdeee2; background: #f4fcf8; }
+.launch-status.is-live { border-color: #dfbb43; background: #fff9df; }
+.launch-status .section-heading > svg { color: var(--mint); }
+.launch-status.is-live .section-heading > svg { color: #b37d00; }
+.launch-status > p { margin: 10px 0; color: #4f5b55; font-size: 10px; line-height: 1.6; }
+.launch-status ul { margin: 0; padding-left: 17px; color: #4f5b55; font-size: 9px; line-height: 1.9; }
 .profile-level { display: inline-block; margin-left: 4px; padding: 3px 5px; border-radius: 4px; background: var(--mint-soft); color: #087d55; font-size: 9px; vertical-align: middle; }
 .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .section-heading h3 { margin: 2px 0 0; }
@@ -206,6 +234,34 @@ button { color: inherit; }
 .editor-actions { position: sticky; bottom: -22px; display: grid; grid-template-columns: .8fr 1.2fr; gap: 8px; margin: 18px -18px -22px; padding: 12px 18px max(18px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: rgba(255,253,251,.97); }
 .editor-actions button { height: 44px; border: 1px solid var(--line); border-radius: 8px; background: white; font-size: 11px; font-weight: 800; }
 .editor-actions button:last-child { border-color: var(--ink); background: var(--ink); color: white; }
+.editor-error { margin: 12px 0 0; color: #b3323b; font-size: 10px; font-weight: 800; }
+
+.access-shell { min-height: 100dvh; padding: 22px; display: grid; place-items: center; background: #ece9e8; }
+.access-card { width: min(100%, 440px); padding: 24px 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); box-shadow: var(--shadow); }
+.access-brand { display: flex; align-items: center; gap: 9px; }
+.access-brand b { font-size: 15px; }
+.access-brand small { margin-left: auto; padding: 5px 8px; border-radius: 6px; background: var(--mint-soft); color: #0c865b; font-size: 9px; font-weight: 900; }
+.access-copy { margin: 31px 0 22px; }
+.access-copy > span { color: var(--coral); font-size: 9px; font-weight: 900; }
+.access-copy h1 { margin: 7px 0 10px; font-size: 25px; line-height: 1.38; }
+.access-copy p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.8; }
+.access-field { display: grid; gap: 7px; }
+.access-field span { font-size: 11px; font-weight: 800; }
+.access-field input { width: 100%; height: 46px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: white; outline: none; }
+.access-field input:focus { border-color: var(--mint); box-shadow: 0 0 0 3px var(--mint-soft); }
+.access-check { display: flex; align-items: flex-start; gap: 8px; margin-top: 13px; color: #575154; font-size: 10px; line-height: 1.5; }
+.access-check input { width: 17px; height: 17px; margin: 0; accent-color: var(--mint); }
+.access-check a { color: #087d55; font-weight: 800; }
+.access-error { margin: 12px 0 0; color: #b3323b; font-size: 10px; font-weight: 800; }
+.access-button { width: 100%; height: 46px; margin-top: 18px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 8px; background: var(--ink); color: white; font-size: 12px; font-weight: 800; }
+.access-button svg { width: 16px; }
+.access-note { margin: 15px 0 0; padding: 11px; display: flex; gap: 8px; border-radius: 7px; background: var(--mint-soft); color: #0a704d; font-size: 9px; line-height: 1.55; }
+.access-note svg { width: 16px; flex: 0 0 auto; }
+.policy-page { width: min(100% - 36px, 680px); min-height: 100dvh; margin: 0 auto; padding: 42px 0 64px; background: var(--paper); }
+.policy-page h1 { margin: 0 0 9px; font-size: 25px; line-height: 1.4; }
+.policy-page > p { color: var(--muted); font-size: 11px; line-height: 1.8; }
+.policy-page h2 { margin: 30px 0 8px; font-size: 16px; }
+.policy-page h2 + p { color: #4e484a; font-size: 12px; line-height: 1.9; }
 
 .wallet { display: flex; align-items: center; gap: 5px; padding: 8px 10px; border-radius: 7px; background: var(--mint-soft); color: #087d55; font-size: 12px; font-weight: 900; }
 .wallet svg { width: 15px; }

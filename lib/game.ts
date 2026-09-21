@@ -39,6 +39,8 @@ export const COSMETICS = [
 
 export const INITIAL_PROFILE = {
   displayName: "あなた",
+  handle: "tokyo_player",
+  avatarDataUrl: "",
   bio: "東京のカフェと散歩が好きです。気軽に話せるとうれしいです。",
   weekend: "新しいお店を探すか、映画を観ています",
   romance: "まずはゆっくり話したい",

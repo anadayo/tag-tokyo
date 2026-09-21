@@ -4,6 +4,12 @@
 node_modules/
 .next/
 out/
+/_next/
+/index.html
+/manifest.webmanifest
+/sw.js
+/terms/
+/privacy/
 .env
 .env.local
 .vercel/

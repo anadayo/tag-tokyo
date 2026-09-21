@@ -40,6 +40,8 @@ export type GrowthState = {
 
 export type EditableProfile = {
   displayName: string;
+  handle: string;
+  avatarDataUrl: string;
   bio: string;
   weekend: string;
   romance: string;
