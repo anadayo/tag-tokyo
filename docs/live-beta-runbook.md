@@ -16,6 +16,13 @@ All of these must be complete before `NEXT_PUBLIC_TAG_TOKYO_LIVE_ENABLED=true` i
 
 The client environment flag alone does not authorise live interactions. The database control must also be enabled by an authorised operator after this runbook is signed off.
 
+## Server functions and secrets
+
+- Schedule `cleanup-private-data` at least hourly with `CRON_SECRET`; it calls the existing database cleanup RPC for expired location samples and crossings.
+- `age-verification-webhook` is an adapter endpoint, not a browser endpoint. Configure a verification provider or trusted relay to send the documented JSON envelope with an HMAC-SHA256 signature in `x-tag-verification-signature`.
+- Store `AGE_VERIFICATION_WEBHOOK_SECRET`, `CRON_SECRET`, and the Supabase service-role key only in the function runtime. Never put them in `.env` files committed to Git or `NEXT_PUBLIC_` variables.
+- The webhook stores only provider method, opaque verification reference, status, and verification time. It rejects unsigned payloads and cannot be used to claim verification from the client.
+
 ## Personal-data boundary
 
 - Supabase Auth holds email authentication.

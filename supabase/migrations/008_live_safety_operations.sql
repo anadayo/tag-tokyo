@@ -99,6 +99,84 @@ begin
   end if;
 end $$;
 
+-- The age-verification provider result is the sole source of truth. Do not
+-- require or retain a birth date after a successful provider verification.
+create or replace function public.start_tag_session(
+  p_latitude double precision,
+  p_longitude double precision,
+  p_duration_minutes integer,
+  p_delete_at timestamptz
+) returns uuid language plpgsql security definer set search_path = public as $$
+declare v_user uuid; v_session uuid;
+begin
+  v_user := public.current_app_user_id();
+  perform public.assert_live_member(v_user);
+  if p_duration_minutes not in (30, 60, 180) then raise exception 'invalid duration'; end if;
+  if p_latitude < 35.49 or p_latitude > 35.90 or p_longitude < 138.94 or p_longitude > 139.93 then
+    raise exception 'TAG ON is available only in Tokyo';
+  end if;
+  update public.tag_sessions set status = 'stopped' where user_id = v_user and status = 'active';
+  insert into public.tag_sessions (user_id, expires_at)
+    values (v_user, now() + make_interval(mins => p_duration_minutes)) returning id into v_session;
+  insert into public.location_samples (session_id, latitude, longitude, delete_at)
+    values (v_session, p_latitude, p_longitude, least(p_delete_at, now() + interval '24 hours'));
+  return v_session;
+end $$;
+
+create or replace function public.contribute_area_exp(
+  p_area_id text, p_amount integer, p_latitude double precision, p_longitude double precision
+) returns bigint language plpgsql security definer set search_path = public as $$
+declare v_user uuid; v_points bigint; v_area public.areas%rowtype; v_distance double precision;
+begin
+  v_user := public.current_app_user_id();
+  perform public.assert_live_member(v_user);
+  if p_amount < 100 or p_amount > 1000 or p_amount % 100 <> 0 then raise exception 'invalid contribution'; end if;
+  select * into v_area from public.areas where id = p_area_id and active;
+  if v_area.id is null then raise exception 'area unavailable'; end if;
+  v_distance := public.distance_meters(p_latitude, p_longitude, v_area.latitude, v_area.longitude);
+  if v_distance > v_area.contribution_radius_m then raise exception 'EXP can be contributed only within 1km of the area base'; end if;
+  perform public.spend_exp(v_user, p_amount, 'area_contribution', 'area', p_area_id);
+  insert into public.area_contributions (area_id, user_id, points) values (p_area_id, v_user, p_amount)
+    on conflict (area_id, user_id) do update set points = area_contributions.points + excluded.points, updated_at = now()
+    returning points into v_points;
+  return v_points;
+end $$;
+
+create or replace function public.draw_tag_spot(
+  p_spot_id text, p_latitude double precision, p_longitude double precision
+) returns table(reward_type text, reward_key text, reward_exp integer) language plpgsql security definer set search_path = public as $$
+declare v_user uuid; v_spot public.tag_spots%rowtype; v_roll double precision; v_type text; v_key text; v_exp integer;
+begin
+  v_user := public.current_app_user_id();
+  perform public.assert_live_member(v_user);
+  select * into v_spot from public.tag_spots where id = p_spot_id and active;
+  if v_spot.id is null then raise exception 'spot unavailable'; end if;
+  if public.distance_meters(p_latitude, p_longitude, v_spot.latitude, v_spot.longitude) > v_spot.radius_m then raise exception 'move closer to TAG SPOT'; end if;
+  if exists (select 1 from public.tag_spot_draws d where d.user_id = v_user and d.spot_id = p_spot_id and d.draw_date = (now() at time zone 'Asia/Tokyo')::date) then
+    raise exception 'already drawn today';
+  end if;
+  v_roll := random();
+  if v_roll < 1.0/300 then v_type := 'cosmetic'; v_key := 'spot-ssr'; v_exp := 0;
+  elsif v_roll < 1.0/80 then v_type := 'cosmetic'; v_key := 'spot-sr'; v_exp := 0;
+  elsif v_roll < 1.0/25 then v_type := 'cosmetic'; v_key := 'spot-rare'; v_exp := 0;
+  elsif v_roll < 0.12 then v_type := 'exp'; v_key := 'exp-100'; v_exp := 100;
+  elsif v_roll < 0.37 then v_type := 'exp'; v_key := 'exp-50'; v_exp := 50;
+  else v_type := 'exp'; v_key := 'exp-30'; v_exp := 30; end if;
+  insert into public.tag_spot_draws (user_id, spot_id, reward_type, reward_key, reward_exp)
+    values (v_user, p_spot_id, v_type, v_key, v_exp);
+  if v_type = 'cosmetic' and exists (select 1 from public.user_cosmetics where user_id = v_user and cosmetic_id = v_key) then
+    v_type := 'exp'; v_key := 'duplicate-compensation'; v_exp := 100;
+    update public.tag_spot_draws set reward_type = v_type, reward_key = v_key, reward_exp = v_exp
+      where user_id = v_user and spot_id = p_spot_id and draw_date = (now() at time zone 'Asia/Tokyo')::date;
+  end if;
+  if v_type = 'exp' then
+    perform public.issue_exp(v_user, v_exp, 'tag_spot', 'tag_spot', p_spot_id);
+  else
+    insert into public.user_cosmetics (user_id, cosmetic_id, source) values (v_user, v_key, 'tag_spot') on conflict do nothing;
+  end if;
+  return query select v_type, v_key, v_exp;
+end $$;
+
 create or replace function public.guard_live_tag_session()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
