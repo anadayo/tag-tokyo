@@ -9,7 +9,7 @@ import {
 import { track } from "@/lib/analytics";
 import { sampleCrossings } from "@/lib/demo-profiles";
 import {
-  COSMETICS, drawSpotReward, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_UNLOCKS,
+  COSMETICS, DAILY_LOGIN_EXP, drawSpotReward, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_UNLOCKS,
   TAG_SPOTS, TOKYO_AREAS,
 } from "@/lib/game";
 import { isInsideTokyo, requestPrivateLocation } from "@/lib/location";
@@ -33,7 +33,7 @@ function ProfilePhoto({ profile, className = "" }: { profile: EditableProfile; c
   return <span className={className}>{profile.displayName.slice(0, 1).toUpperCase()}</span>;
 }
 
-function AccessGate({ onAccess }: { onAccess: (email: string) => void }) {
+function MessageAccessGate({ onClose, onEmail }: { onClose: () => void; onEmail: (email: string) => void }) {
   const [email, setEmail] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
@@ -42,21 +42,22 @@ function AccessGate({ onAccess }: { onAccess: (email: string) => void }) {
   function submit() {
     if (!email.includes("@")) return setError("メールアドレスを入力してください");
     if (!termsAccepted || !privacyAccepted) return setError("利用規約とプライバシーポリシーへの同意が必要です");
-    onAccess(email.trim().toLowerCase());
+    onEmail(email.trim().toLowerCase());
   }
 
-  return <main className="access-shell">
-    <section className="access-card" aria-labelledby="access-title">
-      <div className="access-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>PLAY BETA</small></div>
-      <div className="access-copy"><span>WELCOME TO TOKYO</span><h1 id="access-title">参加前に、<br />あなたのアカウントを作ろう。</h1><p>メールアドレスと同意を確認した参加者だけが、プロフィール作成・CROSS・MAP・MATCHを利用できます。</p></div>
+  return <div className="message-gate-overlay" role="dialog" aria-modal="true" aria-labelledby="message-gate-title">
+    <section className="access-card">
+      <button className="message-gate-close" aria-label="閉じる" onClick={onClose}>×</button>
+      <div className="access-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>MESSAGE</small></div>
+      <div className="access-copy"><span>MESSAGE ACCESS</span><h1 id="message-gate-title">メッセージは、<br />メール認証のあと。</h1><p>すれ違い・MAP・プロフィール育成は登録なしで遊べます。メッセージを開く時だけ、メール認証と同意が必要です。</p></div>
       <label className="access-field"><span>メールアドレス</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" /></label>
       <label className="access-check"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/terms/`} target="_blank" rel="noreferrer">利用規約</a>に同意する</span></label>
       <label className="access-check"><input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/privacy/`} target="_blank" rel="noreferrer">プライバシーポリシー</a>に同意する</span></label>
       {error && <p className="access-error" role="alert">{error}</p>}
-      <button className="access-button" onClick={submit}>無料でデモを始める <ChevronRight /></button>
-      <p className="access-note"><ShieldCheck /> このローカルデモでは入力したメールアドレスを外部送信・保存しません。実在ユーザーとの交流も起きません。</p>
+      <button className="access-button" onClick={submit}>メール認証へ進む <ChevronRight /></button>
+      <p className="access-note"><ShieldCheck /> 現在は安全な公開プレビューです。入力したメールアドレスは、認証接続が有効になるまで外部送信・保存しません。</p>
     </section>
-  </main>;
+  </div>;
 }
 
 function formatRemaining(expiresAt: number | null, now: number) {
@@ -106,7 +107,7 @@ function BottomNav({ tab, onChange }: { tab: TabId; onChange: (tab: TabId) => vo
   );
 }
 
-function HomeScreen({ session, now, setDuration, start, stop, notice, growth }: {
+function HomeScreen({ session, now, setDuration, start, stop, notice, growth, dailyBonusNotice }: {
   session: TagSessionState;
   now: number;
   setDuration: (duration: TagDuration) => void;
@@ -114,6 +115,7 @@ function HomeScreen({ session, now, setDuration, start, stop, notice, growth }: 
   stop: () => void;
   notice: string;
   growth: GrowthState;
+  dailyBonusNotice: string;
 }) {
   const progress = getLevelProgress(growth.totalEarnedExp);
   return (
@@ -144,6 +146,7 @@ function HomeScreen({ session, now, setDuration, start, stop, notice, growth }: 
       </div>
 
       {notice && <div className="notice" role="status">{notice}</div>}
+      {dailyBonusNotice && <div className="daily-bonus" role="status"><Gift /><span><b>{dailyBonusNotice}</b><small>毎日最初のアクセスで受け取れます</small></span></div>}
       <div className="privacy-strip"><ShieldCheck /><span><b>現在地は非公開</b><small>正確な距離・時刻・移動方向も相手には表示しません</small></span></div>
       <div className="today-row">
         <div><small>今日のCROSS</small><strong>0</strong></div>
@@ -323,7 +326,7 @@ function CrossScreen({ crossings, taggedIds, onTag }: { crossings: CrossItem[]; 
   );
 }
 
-function MatchScreen({ matches, onClear }: { matches: CrossItem[]; onClear: () => void }) {
+function MatchScreen({ matches, onClear, messageAccessReady, onRequireEmail }: { matches: CrossItem[]; onClear: () => void; messageAccessReady: boolean; onRequireEmail: () => void }) {
   const [selectedMessage, setSelectedMessage] = useState("共通のTAGが多くて気になりました。よかったら話しませんか？");
   const [sent, setSent] = useState(false);
   const messageOptions = [
@@ -349,7 +352,8 @@ function MatchScreen({ matches, onClear }: { matches: CrossItem[]; onClear: () =
           <h3>最初のひとことを選ぶ</h3>
           <div className="message-options">{messageOptions.map((message) => <button key={message} className={selectedMessage === message ? "selected" : ""} onClick={() => { setSelectedMessage(message); setSent(false); }}>{message}</button>)}</div>
           <div className="message-bubble">{sent ? selectedMessage : "メッセージを選ぶと、ここでプレビューできます"}</div>
-          <button className="primary-wide" onClick={() => setSent(true)}>{sent ? "送信プレビュー済み" : "送信をプレビュー"}</button>
+          <button className="primary-wide" onClick={() => messageAccessReady ? setSent(true) : onRequireEmail()}>{messageAccessReady ? (sent ? "送信プレビュー済み" : "送信をプレビュー") : "メッセージを開く"}</button>
+          {!messageAccessReady && <p className="message-gate-note"><LockKeyhole /> メッセージの確認にはメール認証が必要です</p>}
         </div>
         <button className="demo-reset" onClick={onClear}>デモマッチをリセット</button>
       </section>
@@ -556,8 +560,11 @@ export default function TagTokyoApp() {
   const [growth, setGrowth] = useState<GrowthState>(INITIAL_GROWTH);
   const [profile, setProfile] = useState<EditableProfile>(INITIAL_PROFILE);
   const [isOwner, setIsOwner] = useState(false);
+  const [isEmailAuthenticated, setIsEmailAuthenticated] = useState(false);
   const [demoMatches, setDemoMatches] = useState<CrossItem[]>([]);
-  const [hasPreviewAccess, setHasPreviewAccess] = useState(false);
+  const [showMessageGate, setShowMessageGate] = useState(false);
+  const [growthLoaded, setGrowthLoaded] = useState(false);
+  const [dailyBonusNotice, setDailyBonusNotice] = useState("");
   const crossings = useMemo(() => sampleCrossings(MY_TAGS), []);
 
   useEffect(() => {
@@ -567,19 +574,39 @@ export default function TagTokyoApp() {
   }, []);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("tagtokyo_growth_preview_v1");
-    if (saved) {
-      try {
-        const restored = JSON.parse(saved) as GrowthState;
-        const timeout = window.setTimeout(() => setGrowth(restored), 0);
-        return () => window.clearTimeout(timeout);
-      } catch { /* Ignore invalid preview state. */ }
-    }
+    const saved = window.localStorage.getItem("tagtokyo_growth_preview_v2");
+    const timeout = window.setTimeout(() => {
+      if (saved) {
+        try {
+          const restored = JSON.parse(saved) as GrowthState;
+          setGrowth({ ...INITIAL_GROWTH, ...restored });
+        } catch { /* Ignore invalid preview state. */ }
+      }
+      setGrowthLoaded(true);
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem("tagtokyo_growth_preview_v1", JSON.stringify(growth));
-  }, [growth]);
+    if (growthLoaded) window.localStorage.setItem("tagtokyo_growth_preview_v2", JSON.stringify(growth));
+  }, [growth, growthLoaded]);
+
+  useEffect(() => {
+    if (!growthLoaded) return;
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(new Date());
+    if (growth.lastDailyLoginDate === today) return;
+    const timeout = window.setTimeout(() => {
+      setGrowth((current) => ({
+        ...current,
+        totalEarnedExp: current.totalEarnedExp + DAILY_LOGIN_EXP,
+        availableExp: current.availableExp + DAILY_LOGIN_EXP,
+        lastDailyLoginDate: today,
+      }));
+      setDailyBonusNotice(`毎日ログイン +${DAILY_LOGIN_EXP} EXP`);
+      track("tagtokyo_daily_login_bonus", { exp: DAILY_LOGIN_EXP });
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [growth.lastDailyLoginDate, growthLoaded]);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("tagtokyo_profile_preview_v1");
@@ -625,11 +652,17 @@ export default function TagTokyoApp() {
     async function syncOwnerRole() {
       const { data: { user } } = await connectedClient.auth.getUser();
       if (!user) {
-        if (active) setIsOwner(false);
+        if (active) {
+          setIsOwner(false);
+          setIsEmailAuthenticated(false);
+        }
         return;
       }
       const { data } = await connectedClient.from("users").select("role").eq("auth_user_id", user.id).maybeSingle();
-      if (active) setIsOwner(data?.role === "owner");
+      if (active) {
+        setIsOwner(data?.role === "owner");
+        setIsEmailAuthenticated(Boolean(user.email));
+      }
     }
     void syncOwnerRole();
     const { data: { subscription } } = connectedClient.auth.onAuthStateChange(() => void syncOwnerRole());
@@ -709,6 +742,19 @@ export default function TagTokyoApp() {
     setAuthNotice(error ? error.message : "ログインリンクをメールへ送りました");
   }
 
+  async function requestMessageAccess(nextEmail: string) {
+    setEmail(nextEmail);
+    setShowMessageGate(false);
+    if (!hasSupabase || !supabase) {
+      setAuthNotice("メール認証の本番接続を準備中です。公開プレビューではメッセージ送信はできません。");
+      setTab("me");
+      return;
+    }
+    const { error } = await supabase.auth.signInWithOtp({ email: nextEmail, options: { emailRedirectTo: window.location.href } });
+    setAuthNotice(error ? error.message : "ログインリンクをメールへ送りました。認証後にメッセージを開けます。");
+    setTab("me");
+  }
+
   async function buyCosmetic(id: string) {
     const item = COSMETICS.find((candidate) => candidate.id === id);
     if (!item || (!isOwner && growth.availableExp < item.cost) || growth.ownedCosmetics.includes(id)) return;
@@ -750,19 +796,13 @@ export default function TagTokyoApp() {
     track("tagtokyo_demo_tagged", { profile_id: profile.id });
   }
 
-  if (!hasPreviewAccess) return <AccessGate onAccess={(nextEmail) => {
-    setEmail(nextEmail);
-    setHasPreviewAccess(true);
-    track("tagtokyo_preview_access_granted", { terms_version: "2026-09" });
-  }} />;
-
   return (
     <main className="app-shell">
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>PLAY BETA</small></div>
-      {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={startTag} stop={stopTag} notice={notice} growth={growth} />}
+      {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={startTag} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} />}
       {tab === "cross" && <CrossScreen crossings={crossings} taggedIds={demoMatches.map((item) => item.id)} onTag={createDemoMatch} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={isLiveCommunityEnabled} />}
-      {tab === "match" && <MatchScreen matches={demoMatches} onClear={() => setDemoMatches([])} />}
+      {tab === "match" && <MatchScreen matches={demoMatches} onClear={() => setDemoMatches([])} messageAccessReady={isEmailAuthenticated} onRequireEmail={() => setShowMessageGate(true)} />}
       {tab === "me" && <MeScreen verified={verified} setVerified={setVerified} email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} isOwner={isOwner} liveEnabled={isLiveCommunityEnabled} />}
       <BottomNav tab={tab} onChange={(next) => {
         setTab(next);
@@ -770,6 +810,7 @@ export default function TagTokyoApp() {
         track("tagtokyo_tab_view", { tab: next });
         if (next === "cross") track("tagtokyo_cross_view");
       }} />
+      {showMessageGate && <MessageAccessGate onClose={() => setShowMessageGate(false)} onEmail={requestMessageAccess} />}
     </main>
   );
 }

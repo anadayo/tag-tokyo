@@ -30,6 +30,7 @@ export type TagSessionState = {
 export type GrowthState = {
   totalEarnedExp: number;
   availableExp: number;
+  lastDailyLoginDate: string | null;
   areaContributions: Record<string, number>;
   ownedCosmetics: string[];
   equippedFrame: string | null;

@@ -264,6 +264,16 @@ button { color: inherit; }
 .access-button svg { width: 16px; }
 .access-note { margin: 15px 0 0; padding: 11px; display: flex; gap: 8px; border-radius: 7px; background: var(--mint-soft); color: #0a704d; font-size: 9px; line-height: 1.55; }
 .access-note svg { width: 16px; flex: 0 0 auto; }
+.message-gate-overlay { position: fixed; z-index: 30; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(26, 23, 24, .58); }
+.message-gate-overlay .access-card { position: relative; max-height: calc(100dvh - 40px); overflow: auto; }
+.message-gate-close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border: 0; border-radius: 50%; background: #f1eded; color: var(--ink); font-size: 20px; line-height: 1; }
+.daily-bonus { display: flex; gap: 9px; align-items: center; margin: 14px 0; padding: 12px; border: 1px solid #f1d787; border-radius: 8px; background: #fff8dd; color: #694f00; }
+.daily-bonus svg { width: 18px; }
+.daily-bonus span { display: grid; gap: 2px; }
+.daily-bonus b { font-size: 12px; }
+.daily-bonus small { font-size: 9px; }
+.message-gate-note { display: flex; align-items: center; gap: 6px; margin: 10px 0 0; color: var(--muted); font-size: 10px; font-weight: 700; }
+.message-gate-note svg { width: 14px; }
 .policy-page { width: min(100% - 36px, 680px); min-height: 100dvh; margin: 0 auto; padding: 42px 0 64px; background: var(--paper); }
 .policy-page h1 { margin: 0 0 9px; font-size: 25px; line-height: 1.4; }
 .policy-page > p { color: var(--muted); font-size: 11px; line-height: 1.8; }

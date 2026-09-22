@@ -3,15 +3,18 @@ import type { GrowthState, TagSpot, TokyoArea } from "@/lib/types";
 export const LEVEL_THRESHOLDS = [0, 100, 300, 600, 1000, 1450, 2000, 2500, 3200, 4100, 5200, 6500];
 
 export const INITIAL_GROWTH: GrowthState = {
-  totalEarnedExp: 2260,
-  availableExp: 1480,
-  areaContributions: { kitasenju: 2400 },
+  totalEarnedExp: 0,
+  availableExp: 0,
+  lastDailyLoginDate: null,
+  areaContributions: {},
   ownedCosmetics: [],
   equippedFrame: null,
   equippedBackground: null,
   equippedTitle: null,
   spotClaims: {},
 };
+
+export const DAILY_LOGIN_EXP = 20;
 
 export const TOKYO_AREAS: TokyoArea[] = [
   { id: "kichijoji", name: "吉祥寺", x: 13, y: 48, champion: "MIO", championPoints: 2840, championLevel: 8, isDemo: true },
