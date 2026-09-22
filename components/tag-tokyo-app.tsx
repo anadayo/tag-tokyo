@@ -612,7 +612,8 @@ export default function TagTokyoApp() {
   useEffect(() => {
     const client = supabase;
     if (!client) {
-      if (new URLSearchParams(window.location.search).get("owner-preview") === "1") {
+      // Owner preview is useful locally, but a production URL must never grant it.
+      if (process.env.NODE_ENV !== "production" && new URLSearchParams(window.location.search).get("owner-preview") === "1") {
         const timeout = window.setTimeout(() => setIsOwner(true), 0);
         return () => window.clearTimeout(timeout);
       }
