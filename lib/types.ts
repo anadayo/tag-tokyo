@@ -40,6 +40,14 @@ export type DiscoveryProfile = {
   avatarUrl: string | null;
   isOfficial: boolean;
   liked: boolean;
+  tags: string[];
+  commonTagCount: number;
+};
+
+export type DailyMission = {
+  key: "tag_on" | "walk_1km" | "cross_opened" | "all_complete";
+  rewardExp: number;
+  completed: boolean;
 };
 
 export type LiveMessage = {
@@ -101,6 +109,7 @@ export type EditableProfile = {
   moneyStyle: string;
   marriageView: string;
   extraBio: string;
+  tags: string[];
 };
 
 export type TokyoArea = {

@@ -9,12 +9,12 @@ import {
 import { track } from "@/lib/analytics";
 import { AgeVerificationPanel } from "@/components/age-verification-panel";
 import {
-  COSMETICS, DAILY_LOGIN_EXP, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_UNLOCKS,
+  COSMETICS, DAILY_LOGIN_EXP, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_TAGS, PROFILE_UNLOCKS,
   TAG_SPOTS, TOKYO_AREAS,
 } from "@/lib/game";
 import { isInsideTokyo, requestPrivateLocation, watchPrivateLocation } from "@/lib/location";
 import { hasSupabase, isLiveCommunityEnabled, supabase } from "@/lib/supabase";
-import type { DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagDuration, TagSessionResult, TagSessionState } from "@/lib/types";
+import type { DailyMission, DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagDuration, TagSessionResult, TagSessionState } from "@/lib/types";
 
 const INITIAL_SESSION: TagSessionState = {
   active: false,
@@ -138,7 +138,24 @@ function SessionResult({ result, onClose, onCross }: { result: TagSessionResult;
   </div>;
 }
 
-function HomeScreen({ session, now, setDuration, start, stop, notice, growth, dailyBonusNotice, showGuide, dismissGuide }: {
+function DailyMissionBoard({ missions }: { missions: DailyMission[] }) {
+  if (missions.length === 0) return null;
+  const labels: Record<DailyMission["key"], string> = {
+    tag_on: "TAG ONする",
+    walk_1km: "東京を1km歩く",
+    cross_opened: "CROSSを見る",
+    all_complete: "3つすべて達成",
+  };
+  return <section className="mission-board">
+    <header><div><small>DAILY MISSION</small><h3>今日の東京</h3></div><span>{missions.filter((item) => item.completed && item.key !== "all_complete").length} / 3</span></header>
+    <div className="mission-list">{missions.map((mission) => <div key={mission.key} className={`${mission.completed ? "is-done" : ""} ${mission.key === "all_complete" ? "is-bonus" : ""}`}>
+      <span className="mission-check">{mission.completed ? "✓" : ""}</span><b>{labels[mission.key]}</b><strong>+{mission.rewardExp} EXP</strong>
+    </div>)}</div>
+    <p>交流操作を強制しない、毎日リセットの無料ミッションです。</p>
+  </section>;
+}
+
+function HomeScreen({ session, now, setDuration, start, stop, notice, growth, dailyBonusNotice, showGuide, dismissGuide, missions }: {
   session: TagSessionState;
   now: number;
   setDuration: (duration: TagDuration) => void;
@@ -149,6 +166,7 @@ function HomeScreen({ session, now, setDuration, start, stop, notice, growth, da
   dailyBonusNotice: string;
   showGuide: boolean;
   dismissGuide: () => void;
+  missions: DailyMission[];
 }) {
   const progress = getLevelProgress(growth.totalEarnedExp);
   const nextUnlock = PROFILE_UNLOCKS.find((item) => item.level > progress.level);
@@ -195,6 +213,7 @@ function HomeScreen({ session, now, setDuration, start, stop, notice, growth, da
         <div className="walk-meta"><span>{(session.dailyDistanceMeters / 1000).toFixed(2)} km</span><small>上限まで約 {Math.max(0, (5000 - session.dailyDistanceMeters) / 1000).toFixed(2)} km</small></div>
         {session.movementStatus === "speed_held" || session.movementStatus === "speed_rejected" ? <p className="movement-pause"><Clock3 />移動速度を確認中です。歩行速度に戻ると自動再開します。</p> : null}
       </div>
+      <DailyMissionBoard missions={missions} />
       <div className="privacy-strip"><ShieldCheck /><span><b>現在地は非公開</b><small>正確な距離・時刻・移動方向も相手には表示しません</small></span></div>
       <div className="today-row">
         <div><small>今日のCROSS</small><strong>0</strong></div>
@@ -370,7 +389,7 @@ function LiveCrossScreen({ crossings, recommendations, officialProfile, memberRe
           : recommendations.length === 0 ? <div className="discovery-gate"><UsersRound /><span><b>新しいプロフィールを待っています</b><small>条件を満たす実在ユーザーが登録されると表示されます</small></span></div>
             : <div className="discovery-grid">{recommendations.map((profile) => <article className={`discovery-card ${profile.isOfficial ? "is-official" : ""}`} key={profile.userId}>
               <div className="discovery-avatar">{profile.displayName.slice(0, 1)}</div>
-              <div className="discovery-copy">{profile.isOfficial && <OfficialBadge />}<h3>{profile.displayName}</h3><small>{profile.handle ? `@${profile.handle}` : "TAG TOKYOメンバー"}</small><p>{profile.bio || "プロフィールを見て、気になったらいいねを送れます。"}</p></div>
+              <div className="discovery-copy">{profile.isOfficial && <OfficialBadge />}<h3>{profile.displayName}</h3><small>{profile.handle ? `@${profile.handle}` : "TAG TOKYOメンバー"}</small><p>{profile.bio || "プロフィールを見て、気になったらいいねを送れます。"}</p>{profile.tags.length > 0 && <div className="profile-tags compact-tags">{profile.tags.slice(0, 4).map((tag) => <span key={tag}>#{tag}</span>)}</div>}{profile.commonTagCount > 0 && <small className="common-tag-count">共通タグ {profile.commonTagCount}</small>}</div>
               <button className="discovery-like" disabled={profile.liked} onClick={() => void onLike(profile)}><Heart />{profile.liked ? "送信済み" : "いいね"}</button>
             </article>)}</div>}
     </section>
@@ -583,6 +602,11 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
         setEditorError(error.message.includes("update_member_profile") ? "プロフィール更新機能のDB設定が必要です" : error.message);
         return;
       }
+      const { error: tagError } = await supabase.rpc("set_my_profile_tags", { p_tag_names: nextProfile.tags });
+      if (tagError) {
+        setEditorError(tagError.message.includes("set_my_profile_tags") ? "プロフィールタグ機能のDB設定が必要です" : tagError.message);
+        return;
+      }
     }
     setProfile(nextProfile);
     setEditing(false);
@@ -654,7 +678,7 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
       {isOwner && <div className="owner-note"><Crown /><span><b>OWNER MODE</b><small>全プロフィール項目と装飾を自由に確認できます</small></span></div>}
       <div className={`me-card profile-showcase ${growth.equippedBackground ? `equip-${growth.equippedBackground}` : ""}`}>
         <label className={`me-avatar avatar-upload ${growth.equippedFrame ? `equip-${growth.equippedFrame}` : ""}`}><ProfilePhoto profile={profile} /><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void selectPhoto(event)} /><span className="avatar-camera"><Camera /></span></label>
-        <div>{equippedTitle && <small className="equipped-title">{equippedTitle}</small>}<h3>{profile.displayName} {isOwner && <OfficialBadge />} <span className="profile-level">Lv.{progress.level}</span></h3><p>@{profile.handle} · {profile.bio}</p>{photoNotice && <small className="photo-notice">{photoNotice}</small>}</div>
+        <div>{equippedTitle && <small className="equipped-title">{equippedTitle}</small>}<h3>{profile.displayName} {isOwner && <OfficialBadge />} <span className="profile-level">Lv.{progress.level}</span></h3><p>@{profile.handle} · {profile.bio}</p>{profile.tags.length > 0 && <div className="profile-tags">{profile.tags.slice(0, 5).map((tag) => <span key={tag}>#{tag}</span>)}</div>}{photoNotice && <small className="photo-notice">{photoNotice}</small>}</div>
         <button aria-label="プロフィール編集" onClick={openEditor}><ChevronRight /></button>
       </div>
       <div className="settings-card growth-card">
@@ -713,6 +737,10 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
           <p className="editor-guide">{isOwner ? "オーナーはすべての項目を編集できます" : `Lv.${progress.level}までの項目を編集できます`}。表示名は50文字まで、ユーザーIDは5〜15文字の英数字または _ です。</p>
           <div className="editor-fields">
             <label><span>性別</span><select value={draft.gender} onChange={(event) => setDraft((current) => ({ ...current, gender: event.target.value as EditableProfile["gender"] }))}><option value="unspecified">回答しない</option><option value="woman">女性</option><option value="man">男性</option><option value="nonbinary">その他</option></select></label>
+            <fieldset className="tag-selector"><legend>興味タグ <small>{draft.tags.length} / 8</small></legend><p>共通点から見つけてもらいやすくなります</p><div>{PROFILE_TAGS.map((tag) => {
+              const selected = draft.tags.includes(tag);
+              return <button type="button" key={tag} className={selected ? "selected" : ""} aria-pressed={selected} onClick={() => setDraft((current) => ({ ...current, tags: selected ? current.tags.filter((item) => item !== tag) : current.tags.length < 8 ? [...current.tags, tag] : current.tags }))}>#{tag}</button>;
+            })}</div></fieldset>
             {profileFields.map((field) => {
               const unlocked = isOwner || progress.level >= field.level;
               return <label key={field.key} className={!unlocked ? "locked-field" : ""}><span>{field.label}{!unlocked && <small><LockKeyhole />Lv.{field.level}で解放</small>}</span>{field.long
@@ -756,6 +784,7 @@ export default function TagTokyoApp() {
   const [growthLoaded, setGrowthLoaded] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [dailyBonusNotice, setDailyBonusNotice] = useState("");
+  const [dailyMissions, setDailyMissions] = useState<DailyMission[]>([]);
   const [showHomeGuide, setShowHomeGuide] = useState(false);
   const [showCrossGuide, setShowCrossGuide] = useState(false);
   const [showTagIntro, setShowTagIntro] = useState(false);
@@ -767,8 +796,37 @@ export default function TagTokyoApp() {
   const locationRequestPendingRef = useRef(false);
   const lastMilestoneRef = useRef(0);
   const dailyCapTrackedRef = useRef(false);
+  const walkMissionClaimedRef = useRef(false);
   const previousLevelRef = useRef<number | null>(null);
   const liveEnabled = isLiveCommunityEnabled && databaseLiveEnabled;
+
+  const refreshDailyMissions = useCallback(async () => {
+    if (!supabase) return;
+    const { data, error } = await supabase.rpc("get_daily_missions");
+    if (error) return;
+    const rows = (data ?? []) as Array<{ mission_key: string; reward_exp: number; completed: boolean }>;
+    const missions: DailyMission[] = rows.map((item) => ({
+      key: item.mission_key as DailyMission["key"],
+      rewardExp: Number(item.reward_exp),
+      completed: Boolean(item.completed),
+    }));
+    setDailyMissions(missions);
+    walkMissionClaimedRef.current = Boolean(missions.find((item) => item.key === "walk_1km")?.completed);
+  }, []);
+
+  const claimDailyMission = useCallback(async (key: DailyMission["key"]) => {
+    if (!supabase || key === "all_complete") return;
+    const { data, error } = await supabase.rpc("claim_daily_mission", { p_mission_key: key });
+    if (error) return;
+    const awarded = Number(data ?? 0);
+    if (awarded > 0) {
+      setGrowth((current) => ({ ...current, totalEarnedExp: current.totalEarnedExp + awarded, availableExp: current.availableExp + awarded }));
+      setWalkPulse(`MISSION +${awarded} EXP`);
+      window.setTimeout(() => setWalkPulse(""), 2200);
+      track("daily_mission_completed", { mission_key: key, earned_exp: awarded });
+    }
+    await refreshDailyMissions();
+  }, [refreshDailyMissions]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -795,12 +853,13 @@ export default function TagTokyoApp() {
 
   const loadPersistentAccountState = useCallback(async (userId: string) => {
     if (!supabase) return;
-    const [profileResult, cosmeticsResult, contributionsResult, drawsResult, loginResult] = await Promise.all([
+    const [profileResult, cosmeticsResult, contributionsResult, drawsResult, loginResult, tagsResult] = await Promise.all([
       supabase.from("profiles").select("display_name,handle,bio,gender,avatar_url,weekend,romance_view,contact_frequency,values_detail,lifestyle,work_detail,money_style,marriage_view,extra_bio,total_earned_exp,available_exp,equipped_frame,equipped_background,equipped_title").eq("user_id", userId).maybeSingle(),
       supabase.from("user_cosmetics").select("cosmetic_id").eq("user_id", userId),
       supabase.from("area_contributions").select("area_id,points").eq("user_id", userId),
       supabase.from("tag_spot_draws").select("spot_id,draw_date").eq("user_id", userId).order("draw_date", { ascending: false }).limit(100),
       supabase.from("daily_login_claims").select("claim_date").eq("user_id", userId).order("claim_date", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("user_tags").select("tags(name)").eq("user_id", userId),
     ]);
     if (profileResult.error) {
       setAuthNotice(profileResult.error.message);
@@ -813,6 +872,10 @@ export default function TagTokyoApp() {
       const { data } = await supabase.storage.from("profile-photos").createSignedUrl(row.avatar_url, 3600);
       avatarUrl = data?.signedUrl ?? "";
     }
+    const selectedTags = (tagsResult.data ?? []).flatMap((item) => {
+      const related = item.tags as unknown as { name?: string } | Array<{ name?: string }> | null;
+      return Array.isArray(related) ? related.map((tag) => tag.name).filter(Boolean) : related?.name ? [related.name] : [];
+    }) as string[];
     setProfile((current) => ({
       ...current,
       displayName: row.display_name,
@@ -829,6 +892,7 @@ export default function TagTokyoApp() {
       moneyStyle: row.money_style ?? "",
       marriageView: row.marriage_view ?? "",
       extraBio: row.extra_bio ?? "",
+      tags: selectedTags,
     }));
     const areaContributions = Object.fromEntries((contributionsResult.data ?? []).map((item) => [item.area_id, Number(item.points)]));
     const spotClaims: Record<string, string> = {};
@@ -946,7 +1010,7 @@ export default function TagTokyoApp() {
       setDiscoveryProfiles([]);
       setLiveError((current) => current || (discoveryError.message.includes("get_discovery_profiles") ? "おすすめ機能のDB設定が必要です" : discoveryError.message));
     } else {
-      const discoveryItems = (discoveryRows ?? []) as Array<{ user_id: string; display_name: string; handle: string | null; bio: string | null; avatar_url: string | null; is_official: boolean; liked: boolean }>;
+      const discoveryItems = (discoveryRows ?? []) as Array<{ user_id: string; display_name: string; handle: string | null; bio: string | null; avatar_url: string | null; is_official: boolean; liked: boolean; profile_tags?: string[]; common_tag_count?: number }>;
       setDiscoveryProfiles(discoveryItems.map((item) => ({
         userId: item.user_id,
         displayName: item.display_name,
@@ -955,6 +1019,8 @@ export default function TagTokyoApp() {
         avatarUrl: item.avatar_url,
         isOfficial: item.is_official,
         liked: item.liked,
+        tags: item.profile_tags ?? [],
+        commonTagCount: Number(item.common_tag_count ?? 0),
       })));
     }
     setLiveLoading(false);
@@ -1136,6 +1202,12 @@ export default function TagTokyoApp() {
   }, [liveEnabled, liveMemberReady]);
 
   useEffect(() => {
+    if (!liveEnabled || !liveMemberReady) return;
+    const timer = window.setTimeout(() => void refreshDailyMissions(), 0);
+    return () => window.clearTimeout(timer);
+  }, [liveEnabled, liveMemberReady, refreshDailyMissions]);
+
+  useEffect(() => {
     if (!liveEnabled || !liveMemberReady || !currentUserId || !supabase) return;
     const refreshTimer = window.setTimeout(() => void refreshLiveCommunity(currentUserId), 0);
     const client = supabase;
@@ -1209,6 +1281,10 @@ export default function TagTokyoApp() {
         dailyCapTrackedRef.current = true;
         track("walk_daily_cap_reached");
       }
+      if (!walkMissionClaimedRef.current && Number(row.daily_distance_m ?? 0) >= 1000) {
+        walkMissionClaimedRef.current = true;
+        void claimDailyMission("walk_1km");
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "移動記録を送信できませんでした";
       if (message.includes("expired") || message.includes("not active")) void finishTagSession("expired");
@@ -1266,6 +1342,7 @@ export default function TagTokyoApp() {
       setShowConnected(true);
       window.setTimeout(() => setShowConnected(false), 1500);
       track("tag_on_started", { tag_duration: session.duration });
+      void claimDailyMission("tag_on");
       track("tagtokyo_tag_session_started", { duration_minutes: session.duration, backend: true });
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "TAG ONを開始できませんでした");
@@ -1455,7 +1532,7 @@ export default function TagTokyoApp() {
   return (
     <main className="app-shell">
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>PLAY BETA</small></div>
-      {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={requestTagStart} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} />}
+      {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={requestTagStart} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} />}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => setTab("me")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} />}
       {tab === "match" && (liveEnabled
@@ -1466,7 +1543,7 @@ export default function TagTokyoApp() {
         setTab(next);
         window.scrollTo({ top: 0, behavior: "instant" });
         track("tagtokyo_tab_view", { tab: next });
-        if (next === "cross") { track("tagtokyo_cross_view"); track("cross_opened"); }
+        if (next === "cross") { track("tagtokyo_cross_view"); track("cross_opened"); void claimDailyMission("cross_opened"); }
       }} />
       {showMessageGate && <MessageAccessGate onClose={() => setShowMessageGate(false)} onEmail={requestMessageAccess} />}
       {showTagIntro && <TagIntro onClose={() => setShowTagIntro(false)} onStart={() => void startTag()} />}

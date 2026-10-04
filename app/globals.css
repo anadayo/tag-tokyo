@@ -134,6 +134,11 @@ button { color: inherit; }
 .discovery-copy h3 { margin: 3px 0 1px; font-size: 15px; }
 .discovery-copy > small { color: var(--muted); font-size: 9px; }
 .discovery-copy p { margin: 7px 0 0; color: #575154; font-size: 10px; line-height: 1.55; overflow-wrap: anywhere; }
+.profile-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.profile-tags span { padding: 3px 6px; border-radius: 5px; background: var(--mint-soft); color: #08724f; font-size: 8px; font-weight: 800; }
+.compact-tags { margin-top: 8px; }
+.compact-tags span { background: #f2eeee; color: #5f585b; }
+.discovery-copy .common-tag-count { display: block; margin-top: 5px; color: #b43b45; font-size: 8px; font-weight: 900; }
 .discovery-like { grid-column: 1 / -1; height: 38px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 7px; background: var(--coral); color: white; font-size: 10px; font-weight: 900; }
 .discovery-like svg { width: 15px; fill: currentColor; }
 .discovery-like:disabled { background: #ebe6e7; color: #817a7d; }
@@ -504,6 +509,28 @@ button { color: inherit; }
 .movement-pause { margin: 9px 0 0; padding-top: 8px; display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--line); color: #8b6410; font-size: 9px; line-height: 1.5; }
 .movement-pause svg { width: 14px; flex: 0 0 auto; }
 .growth-copy .next-unlock { color: #ad3e47; font-weight: 800; }
+.mission-board { margin-top: 13px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: white; text-align: left; }
+.mission-board header { display: flex; align-items: center; justify-content: space-between; }
+.mission-board header small { color: var(--coral); font-size: 8px; font-weight: 900; }
+.mission-board header h3 { margin: 2px 0 0; font-size: 15px; }
+.mission-board header > span { padding: 5px 8px; border-radius: 6px; background: var(--ink); color: white; font-size: 9px; font-weight: 900; }
+.mission-list { display: grid; gap: 6px; margin-top: 11px; }
+.mission-list > div { min-height: 36px; display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 7px; color: var(--muted); }
+.mission-check { width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid #d9d3d5; border-radius: 50%; font-size: 10px; }
+.mission-list b { font-size: 10px; }
+.mission-list strong { color: #087d55; font-size: 9px; }
+.mission-list .is-done { color: var(--ink); }
+.mission-list .is-done .mission-check { border-color: var(--mint); background: var(--mint); color: white; }
+.mission-list .is-bonus { margin-top: 3px; padding-top: 7px; border-top: 1px solid var(--line); }
+.mission-list .is-bonus strong { color: #9c7412; }
+.mission-board > p { margin: 9px 0 0; color: var(--muted); font-size: 8px; line-height: 1.5; }
+.tag-selector { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
+.tag-selector legend { padding: 0 5px; font-size: 11px; font-weight: 900; }
+.tag-selector legend small { color: var(--coral); }
+.tag-selector > p { margin: 0 0 9px; color: var(--muted); font-size: 9px; }
+.tag-selector > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-selector button { height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: white; color: var(--muted); font-size: 9px; font-weight: 800; }
+.tag-selector button.selected { border-color: var(--mint); background: var(--mint-soft); color: #08724f; }
 .cross-guide { margin: -5px 0 17px; padding: 12px; display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 9px; border-radius: 8px; background: #fff2f3; text-align: left; }
 .cross-guide > svg { width: 22px; color: var(--coral); }
 .cross-guide b { font-size: 10px; }
