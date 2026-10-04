@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BadgeCheck, Ban, Bell, Camera, ChevronRight, Clock3, Crown, Flag, Gift, Heart, HeartHandshake, Home, LockKeyhole, LogOut, Map,
   MapPin, MessageCircle, Minus, Plus, Power, ShieldCheck, ShoppingBag,
-  Send, Sparkles, Star, Trophy, UserRound, UsersRound, Zap,
+  Send, Sparkles, Star, Trophy, UserRound, UsersRound, Zap, Footprints, Route,
 } from "lucide-react";
 import { track } from "@/lib/analytics";
 import { AgeVerificationPanel } from "@/components/age-verification-panel";
@@ -12,9 +12,9 @@ import {
   COSMETICS, DAILY_LOGIN_EXP, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_UNLOCKS,
   TAG_SPOTS, TOKYO_AREAS,
 } from "@/lib/game";
-import { isInsideTokyo, requestPrivateLocation } from "@/lib/location";
+import { isInsideTokyo, requestPrivateLocation, watchPrivateLocation } from "@/lib/location";
 import { hasSupabase, isLiveCommunityEnabled, supabase } from "@/lib/supabase";
-import type { DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagDuration, TagSessionState } from "@/lib/types";
+import type { DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagDuration, TagSessionResult, TagSessionState } from "@/lib/types";
 
 const INITIAL_SESSION: TagSessionState = {
   active: false,
@@ -22,6 +22,13 @@ const INITIAL_SESSION: TagSessionState = {
   startedAt: null,
   expiresAt: null,
   areaLabel: null,
+  serverSessionId: null,
+  validDistanceMeters: 0,
+  walkExpEarned: 0,
+  dailyDistanceMeters: 0,
+  dailyWalkExp: 0,
+  dailyWalkExpCap: 100,
+  movementStatus: null,
 };
 const ASSET_PREFIX = process.env.NODE_ENV === "production" ? "/tag-tokyo" : "";
 const HANDLE_PATTERN = /^[A-Za-z0-9_]{5,15}$/;
@@ -97,7 +104,41 @@ function BottomNav({ tab, onChange }: { tab: TabId; onChange: (tab: TabId) => vo
   );
 }
 
-function HomeScreen({ session, now, setDuration, start, stop, notice, growth, dailyBonusNotice }: {
+function TagIntro({ onClose, onStart }: { onClose: () => void; onStart: () => void }) {
+  return <div className="v04-overlay" role="dialog" aria-modal="true" aria-labelledby="tag-intro-title">
+    <section className="v04-modal tag-intro-modal">
+      <button className="message-gate-close" aria-label="閉じる" onClick={onClose}>×</button>
+      <span className="v04-modal-icon"><MapPin /></span>
+      <small>BEFORE TAG ON</small>
+      <h2 id="tag-intro-title">位置情報は、街での体験を<br />判定するためだけに使います。</h2>
+      <div className="v04-trust-list">
+        <div><ShieldCheck /><span><b>現在地は誰にも表示しません</b><small>正確な距離・時刻・移動方向も非公開です</small></span></div>
+        <div><Clock3 /><span><b>位置サンプルは24時間以内に削除</b><small>プロフィールには移動経路を保存しません</small></span></div>
+        <div><Footprints /><span><b>歩いた分はサーバーでEXP判定</b><small>100mごとに2 EXP、1日100 EXPまで</small></span></div>
+      </div>
+      <button className="primary-wide" onClick={onStart}>理解してTAG ON</button>
+    </section>
+  </div>;
+}
+
+function SessionResult({ result, onClose, onCross }: { result: TagSessionResult; onClose: () => void; onCross: () => void }) {
+  const minutes = Math.max(1, Math.round(result.durationSeconds / 60));
+  return <div className="v04-overlay" role="dialog" aria-modal="true" aria-labelledby="session-result-title">
+    <section className="v04-modal result-modal">
+      <span className="v04-modal-icon"><Route /></span><small>TAG SESSION COMPLETE</small>
+      <h2 id="session-result-title">東京での活動を記録しました</h2>
+      <div className="result-grid">
+        <div><small>時間</small><b>{minutes}分</b></div><div><small>距離</small><b>{(result.distanceMeters / 1000).toFixed(2)}km</b></div>
+        <div><small>移動EXP</small><b>+{result.walkExp}</b></div><div><small>CROSS</small><b>{result.crossCount}</b></div>
+        <div><small>SPOT DROP</small><b>{result.spotCount}</b></div><div><small>エリア</small><b>{result.areas.length}</b></div>
+      </div>
+      <button className="primary-wide" onClick={onCross}>CROSSを確認</button>
+      <button className="text-action" onClick={onClose}>HOMEに戻る</button>
+    </section>
+  </div>;
+}
+
+function HomeScreen({ session, now, setDuration, start, stop, notice, growth, dailyBonusNotice, showGuide, dismissGuide }: {
   session: TagSessionState;
   now: number;
   setDuration: (duration: TagDuration) => void;
@@ -106,19 +147,30 @@ function HomeScreen({ session, now, setDuration, start, stop, notice, growth, da
   notice: string;
   growth: GrowthState;
   dailyBonusNotice: string;
+  showGuide: boolean;
+  dismissGuide: () => void;
 }) {
   const progress = getLevelProgress(growth.totalEarnedExp);
+  const nextUnlock = PROFILE_UNLOCKS.find((item) => item.level > progress.level);
+  const walkPercent = Math.min(100, (session.dailyWalkExp / Math.max(1, session.dailyWalkExpCap)) * 100);
   return (
     <section className="screen home-screen">
       <div className="eyebrow"><MapPin /> TOKYO ONLY</div>
       <h1>東京を歩くほど、<br />出会いと自分が育つ。</h1>
       <p className="lead">現在地は誰にも表示されません。近くにいた事実だけをCROSSへ届け、街での活動をプロフィールの成長につなげます。</p>
 
+      {showGuide && <section className="start-guide">
+        <header><span>はじめかた</span><button onClick={dismissGuide}>閉じる</button></header>
+        <div><b>1</b><span><strong>TAG ON</strong><small>東京で位置情報をON</small></span></div>
+        <div><b>2</b><span><strong>歩いてEXP</strong><small>100mごとに2 EXP</small></span></div>
+        <div><b>3</b><span><strong>CROSSを確認</strong><small>近くにいた人へ後からTAG</small></span></div>
+      </section>}
+
       <div className={`tag-orbit ${session.active ? "is-on" : ""}`}>
         <button className="tag-power" onClick={session.active ? stop : start} aria-label={session.active ? "TAG OFF" : "TAG ON"}>
           <Power aria-hidden="true" />
           <strong>{session.active ? "TAG ON" : "TAG ON"}</strong>
-          <span>{session.active ? formatRemaining(session.expiresAt, now) : "タップして開始"}</span>
+          <span>{session.active ? `移動EXP 計測中 · ${formatRemaining(session.expiresAt, now)}` : "タップして開始"}</span>
         </button>
       </div>
 
@@ -137,6 +189,12 @@ function HomeScreen({ session, now, setDuration, start, stop, notice, growth, da
 
       {notice && <div className="notice" role="status">{notice}</div>}
       {dailyBonusNotice && <div className="daily-bonus" role="status"><Gift /><span><b>{dailyBonusNotice}</b><small>毎日最初のアクセスで受け取れます</small></span></div>}
+      <div className="walk-progress-card">
+        <div className="walk-progress-head"><span><Footprints /><b>今日の移動EXP</b></span><strong>{session.dailyWalkExp} / {session.dailyWalkExpCap}</strong></div>
+        <div className="walk-track"><span style={{ width: `${walkPercent}%` }} /></div>
+        <div className="walk-meta"><span>{(session.dailyDistanceMeters / 1000).toFixed(2)} km</span><small>上限まで約 {Math.max(0, (5000 - session.dailyDistanceMeters) / 1000).toFixed(2)} km</small></div>
+        {session.movementStatus === "speed_held" || session.movementStatus === "speed_rejected" ? <p className="movement-pause"><Clock3 />移動速度を確認中です。歩行速度に戻ると自動再開します。</p> : null}
+      </div>
       <div className="privacy-strip"><ShieldCheck /><span><b>現在地は非公開</b><small>正確な距離・時刻・移動方向も相手には表示しません</small></span></div>
       <div className="today-row">
         <div><small>今日のCROSS</small><strong>0</strong></div>
@@ -149,6 +207,7 @@ function HomeScreen({ session, now, setDuration, start, stop, notice, growth, da
           <div><b>次のLvまで {progress.remaining} EXP</b><strong>{growth.availableExp.toLocaleString()} EXP</strong></div>
           <div className="level-track"><span style={{ width: `${progress.percent}%` }} /></div>
           <small>所持EXPは使ってもプロフィールLvに影響しません</small>
+          {nextUnlock && <small className="next-unlock">Lv.{nextUnlock.level}で「{nextUnlock.label}」を解放</small>}
         </div>
       </div>
     </section>
@@ -196,6 +255,7 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
       areaContributions: { ...current.areaContributions, [area.id]: (current.areaContributions[area.id] ?? 0) + stake },
     }));
     setResult(`${area.name}へ${stake} EXP投下しました。プロフィールLvは下がりません。`);
+    track("area_exp_contributed", { area_id: area.id, amount: stake });
     track("tagtokyo_area_exp_contributed", { area_id: area.id, amount: stake });
   }
 
@@ -229,6 +289,7 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
       }));
       setRewardDisplay({ tier, label: rewardType === "exp" ? `${rewardExp} EXP獲得しました` : `${rewardName}を獲得しました` });
       setResult("");
+      track("spot_reward_received", { spot_id: spot.id, reward_key: rewardKey, earned_exp: rewardExp });
       track("tagtokyo_spot_drawn", { spot_id: spot.id, reward_key: rewardKey });
     } catch (error) {
       setResult(error instanceof Error ? error.message : "TAG SPOTを利用できませんでした");
@@ -247,13 +308,13 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
             <Trophy /><b>{item.name}</b><span>{mine > 0 ? "YOU" : "未登録"}</span><small>{mine > 0 ? `${mine}pt` : "--"}</small>
           </button>;
         })}
-        {TAG_SPOTS.map((item) => <button key={item.id} className="spot-pin" aria-label={item.name} style={{ left: `${item.x}%`, top: `${item.y}%` }} onClick={() => { setSelectedSpotId(item.id); setSelectedAreaId(item.areaId); setResult(""); }}><Gift /></button>)}
-        <div className="map-legend"><span><Trophy />AREA 1位</span><span><Gift />TAG SPOT</span></div>
+        {TAG_SPOTS.map((item) => <button key={item.id} className="spot-pin" aria-label={item.name} style={{ left: `${item.x}%`, top: `${item.y}%` }} onClick={() => { setSelectedSpotId(item.id); setSelectedAreaId(item.areaId); setResult(""); track("spot_opened", { spot_id: item.id, area_id: item.areaId }); }}><Gift /></button>)}
+        <div className="map-legend"><span><Trophy />AREA BATTLE</span><span><Gift />SPOT DROP</span></div>
       </div>
 
       {spot ? (
         <div className="map-panel spot-panel">
-          <div className="panel-title"><span className="panel-icon"><Gift /></span><div><small>FREE DRAW</small><h3>{spot.name}</h3></div></div>
+          <div className="panel-title"><span className="panel-icon"><Gift /></span><div><small>SPOT DROP</small><h3>{spot.name.replace("TAG SPOT", "SPOT")}</h3></div></div>
           <p>現地にいることを非公開判定して、1日1回無料で抽選できます。完全なハズレはありません。</p>
           <div className="reward-line"><span>通常</span><b>30 / 50 / 100 EXP</b><span>レア</span><b>限定プロフィール装飾</b><span>激レア</span><b>BOOST / SUPER BOOST</b></div>
           <button className="primary-wide spot-draw" disabled={alreadyClaimed || !liveEnabled} onClick={() => void drawSpot()}>{alreadyClaimed ? "本日は受取済み" : liveEnabled ? "現地で無料抽選" : "サービス開始後に利用可能"}</button>
@@ -285,7 +346,7 @@ function OfficialBadge() {
   return <span className="official-badge" title="TAG TOKYO公認・管理人"><BadgeCheck />公認・管理人</span>;
 }
 
-function LiveCrossScreen({ crossings, recommendations, officialProfile, memberReady, liveEnabled, onTag, onLike, onRequireAccount, error }: {
+function LiveCrossScreen({ crossings, recommendations, officialProfile, memberReady, liveEnabled, onTag, onLike, onRequireAccount, error, showGuide, onDismissGuide }: {
   crossings: LiveCrossing[];
   recommendations: DiscoveryProfile[];
   officialProfile: OfficialProfile | null;
@@ -295,10 +356,13 @@ function LiveCrossScreen({ crossings, recommendations, officialProfile, memberRe
   onLike: (profile: DiscoveryProfile) => Promise<void>;
   onRequireAccount: () => void;
   error: string;
+  showGuide: boolean;
+  onDismissGuide: () => void;
 }) {
   const showWelcomeOnly = officialProfile && !recommendations.some((profile) => profile.userId === officialProfile.userId);
   return <section className="screen">
-    <header className="screen-header"><div><span>DISCOVER</span><h2>みつける</h2></div><button className="icon-button" aria-label="通知"><Bell /></button></header>
+    <header className="screen-header"><div><span>DISCOVER</span><h2>東京でみつける</h2></div><button className="icon-button" aria-label="通知"><Bell /></button></header>
+    {showGuide && <section className="cross-guide"><Sparkles /><div><b>DISCOVERとCROSSの違い</b><p>DISCOVERは東京のおすすめ。CROSSはTAG ON中に近くにいた人です。正確な場所や時刻は表示しません。</p></div><button onClick={onDismissGuide}>確認</button></section>}
     <section className="discovery-section" aria-labelledby="discovery-title">
       <div className="section-heading"><div><small>RECOMMENDED</small><h3 id="discovery-title">おすすめ</h3></div><Heart /></div>
       {!liveEnabled ? <div className="discovery-gate"><LockKeyhole /><span><b>マッチ機能は開始準備中です</b><small>安全設定の完了後、実在ユーザーだけを表示します</small></span></div>
@@ -312,7 +376,7 @@ function LiveCrossScreen({ crossings, recommendations, officialProfile, memberRe
     </section>
     <div className="privacy-strip"><ShieldCheck /><span><b>場所と時刻はぼかして表示</b><small>現在地・正確な距離・移動方向は相手に公開しません</small></span></div>
     {showWelcomeOnly && <article className="live-cross-card official-profile-card"><div className="chat-avatar">{officialProfile.displayName.slice(0, 1)}</div><div><OfficialBadge /><h3>{officialProfile.displayName}</h3><p>{officialProfile.handle ? `@${officialProfile.handle} · ${officialProfile.bio || "TAG TOKYOを運営しています"}` : officialProfile.bio || "TAG TOKYOを運営しています"}</p></div><span className="official-profile-label">WELCOME</span></article>}
-    <div className="cross-section-title"><Sparkles /><span><b>すれ違い</b><small>街で近くにいた人</small></span></div>
+    <div className="cross-section-title"><Sparkles /><span><b>CROSS</b><small>街で近くにいた人</small></span></div>
     {crossings.length === 0 ? <div className="empty-state"><div className="empty-icon"><Sparkles /></div><h3>新しいCROSSを待っています</h3><p>東京都内でTAG ONにすると、近くにいた年齢確認済みユーザーが後から表示されます。</p></div> : <div className="live-cross-list">
       {crossings.map((crossing) => <article className={`live-cross-card ${crossing.isOfficial ? "official-profile-card" : ""}`} key={crossing.id}><div className="chat-avatar">{crossing.displayName.slice(0, 1)}</div><div><small>{crossing.areaLabel}</small><h3>{crossing.displayName} {crossing.isOfficial && <OfficialBadge />}</h3><p>{crossing.handle ? `@${crossing.handle}` : crossing.bio || "プロフィールを確認してTAGできます"}</p></div><button disabled={crossing.tagged} onClick={() => void onTag(crossing)}><Sparkles />{crossing.tagged ? "TAG済み" : "TAG"}</button></article>)}
     </div>}
@@ -692,7 +756,42 @@ export default function TagTokyoApp() {
   const [growthLoaded, setGrowthLoaded] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [dailyBonusNotice, setDailyBonusNotice] = useState("");
+  const [showHomeGuide, setShowHomeGuide] = useState(false);
+  const [showCrossGuide, setShowCrossGuide] = useState(false);
+  const [showTagIntro, setShowTagIntro] = useState(false);
+  const [showConnected, setShowConnected] = useState(false);
+  const [walkPulse, setWalkPulse] = useState("");
+  const [sessionResult, setSessionResult] = useState<TagSessionResult | null>(null);
+  const [levelUp, setLevelUp] = useState<number | null>(null);
+  const stopLocationWatchRef = useRef<null | (() => void)>(null);
+  const locationRequestPendingRef = useRef(false);
+  const lastMilestoneRef = useRef(0);
+  const dailyCapTrackedRef = useRef(false);
+  const previousLevelRef = useRef<number | null>(null);
   const liveEnabled = isLiveCommunityEnabled && databaseLiveEnabled;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setShowHomeGuide(window.localStorage.getItem("tagtokyo_home_guide_v04") !== "done");
+      setShowCrossGuide(window.localStorage.getItem("tagtokyo_cross_guide_v04") !== "done");
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      stopLocationWatchRef.current?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    const level = getLevelProgress(growth.totalEarnedExp).level;
+    const previous = previousLevelRef.current;
+    previousLevelRef.current = level;
+    if (previous !== null && level > previous) {
+      setLevelUp(level);
+      track("profile_level_up", { profile_level: level });
+      const timer = window.setTimeout(() => setLevelUp(null), 2800);
+      return () => window.clearTimeout(timer);
+    }
+  }, [growth.totalEarnedExp]);
 
   const loadPersistentAccountState = useCallback(async (userId: string) => {
     if (!supabase) return;
@@ -1019,6 +1118,24 @@ export default function TagTokyoApp() {
   }, [currentUserId, liveEnabled, liveMemberReady, loadPersistentAccountState]);
 
   useEffect(() => {
+    if (!liveEnabled || !liveMemberReady || !supabase) return;
+    let active = true;
+    void supabase.rpc("get_today_movement").then(({ data, error }) => {
+      if (!active || error) return;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) return;
+      setSession((current) => ({
+        ...current,
+        dailyDistanceMeters: Number(row.distance_m ?? 0),
+        dailyWalkExp: Number(row.walk_exp ?? 0),
+        dailyWalkExpCap: Number(row.daily_cap ?? 100),
+      }));
+      dailyCapTrackedRef.current = Number(row.walk_exp ?? 0) >= Number(row.daily_cap ?? 100);
+    });
+    return () => { active = false; };
+  }, [liveEnabled, liveMemberReady]);
+
+  useEffect(() => {
     if (!liveEnabled || !liveMemberReady || !currentUserId || !supabase) return;
     const refreshTimer = window.setTimeout(() => void refreshLiveCommunity(currentUserId), 0);
     const client = supabase;
@@ -1043,15 +1160,72 @@ export default function TagTokyoApp() {
 
   useEffect(() => {
     if (!session.active || !session.expiresAt) return;
-    const timeout = window.setTimeout(() => {
-      setSession((current) => ({ ...current, active: false, startedAt: null, expiresAt: null }));
-      setNotice("TAG ONが自動終了しました");
-      track("tagtokyo_tag_session_ended", { reason: "expired" });
-    }, Math.max(0, session.expiresAt - Date.now()));
+    const timeout = window.setTimeout(() => void finishTagSession("expired"), Math.max(0, session.expiresAt - Date.now()));
     return () => window.clearTimeout(timeout);
+    // The timer is intentionally recreated only when the active expiry changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.active, session.expiresAt]);
 
+  async function recordMovement(serverSessionId: string, location: Awaited<ReturnType<typeof requestPrivateLocation>>) {
+    if (!supabase || locationRequestPendingRef.current) return;
+    locationRequestPendingRef.current = true;
+    try {
+      const { data, error } = await supabase.rpc("update_tag_location", {
+        p_session_id: serverSessionId,
+        p_latitude: location.latitude,
+        p_longitude: location.longitude,
+        p_accuracy_m: location.accuracy,
+        p_captured_at: location.capturedAt,
+        p_delete_at: location.deleteAt,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) return;
+      const awarded = Number(row.awarded_exp ?? 0);
+      const sessionDistance = Number(row.session_distance_m ?? 0);
+      const status = String(row.sample_status ?? "accepted");
+      setSession((current) => ({
+        ...current,
+        validDistanceMeters: sessionDistance,
+        walkExpEarned: Number(row.session_walk_exp ?? current.walkExpEarned),
+        dailyDistanceMeters: Number(row.daily_distance_m ?? current.dailyDistanceMeters),
+        dailyWalkExp: Number(row.daily_walk_exp ?? current.dailyWalkExp),
+        dailyWalkExpCap: Number(row.daily_cap ?? 100),
+        movementStatus: status,
+      }));
+      if (awarded > 0) {
+        setGrowth((current) => ({ ...current, totalEarnedExp: current.totalEarnedExp + awarded, availableExp: current.availableExp + awarded }));
+        setWalkPulse(`+${awarded} EXP`);
+        window.setTimeout(() => setWalkPulse(""), 1800);
+        track("walk_exp_earned", { exp: awarded, distance_m: sessionDistance });
+      }
+      const milestone = Math.floor(sessionDistance / 500) * 500;
+      if (milestone > lastMilestoneRef.current) {
+        lastMilestoneRef.current = milestone;
+        setWalkPulse(milestone % 1000 === 0 ? `${milestone / 1000}km 達成` : `${milestone}m 達成`);
+        window.setTimeout(() => setWalkPulse(""), 2200);
+      }
+      if (!dailyCapTrackedRef.current && Number(row.daily_walk_exp ?? 0) >= Number(row.daily_cap ?? 100)) {
+        dailyCapTrackedRef.current = true;
+        track("walk_daily_cap_reached");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "移動記録を送信できませんでした";
+      if (message.includes("expired") || message.includes("not active")) void finishTagSession("expired");
+    } finally {
+      locationRequestPendingRef.current = false;
+    }
+  }
+
+  function requestTagStart() {
+    track("tag_on_tapped", { duration_minutes: session.duration });
+    if (window.localStorage.getItem("tagtokyo_tag_intro_v04") === "done") void startTag();
+    else setShowTagIntro(true);
+  }
+
   async function startTag() {
+    setShowTagIntro(false);
+    window.localStorage.setItem("tagtokyo_tag_intro_v04", "done");
     if (!liveEnabled) {
       setNotice("実ユーザー機能は現在準備中です");
       return;
@@ -1065,33 +1239,70 @@ export default function TagTokyoApp() {
     setNotice("位置情報を確認しています…");
     try {
       const location = await requestPrivateLocation();
+      track("tag_location_permission_granted");
       if (!isInsideTokyo(location)) throw new Error("TAG ONは東京都内でのみ利用できます");
       const startedAt = Date.now();
       const expiresAt = startedAt + session.duration * 60 * 1000;
       setNow(startedAt);
+      let serverSessionId: string | null = null;
       if (supabase) {
-        const { error } = await supabase.rpc("start_tag_session", {
+        const { data, error } = await supabase.rpc("start_tag_session", {
           p_latitude: location.latitude,
           p_longitude: location.longitude,
           p_duration_minutes: session.duration,
           p_delete_at: location.deleteAt,
         });
         if (error) throw error;
+        serverSessionId = String(data);
       }
-      setSession((current) => ({ ...current, active: true, startedAt, expiresAt, areaLabel: "東京都内" }));
+      lastMilestoneRef.current = 0;
+      setSession((current) => ({ ...current, active: true, startedAt, expiresAt, areaLabel: "東京都内", serverSessionId, validDistanceMeters: 0, walkExpEarned: 0, movementStatus: "starting" }));
+      stopLocationWatchRef.current?.();
+      if (serverSessionId) stopLocationWatchRef.current = watchPrivateLocation(
+        (sample) => void recordMovement(serverSessionId!, sample),
+        (message) => setNotice(message),
+      );
       setNotice("TAG ONを開始しました");
+      setShowConnected(true);
+      window.setTimeout(() => setShowConnected(false), 1500);
+      track("tag_on_started", { tag_duration: session.duration });
       track("tagtokyo_tag_session_started", { duration_minutes: session.duration, backend: true });
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "TAG ONを開始できませんでした");
     }
   }
 
-  async function stopTag() {
-    if (supabase) await supabase.rpc("stop_tag_session");
-    setSession((current) => ({ ...current, active: false, startedAt: null, expiresAt: null }));
-    setNotice("TAG ONを終了しました");
-    track("tagtokyo_tag_session_ended", { reason: "manual" });
+  async function finishTagSession(reason: "manual" | "expired") {
+    stopLocationWatchRef.current?.();
+    stopLocationWatchRef.current = null;
+    let result: TagSessionResult = {
+      durationSeconds: session.startedAt ? Math.max(0, Math.round((Date.now() - session.startedAt) / 1000)) : 0,
+      distanceMeters: session.validDistanceMeters,
+      walkExp: session.walkExpEarned,
+      crossCount: 0,
+      spotCount: 0,
+      areas: [],
+    };
+    if (supabase && session.serverSessionId) {
+      const { data, error } = await supabase.rpc("finish_tag_session");
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!error && row) result = {
+        durationSeconds: Number(row.duration_seconds ?? result.durationSeconds),
+        distanceMeters: Number(row.distance_m ?? result.distanceMeters),
+        walkExp: Number(row.walk_exp ?? result.walkExp),
+        crossCount: Number(row.cross_count ?? 0),
+        spotCount: Number(row.spot_count ?? 0),
+        areas: Array.isArray(row.areas) ? row.areas : [],
+      };
+    }
+    setSession((current) => ({ ...current, active: false, startedAt: null, expiresAt: null, serverSessionId: null, movementStatus: null }));
+    setSessionResult(result);
+    setNotice(reason === "expired" ? "TAG ONが自動終了しました" : "TAG ONを終了しました");
+    track("tag_on_finished", { reason, tag_duration: result.durationSeconds, valid_distance: result.distanceMeters, earned_exp: result.walkExp, cross_count: result.crossCount });
+    track("tagtokyo_tag_session_ended", { reason });
   }
+
+  async function stopTag() { await finishTagSession("manual"); }
 
   async function sendMagicLink() {
     if (!hasSupabase || !supabase) {
@@ -1150,6 +1361,8 @@ export default function TagTokyoApp() {
     if (error) return setLiveError(error.message);
     setLiveCrossings((current) => current.map((item) => item.id === crossing.id ? { ...item, tagged: true } : item));
     setNotice(matched ? `${crossing.displayName}さんとMATCHしました` : `${crossing.displayName}さんへTAGを送りました`);
+    track("tag_sent", { crossing_id: crossing.id });
+    if (matched) track("match_created", { source: "cross" });
     track("tagtokyo_live_tag_sent", { crossing_id: crossing.id, matched: Boolean(matched) });
     if (matched) await refreshLiveCommunity(currentUserId);
   }
@@ -1163,8 +1376,10 @@ export default function TagTokyoApp() {
       return;
     }
     setDiscoveryProfiles((current) => current.map((item) => item.userId === profile.userId ? { ...item, liked: true } : item));
+    track("tag_sent", { source: "discover" });
     track("tagtokyo_profile_like_sent", { matched: Boolean(matched) });
     if (matched) {
+      track("match_created", { source: "discover" });
       setNotice(`${profile.displayName}さんとMATCHしました`);
       await refreshLiveCommunity(currentUserId);
       setTab("match");
@@ -1240,8 +1455,8 @@ export default function TagTokyoApp() {
   return (
     <main className="app-shell">
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>PLAY BETA</small></div>
-      {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={startTag} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} />}
-      {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => setTab("me")} error={liveError} />}
+      {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={requestTagStart} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} />}
+      {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => setTab("me")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} />}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={setSelectedLiveMatchId} onSend={sendLiveMessage} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
@@ -1251,9 +1466,14 @@ export default function TagTokyoApp() {
         setTab(next);
         window.scrollTo({ top: 0, behavior: "instant" });
         track("tagtokyo_tab_view", { tab: next });
-        if (next === "cross") track("tagtokyo_cross_view");
+        if (next === "cross") { track("tagtokyo_cross_view"); track("cross_opened"); }
       }} />
       {showMessageGate && <MessageAccessGate onClose={() => setShowMessageGate(false)} onEmail={requestMessageAccess} />}
+      {showTagIntro && <TagIntro onClose={() => setShowTagIntro(false)} onStart={() => void startTag()} />}
+      {showConnected && <div className="connected-overlay" role="status"><Sparkles /><b>TOKYO CONNECTED</b><small>移動EXPの計測を開始しました</small></div>}
+      {walkPulse && <div className="walk-exp-pulse" role="status"><Footprints />{walkPulse}</div>}
+      {levelUp && <div className="level-up-overlay" role="status"><small>PROFILE LEVEL UP</small><b>Lv.{levelUp}</b><Sparkles /></div>}
+      {sessionResult && <SessionResult result={sessionResult} onClose={() => setSessionResult(null)} onCross={() => { setSessionResult(null); setTab("cross"); track("cross_opened", { source: "tag_result" }); }} />}
     </main>
   );
 }

@@ -56,6 +56,22 @@ export type TagSessionState = {
   startedAt: number | null;
   expiresAt: number | null;
   areaLabel: string | null;
+  serverSessionId: string | null;
+  validDistanceMeters: number;
+  walkExpEarned: number;
+  dailyDistanceMeters: number;
+  dailyWalkExp: number;
+  dailyWalkExpCap: number;
+  movementStatus: string | null;
+};
+
+export type TagSessionResult = {
+  durationSeconds: number;
+  distanceMeters: number;
+  walkExp: number;
+  crossCount: number;
+  spotCount: number;
+  areas: string[];
 };
 
 export type GrowthState = {
