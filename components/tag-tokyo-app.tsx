@@ -14,7 +14,7 @@ import {
 } from "@/lib/game";
 import { isInsideTokyo, requestPrivateLocation, watchPrivateLocation } from "@/lib/location";
 import { hasSupabase, isLiveCommunityEnabled, supabase } from "@/lib/supabase";
-import type { DailyMission, DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagDuration, TagSessionResult, TagSessionState } from "@/lib/types";
+import type { AreaChampion, DailyMission, DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagDuration, TagSessionResult, TagSessionState, TagStreak } from "@/lib/types";
 
 const INITIAL_SESSION: TagSessionState = {
   active: false,
@@ -155,7 +155,7 @@ function DailyMissionBoard({ missions }: { missions: DailyMission[] }) {
   </section>;
 }
 
-function HomeScreen({ session, now, setDuration, start, stop, notice, growth, dailyBonusNotice, showGuide, dismissGuide, missions }: {
+function HomeScreen({ session, now, setDuration, start, stop, notice, growth, dailyBonusNotice, showGuide, dismissGuide, missions, streak }: {
   session: TagSessionState;
   now: number;
   setDuration: (duration: TagDuration) => void;
@@ -167,6 +167,7 @@ function HomeScreen({ session, now, setDuration, start, stop, notice, growth, da
   showGuide: boolean;
   dismissGuide: () => void;
   missions: DailyMission[];
+  streak: TagStreak | null;
 }) {
   const progress = getLevelProgress(growth.totalEarnedExp);
   const nextUnlock = PROFILE_UNLOCKS.find((item) => item.level > progress.level);
@@ -207,6 +208,7 @@ function HomeScreen({ session, now, setDuration, start, stop, notice, growth, da
 
       {notice && <div className="notice" role="status">{notice}</div>}
       {dailyBonusNotice && <div className="daily-bonus" role="status"><Gift /><span><b>{dailyBonusNotice}</b><small>毎日最初のアクセスで受け取れます</small></span></div>}
+      {streak && <div className="streak-strip"><span><Zap /><b>{streak.current} DAYS</b></span><div><strong>TAG STREAK</strong><small>累計 {streak.totalDays} TAG DAY · 途切れてもペナルティはありません</small></div></div>}
       <div className="walk-progress-card">
         <div className="walk-progress-head"><span><Footprints /><b>今日の移動EXP</b></span><strong>{session.dailyWalkExp} / {session.dailyWalkExpCap}</strong></div>
         <div className="walk-track"><span style={{ width: `${walkPercent}%` }} /></div>
@@ -239,11 +241,36 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
   const [stake, setStake] = useState(100);
   const [result, setResult] = useState("");
   const [rewardDisplay, setRewardDisplay] = useState<null | { tier: "normal" | "rare" | "super"; label: string }>(null);
+  const [champions, setChampions] = useState<AreaChampion[]>([]);
   const area = TOKYO_AREAS.find((item) => item.id === selectedAreaId) ?? TOKYO_AREAS[0];
+  const champion = champions.find((item) => item.areaId === area.id) ?? null;
   const spot = TAG_SPOTS.find((item) => item.id === selectedSpotId) ?? null;
   const myPoints = growth.areaContributions[area.id] ?? 0;
   const today = new Date().toISOString().slice(0, 10);
   const alreadyClaimed = spot ? growth.spotClaims[spot.id] === today : false;
+
+  const loadChampions = useCallback(async () => {
+    if (!supabase) return;
+    const { data, error } = await supabase.rpc("get_area_champions");
+    if (error) return;
+    const rows = (data ?? []) as Array<{ area_id: string; area_name: string; champion_user_id: string | null; champion_display_name: string | null; champion_handle: string | null; champion_points: number; champion_is_official: boolean; my_points: number; points_to_first: number }>;
+    setChampions(rows.map((item) => ({
+      areaId: item.area_id,
+      areaName: item.area_name,
+      userId: item.champion_user_id,
+      displayName: item.champion_display_name,
+      handle: item.champion_handle,
+      points: Number(item.champion_points ?? 0),
+      isOfficial: Boolean(item.champion_is_official),
+      myPoints: Number(item.my_points ?? 0),
+      pointsToFirst: Number(item.points_to_first ?? 0),
+    })));
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void loadChampions(), 0);
+    return () => window.clearTimeout(timer);
+  }, [loadChampions]);
 
   async function contribute() {
     if (!liveEnabled || !supabase) {
@@ -274,6 +301,7 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
       areaContributions: { ...current.areaContributions, [area.id]: (current.areaContributions[area.id] ?? 0) + stake },
     }));
     setResult(`${area.name}へ${stake} EXP投下しました。プロフィールLvは下がりません。`);
+    void loadChampions();
     track("area_exp_contributed", { area_id: area.id, amount: stake });
     track("tagtokyo_area_exp_contributed", { area_id: area.id, amount: stake });
   }
@@ -323,8 +351,9 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
         <div className="map-river" />
         {TOKYO_AREAS.map((item) => {
           const mine = growth.areaContributions[item.id] ?? 0;
+          const leader = champions.find((entry) => entry.areaId === item.id);
           return <button key={item.id} className={`area-pin ${selectedAreaId === item.id ? "selected" : ""}`} style={{ left: `${item.x}%`, top: `${item.y}%` }} onClick={() => { setSelectedAreaId(item.id); setSelectedSpotId(null); setResult(""); }}>
-            <Trophy /><b>{item.name}</b><span>{mine > 0 ? "YOU" : "未登録"}</span><small>{mine > 0 ? `${mine}pt` : "--"}</small>
+            <Trophy /><b>{item.name}</b><span>{leader?.displayName ? leader.displayName.slice(0, 7) : mine > 0 ? "YOU" : "未登録"}</span><small>{leader?.points ? `${leader.points.toLocaleString()}pt` : mine > 0 ? `${mine}pt` : "--"}</small>
           </button>;
         })}
         {TAG_SPOTS.map((item) => <button key={item.id} className="spot-pin" aria-label={item.name} style={{ left: `${item.x}%`, top: `${item.y}%` }} onClick={() => { setSelectedSpotId(item.id); setSelectedAreaId(item.areaId); setResult(""); track("spot_opened", { spot_id: item.id, area_id: item.areaId }); }}><Gift /></button>)}
@@ -341,7 +370,9 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
       ) : (
         <div className="map-panel">
           <div className="area-head"><div><small>AREA BATTLE</small><h3>{area.name}</h3></div></div>
-          {myPoints > 0 ? <div className="rank-row mine"><Star /><span><small>あなたの投下</small><b>プロフィール Lv.{getLevelProgress(growth.totalEarnedExp).level}</b></span><strong>{myPoints.toLocaleString()}pt</strong></div> : <div className="area-empty"><Trophy /><span><b>ランキングデータはまだありません</b><small>実際のEXP投下後に表示されます</small></span></div>}
+          {champion?.userId ? <div className="champion-row"><Crown /><span><small>AREA CHAMPION</small><b>{champion.displayName}{champion.isOfficial ? " · 公認" : ""}</b>{champion.handle && <em>@{champion.handle}</em>}</span><strong>{champion.points.toLocaleString()}pt</strong></div> : <div className="area-empty"><Trophy /><span><b>最初のCHAMPIONを募集中</b><small>実際にEXPが投下されると表示されます</small></span></div>}
+          {myPoints > 0 && <div className="rank-row mine"><Star /><span><small>あなたの投下</small><b>プロフィール Lv.{getLevelProgress(growth.totalEarnedExp).level}</b></span><strong>{myPoints.toLocaleString()}pt</strong></div>}
+          {champion && champion.pointsToFirst > 0 && <p className="points-to-first">あと <b>{champion.pointsToFirst.toLocaleString()} EXP</b> で1位</p>}
           <div className="area-range-note"><MapPin /><span><b>拠点の1km圏内限定</b><small>現在地は距離判定だけに使い、投下履歴には保存しません</small></span></div>
           <div className="stake-control"><button aria-label="EXPを減らす" onClick={() => setStake(Math.max(100, stake - 100))}><Minus /></button><b>{stake} EXP</b><button aria-label="EXPを増やす" onClick={() => setStake(Math.min(1000, stake + 100))}><Plus /></button></div>
           <button className="primary-wide" disabled={!liveEnabled} onClick={contribute}>{liveEnabled ? "現在地を確認して投下" : "サービス開始後に利用可能"}</button>
@@ -785,6 +816,7 @@ export default function TagTokyoApp() {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [dailyBonusNotice, setDailyBonusNotice] = useState("");
   const [dailyMissions, setDailyMissions] = useState<DailyMission[]>([]);
+  const [tagStreak, setTagStreak] = useState<TagStreak | null>(null);
   const [showHomeGuide, setShowHomeGuide] = useState(false);
   const [showCrossGuide, setShowCrossGuide] = useState(false);
   const [showTagIntro, setShowTagIntro] = useState(false);
@@ -827,6 +859,15 @@ export default function TagTokyoApp() {
     }
     await refreshDailyMissions();
   }, [refreshDailyMissions]);
+
+  const refreshTagStreak = useCallback(async () => {
+    if (!supabase) return;
+    const { data, error } = await supabase.rpc("get_my_tag_streak");
+    if (error) return;
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) return;
+    setTagStreak({ current: Number(row.current_streak ?? 0), totalDays: Number(row.total_tag_days ?? 0), lastTagDate: row.last_tag_date ?? null });
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1208,6 +1249,12 @@ export default function TagTokyoApp() {
   }, [liveEnabled, liveMemberReady, refreshDailyMissions]);
 
   useEffect(() => {
+    if (!liveEnabled || !liveMemberReady) return;
+    const timer = window.setTimeout(() => void refreshTagStreak(), 0);
+    return () => window.clearTimeout(timer);
+  }, [liveEnabled, liveMemberReady, refreshTagStreak]);
+
+  useEffect(() => {
     if (!liveEnabled || !liveMemberReady || !currentUserId || !supabase) return;
     const refreshTimer = window.setTimeout(() => void refreshLiveCommunity(currentUserId), 0);
     const client = supabase;
@@ -1343,6 +1390,7 @@ export default function TagTokyoApp() {
       window.setTimeout(() => setShowConnected(false), 1500);
       track("tag_on_started", { tag_duration: session.duration });
       void claimDailyMission("tag_on");
+      void refreshTagStreak();
       track("tagtokyo_tag_session_started", { duration_minutes: session.duration, backend: true });
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "TAG ONを開始できませんでした");
@@ -1532,7 +1580,7 @@ export default function TagTokyoApp() {
   return (
     <main className="app-shell">
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>PLAY BETA</small></div>
-      {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={requestTagStart} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} />}
+      {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={requestTagStart} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} />}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => setTab("me")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} />}
       {tab === "match" && (liveEnabled

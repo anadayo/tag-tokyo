@@ -344,6 +344,13 @@ button { color: inherit; }
 .daily-bonus span { display: grid; gap: 2px; }
 .daily-bonus b { font-size: 12px; }
 .daily-bonus small { font-size: 9px; }
+.streak-strip { margin: 12px 0; padding: 11px 12px; display: grid; grid-template-columns: auto 1fr; gap: 11px; align-items: center; border: 1px solid #e2d49e; border-radius: 8px; background: #fffaf0; text-align: left; }
+.streak-strip > span { min-width: 72px; height: 42px; padding: 0 8px; display: flex; align-items: center; justify-content: center; gap: 5px; border-radius: 6px; background: var(--ink); color: var(--yellow); }
+.streak-strip svg { width: 14px; }
+.streak-strip > span b { font-size: 11px; }
+.streak-strip > div { min-width: 0; display: grid; gap: 3px; }
+.streak-strip strong { font-size: 10px; }
+.streak-strip small { color: var(--muted); font-size: 8px; line-height: 1.4; }
 .message-gate-note { display: flex; align-items: center; gap: 6px; margin: 10px 0 0; color: var(--muted); font-size: 10px; font-weight: 700; }
 .message-gate-note svg { width: 14px; }
 .age-verification-panel { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -441,6 +448,15 @@ button { color: inherit; }
 .rank-row b { font-size: 11px; }
 .rank-row strong { font-size: 12px; }
 .rank-row.mine > svg { color: var(--mint); }
+.champion-row { min-height: 66px; margin-top: 9px; padding: 9px 10px; display: grid; grid-template-columns: 28px 1fr auto; gap: 9px; align-items: center; border-radius: 7px; background: #fff7d9; }
+.champion-row > svg { width: 23px; color: #9b7410; }
+.champion-row > span { min-width: 0; display: grid; gap: 2px; }
+.champion-row small { color: #8a6710; font-size: 7px; font-weight: 900; }
+.champion-row b { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.champion-row em { color: var(--muted); font-size: 8px; font-style: normal; }
+.champion-row strong { font-size: 11px; white-space: nowrap; }
+.points-to-first { margin: 8px 0 0; padding: 8px; border-radius: 6px; background: #f4f1f0; color: var(--muted); text-align: center; font-size: 9px; }
+.points-to-first b { color: var(--coral); }
 .area-empty { min-height: 76px; margin-top: 10px; padding: 12px; display: flex; align-items: center; gap: 10px; border-radius: 7px; background: #f5f2f1; color: var(--muted); }
 .area-empty svg { width: 20px; flex: 0 0 auto; }
 .area-empty span { display: grid; gap: 3px; }

@@ -50,6 +50,24 @@ export type DailyMission = {
   completed: boolean;
 };
 
+export type AreaChampion = {
+  areaId: string;
+  areaName: string;
+  userId: string | null;
+  displayName: string | null;
+  handle: string | null;
+  points: number;
+  isOfficial: boolean;
+  myPoints: number;
+  pointsToFirst: number;
+};
+
+export type TagStreak = {
+  current: number;
+  totalDays: number;
+  lastTagDate: string | null;
+};
+
 export type LiveMessage = {
   id: number;
   matchId: string;
