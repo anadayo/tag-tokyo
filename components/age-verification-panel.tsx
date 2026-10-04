@@ -50,6 +50,7 @@ export function AgeVerificationPanel({ authenticated, consentReady, initialStatu
       const { error: consentError } = await supabase.rpc("complete_profile_onboarding", {
         p_display_name: profile.displayName,
         p_handle: profile.handle,
+        p_gender: profile.gender,
         p_terms_version: "2026-10-04",
         p_privacy_version: "2026-10-04",
       });

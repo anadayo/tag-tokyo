@@ -44,6 +44,8 @@ Supabase未設定時やライブ停止中は架空プロフィールを表示せ
 
 `016_official_owner_profile.sql` は、実在・稼働中・年齢確認済みの `owner` だけに公認表示を付けます。女性として登録したユーザーのCROSS最上部には、通常のすれ違いを装わない「公認・管理人」ウェルカムプロフィールを表示します。ブロック済みの場合は表示せず、架空のすれ違い・TAG・マッチは作成しません。
 
+`017_profile_discovery_matching.sql` は、実在・稼働中・年齢確認済みユーザーだけの「おすすめ」を追加します。片方のいいねだけでは連絡できず、相互いいねになった時だけMATCHとメッセージが開きます。ブロック・既マッチ除外と1日50件のいいね上限はDB側で強制します。
+
 審査は [age verification review policy](docs/age-verification-review-policy.md) の客観的な3項目だけで行い、不鮮明・判断不能なケースは推測せずオーナー確認へ回します。
 
 GitHub Pagesは公開クライアントを配信し、秘密鍵が必要な年齢確認通知・定期削除はSupabase Edge Functionsで処理します。

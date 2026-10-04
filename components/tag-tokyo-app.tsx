@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  BadgeCheck, Ban, Bell, Camera, ChevronRight, Clock3, Crown, Flag, Gift, HeartHandshake, Home, LockKeyhole, LogOut, Map,
+  BadgeCheck, Ban, Bell, Camera, ChevronRight, Clock3, Crown, Flag, Gift, Heart, HeartHandshake, Home, LockKeyhole, LogOut, Map,
   MapPin, MessageCircle, Minus, Plus, Power, ShieldCheck, ShoppingBag,
   Send, Sparkles, Star, Trophy, UserRound, UsersRound, Zap,
 } from "lucide-react";
@@ -14,7 +14,7 @@ import {
 } from "@/lib/game";
 import { isInsideTokyo, requestPrivateLocation } from "@/lib/location";
 import { hasSupabase, isLiveCommunityEnabled, supabase } from "@/lib/supabase";
-import type { EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagDuration, TagSessionState } from "@/lib/types";
+import type { DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagDuration, TagSessionState } from "@/lib/types";
 
 const INITIAL_SESSION: TagSessionState = {
   active: false,
@@ -281,11 +281,34 @@ function OfficialBadge() {
   return <span className="official-badge" title="TAG TOKYO公認・管理人"><BadgeCheck />公認・管理人</span>;
 }
 
-function LiveCrossScreen({ crossings, officialProfile, onTag, error }: { crossings: LiveCrossing[]; officialProfile: OfficialProfile | null; onTag: (crossing: LiveCrossing) => Promise<void>; error: string }) {
+function LiveCrossScreen({ crossings, recommendations, officialProfile, memberReady, liveEnabled, onTag, onLike, onRequireAccount, error }: {
+  crossings: LiveCrossing[];
+  recommendations: DiscoveryProfile[];
+  officialProfile: OfficialProfile | null;
+  memberReady: boolean;
+  liveEnabled: boolean;
+  onTag: (crossing: LiveCrossing) => Promise<void>;
+  onLike: (profile: DiscoveryProfile) => Promise<void>;
+  onRequireAccount: () => void;
+  error: string;
+}) {
+  const showWelcomeOnly = officialProfile && !recommendations.some((profile) => profile.userId === officialProfile.userId);
   return <section className="screen">
-    <header className="screen-header"><div><span>CROSS</span><h2>すれ違い</h2></div><button className="icon-button" aria-label="通知"><Bell /></button></header>
+    <header className="screen-header"><div><span>DISCOVER</span><h2>みつける</h2></div><button className="icon-button" aria-label="通知"><Bell /></button></header>
+    <section className="discovery-section" aria-labelledby="discovery-title">
+      <div className="section-heading"><div><small>RECOMMENDED</small><h3 id="discovery-title">おすすめ</h3></div><Heart /></div>
+      {!liveEnabled ? <div className="discovery-gate"><LockKeyhole /><span><b>マッチ機能は開始準備中です</b><small>安全設定の完了後、実在ユーザーだけを表示します</small></span></div>
+        : !memberReady ? <div className="discovery-gate"><ShieldCheck /><span><b>プロフィールを見るには本人確認が必要です</b><small>メール認証・規約同意・20歳以上確認を完了してください</small></span><button onClick={onRequireAccount}>設定へ</button></div>
+          : recommendations.length === 0 ? <div className="discovery-gate"><UsersRound /><span><b>新しいプロフィールを待っています</b><small>条件を満たす実在ユーザーが登録されると表示されます</small></span></div>
+            : <div className="discovery-grid">{recommendations.map((profile) => <article className={`discovery-card ${profile.isOfficial ? "is-official" : ""}`} key={profile.userId}>
+              <div className="discovery-avatar">{profile.displayName.slice(0, 1)}</div>
+              <div className="discovery-copy">{profile.isOfficial && <OfficialBadge />}<h3>{profile.displayName}</h3><small>{profile.handle ? `@${profile.handle}` : "TAG TOKYOメンバー"}</small><p>{profile.bio || "プロフィールを見て、気になったらいいねを送れます。"}</p></div>
+              <button className="discovery-like" disabled={profile.liked} onClick={() => void onLike(profile)}><Heart />{profile.liked ? "送信済み" : "いいね"}</button>
+            </article>)}</div>}
+    </section>
     <div className="privacy-strip"><ShieldCheck /><span><b>場所と時刻はぼかして表示</b><small>現在地・正確な距離・移動方向は相手に公開しません</small></span></div>
-    {officialProfile && <article className="live-cross-card official-profile-card"><div className="chat-avatar">{officialProfile.displayName.slice(0, 1)}</div><div><OfficialBadge /><h3>{officialProfile.displayName}</h3><p>{officialProfile.handle ? `@${officialProfile.handle} · ${officialProfile.bio || "TAG TOKYOを運営しています"}` : officialProfile.bio || "TAG TOKYOを運営しています"}</p></div><span className="official-profile-label">WELCOME</span></article>}
+    {showWelcomeOnly && <article className="live-cross-card official-profile-card"><div className="chat-avatar">{officialProfile.displayName.slice(0, 1)}</div><div><OfficialBadge /><h3>{officialProfile.displayName}</h3><p>{officialProfile.handle ? `@${officialProfile.handle} · ${officialProfile.bio || "TAG TOKYOを運営しています"}` : officialProfile.bio || "TAG TOKYOを運営しています"}</p></div><span className="official-profile-label">WELCOME</span></article>}
+    <div className="cross-section-title"><Sparkles /><span><b>すれ違い</b><small>街で近くにいた人</small></span></div>
     {crossings.length === 0 ? <div className="empty-state"><div className="empty-icon"><Sparkles /></div><h3>新しいCROSSを待っています</h3><p>東京都内でTAG ONにすると、近くにいた年齢確認済みユーザーが後から表示されます。</p></div> : <div className="live-cross-list">
       {crossings.map((crossing) => <article className={`live-cross-card ${crossing.isOfficial ? "official-profile-card" : ""}`} key={crossing.id}><div className="chat-avatar">{crossing.displayName.slice(0, 1)}</div><div><small>{crossing.areaLabel}</small><h3>{crossing.displayName} {crossing.isOfficial && <OfficialBadge />}</h3><p>{crossing.handle ? `@${crossing.handle}` : crossing.bio || "プロフィールを確認してTAGできます"}</p></div><button disabled={crossing.tagged} onClick={() => void onTag(crossing)}><Sparkles />{crossing.tagged ? "TAG済み" : "TAG"}</button></article>)}
     </div>}
@@ -299,11 +322,11 @@ function MatchScreen() {
       <header className="screen-header"><div><span>MATCH</span><h2>マッチ</h2></div></header>
       <div className="empty-state">
         <div className="empty-icon"><MessageCircle /></div>
-        <h3>相互TAGで、はじめて話せる</h3>
-        <p>すれ違った相手にTAGを送り、相手からもTAGが届くとチャットが開きます。知らない人から突然DMは届きません。</p>
+        <h3>相互いいねで、はじめて話せる</h3>
+        <p>おすすめの相手へいいねを送り、相手からもいいねが届くとチャットが開きます。すれ違いの相互TAGでもマッチできます。</p>
       </div>
       <div className="rule-list">
-        <div><ShieldCheck /><span><b>相互TAGだけ</b><small>片方からのTAGでは連絡できません</small></span></div>
+        <div><ShieldCheck /><span><b>相互いいね・相互TAGだけ</b><small>片方からの操作だけでは連絡できません</small></span></div>
         <div><UsersRound /><span><b>ブロック・通報</b><small>マッチ後もすぐに安全操作できます</small></span></div>
         <div><Clock3 /><span><b>すれ違いは30日で削除</b><small>位置情報そのものは24時間以内に削除します</small></span></div>
       </div>
@@ -363,7 +386,7 @@ function LiveMatchScreen({
   if (!selectedMatch) {
     return <section className="screen">
       <header className="screen-header"><div><span>MATCH</span><h2>マッチ</h2></div></header>
-      <div className="empty-state"><div className="empty-icon"><MessageCircle /></div><h3>{loading ? "マッチを確認中" : "相互TAGを待っています"}</h3><p>お互いにTAGした相手だけがここに表示され、メッセージを交換できます。</p></div>
+      <div className="empty-state"><div className="empty-icon"><MessageCircle /></div><h3>{loading ? "マッチを確認中" : "相互いいねを待っています"}</h3><p>お互いにいいね、またはTAGした相手だけがここに表示され、メッセージを交換できます。</p></div>
       {error && <p className="chat-error" role="alert">{error}</p>}
     </section>;
   }
@@ -374,7 +397,7 @@ function LiveMatchScreen({
       {matches.map((match) => <button key={match.id} className={selectedMatch.id === match.id ? "active" : ""} onClick={() => { onSelect(match.id); setShowSafety(false); }}><span>{match.displayName.slice(0, 1)}</span><b>{match.displayName}{match.isOfficial && <BadgeCheck aria-label="公式" />}</b></button>)}
     </div>
     <div className="chat-card">
-      <header className="chat-header"><div className="chat-avatar">{selectedMatch.displayName.slice(0, 1)}</div><div><b>{selectedMatch.displayName} {selectedMatch.isOfficial && <OfficialBadge />}</b><small>{selectedMatch.handle ? `@${selectedMatch.handle}` : "相互TAGでマッチ"}</small></div><button aria-label="安全メニュー" onClick={() => setShowSafety((value) => !value)}><ShieldCheck /></button></header>
+      <header className="chat-header"><div className="chat-avatar">{selectedMatch.displayName.slice(0, 1)}</div><div><b>{selectedMatch.displayName} {selectedMatch.isOfficial && <OfficialBadge />}</b><small>{selectedMatch.handle ? `@${selectedMatch.handle}` : "相互いいねでマッチ"}</small></div><button aria-label="安全メニュー" onClick={() => setShowSafety((value) => !value)}><ShieldCheck /></button></header>
       {showSafety && <div className="chat-safety-panel">
         <b>安全メニュー</b>
         <label><span>通報理由</span><select value={reportReason} onChange={(event) => setReportReason(event.target.value)}><option value="harassment">迷惑行為・嫌がらせ</option><option value="impersonation">なりすまし</option><option value="solicitation">勧誘・営業</option><option value="unsafe">危険を感じる行為</option><option value="other">その他</option></select></label>
@@ -594,6 +617,7 @@ export default function TagTokyoApp() {
   const [consentReady, setConsentReady] = useState(false);
   const [liveCrossings, setLiveCrossings] = useState<LiveCrossing[]>([]);
   const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
+  const [discoveryProfiles, setDiscoveryProfiles] = useState<DiscoveryProfile[]>([]);
   const [officialProfile, setOfficialProfile] = useState<OfficialProfile | null>(null);
   const [liveMessages, setLiveMessages] = useState<Record<string, LiveMessage[]>>({});
   const [selectedLiveMatchId, setSelectedLiveMatchId] = useState<string | null>(null);
@@ -698,6 +722,23 @@ export default function TagTokyoApp() {
         setLiveMessages(grouped);
       }
     } else setLiveMessages({});
+
+    const { data: discoveryRows, error: discoveryError } = await supabase.rpc("get_discovery_profiles", { p_limit: 24 });
+    if (discoveryError) {
+      setDiscoveryProfiles([]);
+      setLiveError((current) => current || (discoveryError.message.includes("get_discovery_profiles") ? "おすすめ機能のDB設定が必要です" : discoveryError.message));
+    } else {
+      const discoveryItems = (discoveryRows ?? []) as Array<{ user_id: string; display_name: string; handle: string | null; bio: string | null; avatar_url: string | null; is_official: boolean; liked: boolean }>;
+      setDiscoveryProfiles(discoveryItems.map((item) => ({
+        userId: item.user_id,
+        displayName: item.display_name,
+        handle: item.handle,
+        bio: item.bio ?? "",
+        avatarUrl: item.avatar_url,
+        isOfficial: item.is_official,
+        liked: item.liked,
+      })));
+    }
     setLiveLoading(false);
   }, []);
 
@@ -847,7 +888,7 @@ export default function TagTokyoApp() {
   }, []);
 
   useEffect(() => {
-    if (!liveEnabled || !currentUserId || !supabase) return;
+    if (!liveEnabled || !liveMemberReady || !currentUserId || !supabase) return;
     const refreshTimer = window.setTimeout(() => void refreshLiveCommunity(currentUserId), 0);
     const client = supabase;
     const channel = client.channel(`messages-${currentUserId}`).on(
@@ -867,7 +908,7 @@ export default function TagTokyoApp() {
       window.clearTimeout(refreshTimer);
       void client.removeChannel(channel);
     };
-  }, [currentUserId, liveEnabled, refreshLiveCommunity]);
+  }, [currentUserId, liveEnabled, liveMemberReady, refreshLiveCommunity]);
 
   useEffect(() => {
     if (!session.active || !session.expiresAt) return;
@@ -982,6 +1023,25 @@ export default function TagTokyoApp() {
     if (matched) await refreshLiveCommunity(currentUserId);
   }
 
+  async function sendProfileLike(profile: DiscoveryProfile) {
+    if (!supabase || !currentUserId || profile.liked) return;
+    setLiveError("");
+    const { data: matched, error } = await supabase.rpc("send_profile_like", { p_receiver: profile.userId });
+    if (error) {
+      setLiveError(error.message === "daily like limit reached" ? "本日のいいね上限に達しました" : error.message);
+      return;
+    }
+    setDiscoveryProfiles((current) => current.map((item) => item.userId === profile.userId ? { ...item, liked: true } : item));
+    track("tagtokyo_profile_like_sent", { matched: Boolean(matched) });
+    if (matched) {
+      setNotice(`${profile.displayName}さんとMATCHしました`);
+      await refreshLiveCommunity(currentUserId);
+      setTab("match");
+    } else {
+      setNotice(`${profile.displayName}さんへいいねを送りました`);
+    }
+  }
+
   async function blockLiveMatch(matchId: string) {
     if (!supabase || !currentUserId) return;
     const { error } = await supabase.rpc("block_match_member", { p_match_id: matchId });
@@ -1043,7 +1103,7 @@ export default function TagTokyoApp() {
     <main className="app-shell">
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>PLAY BETA</small></div>
       {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={startTag} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} />}
-      {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} officialProfile={officialProfile} onTag={sendLiveTag} error={liveError} />}
+      {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => setTab("me")} error={liveError} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} />}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={setSelectedLiveMatchId} onSend={sendLiveMessage} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />

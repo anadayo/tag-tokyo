@@ -32,6 +32,16 @@ export type OfficialProfile = {
   avatarUrl: string | null;
 };
 
+export type DiscoveryProfile = {
+  userId: string;
+  displayName: string;
+  handle: string | null;
+  bio: string;
+  avatarUrl: string | null;
+  isOfficial: boolean;
+  liked: boolean;
+};
+
 export type LiveMessage = {
   id: number;
   matchId: string;
