@@ -491,12 +491,30 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
     }
     const nextProfile = { ...draft, displayName: draft.displayName.trim().slice(0, 50) || "あなた", handle };
     if (emailAuthenticated && supabase) {
-      const { error } = await supabase.rpc("update_member_profile", {
+      let { error } = await supabase.rpc("update_member_profile_v2", {
         p_display_name: nextProfile.displayName,
         p_handle: nextProfile.handle,
         p_bio: nextProfile.bio,
         p_gender: nextProfile.gender,
+        p_weekend: nextProfile.weekend,
+        p_romance_view: nextProfile.romance,
+        p_contact_frequency: nextProfile.contactFrequency,
+        p_values_detail: nextProfile.values,
+        p_lifestyle: nextProfile.lifestyle,
+        p_work_detail: nextProfile.work,
+        p_money_style: nextProfile.moneyStyle,
+        p_marriage_view: nextProfile.marriageView,
+        p_extra_bio: nextProfile.extraBio,
       });
+      if (error?.message.includes("update_member_profile_v2")) {
+        const fallback = await supabase.rpc("update_member_profile", {
+          p_display_name: nextProfile.displayName,
+          p_handle: nextProfile.handle,
+          p_bio: nextProfile.bio,
+          p_gender: nextProfile.gender,
+        });
+        error = fallback.error;
+      }
       if (error) {
         setEditorError(error.message.includes("update_member_profile") ? "プロフィール更新機能のDB設定が必要です" : error.message);
         return;
@@ -517,6 +535,7 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
     }
     setPhotoNotice("写真を調整しています…");
     const objectUrl = URL.createObjectURL(file);
+    let savedOnDevice = false;
     try {
       const image = new Image();
       image.src = objectUrl;
@@ -538,9 +557,27 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
         avatarDataUrl = canvas.toDataURL("image/jpeg", quality);
       }
       setProfile({ ...profile, avatarDataUrl });
-      setPhotoNotice("5MBまでの写真を表示用に調整して保存しました");
+      savedOnDevice = true;
+      if (emailAuthenticated && supabase) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("メール認証後にクラウド保存できます");
+        const avatarBlob = await fetch(avatarDataUrl).then((response) => response.blob());
+        const objectPath = `${user.id}/avatar.jpg`;
+        const { error: uploadError } = await supabase.storage.from("profile-photos").upload(objectPath, avatarBlob, {
+          contentType: "image/jpeg",
+          upsert: true,
+        });
+        if (uploadError) throw uploadError;
+        const { error: profileError } = await supabase.rpc("set_my_profile_avatar", { p_object_path: objectPath });
+        if (profileError) throw profileError;
+        setPhotoNotice("写真をクラウドに保存しました");
+      } else {
+        setPhotoNotice("この端末に保存しました。メール認証後はクラウドにも保存されます");
+      }
     } catch {
-      setPhotoNotice("画像を読み込めませんでした。別の写真を選んでください");
+      setPhotoNotice(savedOnDevice
+        ? "写真は端末に保存しましたが、クラウド保存に失敗しました。ログイン状態を確認してください"
+        : "画像を読み込めませんでした。別の写真を選んでください");
     } finally {
       URL.revokeObjectURL(objectUrl);
       event.target.value = "";
@@ -653,8 +690,62 @@ export default function TagTokyoApp() {
   const [liveError, setLiveError] = useState("");
   const [showMessageGate, setShowMessageGate] = useState(false);
   const [growthLoaded, setGrowthLoaded] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [dailyBonusNotice, setDailyBonusNotice] = useState("");
   const liveEnabled = isLiveCommunityEnabled && databaseLiveEnabled;
+
+  const loadPersistentAccountState = useCallback(async (userId: string) => {
+    if (!supabase) return;
+    const [profileResult, cosmeticsResult, contributionsResult, drawsResult, loginResult] = await Promise.all([
+      supabase.from("profiles").select("display_name,handle,bio,gender,avatar_url,weekend,romance_view,contact_frequency,values_detail,lifestyle,work_detail,money_style,marriage_view,extra_bio,total_earned_exp,available_exp,equipped_frame,equipped_background,equipped_title").eq("user_id", userId).maybeSingle(),
+      supabase.from("user_cosmetics").select("cosmetic_id").eq("user_id", userId),
+      supabase.from("area_contributions").select("area_id,points").eq("user_id", userId),
+      supabase.from("tag_spot_draws").select("spot_id,draw_date").eq("user_id", userId).order("draw_date", { ascending: false }).limit(100),
+      supabase.from("daily_login_claims").select("claim_date").eq("user_id", userId).order("claim_date", { ascending: false }).limit(1).maybeSingle(),
+    ]);
+    if (profileResult.error) {
+      setAuthNotice(profileResult.error.message);
+      return;
+    }
+    const row = profileResult.data;
+    if (!row) return;
+    let avatarUrl = "";
+    if (row.avatar_url) {
+      const { data } = await supabase.storage.from("profile-photos").createSignedUrl(row.avatar_url, 3600);
+      avatarUrl = data?.signedUrl ?? "";
+    }
+    setProfile((current) => ({
+      ...current,
+      displayName: row.display_name,
+      handle: row.handle ?? current.handle,
+      bio: row.bio ?? "",
+      gender: (["woman", "man", "nonbinary", "unspecified"] as const).includes(row.gender) ? row.gender : "unspecified",
+      avatarDataUrl: avatarUrl || current.avatarDataUrl,
+      weekend: row.weekend ?? "",
+      romance: row.romance_view ?? "",
+      contactFrequency: row.contact_frequency ?? "",
+      values: row.values_detail ?? "",
+      lifestyle: row.lifestyle ?? "",
+      work: row.work_detail ?? "",
+      moneyStyle: row.money_style ?? "",
+      marriageView: row.marriage_view ?? "",
+      extraBio: row.extra_bio ?? "",
+    }));
+    const areaContributions = Object.fromEntries((contributionsResult.data ?? []).map((item) => [item.area_id, Number(item.points)]));
+    const spotClaims: Record<string, string> = {};
+    for (const item of drawsResult.data ?? []) if (!spotClaims[item.spot_id]) spotClaims[item.spot_id] = item.draw_date;
+    setGrowth({
+      totalEarnedExp: Number(row.total_earned_exp ?? 0),
+      availableExp: Number(row.available_exp ?? 0),
+      lastDailyLoginDate: loginResult.data?.claim_date ?? null,
+      areaContributions,
+      ownedCosmetics: (cosmeticsResult.data ?? []).map((item) => item.cosmetic_id),
+      equippedFrame: row.equipped_frame,
+      equippedBackground: row.equipped_background,
+      equippedTitle: row.equipped_title,
+      spotClaims,
+    });
+  }, []);
 
   const refreshLiveCommunity = useCallback(async (userId: string) => {
     if (!supabase) return;
@@ -816,17 +907,21 @@ export default function TagTokyoApp() {
 
   useEffect(() => {
     const saved = window.localStorage.getItem("tagtokyo_profile_v2");
-    if (!saved) return;
-    try {
-      const restored = JSON.parse(saved) as EditableProfile;
-      const timeout = window.setTimeout(() => setProfile({ ...INITIAL_PROFILE, ...restored }), 0);
-      return () => window.clearTimeout(timeout);
-    } catch { /* Ignore invalid local state. */ }
+    const timeout = window.setTimeout(() => {
+      if (saved) {
+        try {
+          const restored = JSON.parse(saved) as EditableProfile;
+          setProfile({ ...INITIAL_PROFILE, ...restored });
+        } catch { /* Ignore invalid local state. */ }
+      }
+      setProfileLoaded(true);
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem("tagtokyo_profile_v2", JSON.stringify(profile));
-  }, [profile]);
+    if (profileLoaded) window.localStorage.setItem("tagtokyo_profile_v2", JSON.stringify(profile));
+  }, [profile, profileLoaded]);
 
   useEffect(() => {
     const client = supabase;
@@ -879,16 +974,7 @@ export default function TagTokyoApp() {
           data = refreshed.data;
         }
       }
-      const { data: ownProfile } = await connectedClient.from("profiles").select("display_name,handle,bio,gender").eq("user_id", data?.id ?? "").maybeSingle();
-      if (ownProfile && active) {
-        setProfile((current) => ({
-          ...current,
-          displayName: ownProfile.display_name,
-          handle: ownProfile.handle ?? current.handle,
-          bio: ownProfile.bio ?? "",
-          gender: (["woman", "man", "nonbinary", "unspecified"] as const).includes(ownProfile.gender) ? ownProfile.gender : "unspecified",
-        }));
-      }
+      if (data?.id && active) await loadPersistentAccountState(data.id);
       const { data: welcomeRows } = await connectedClient.rpc("get_official_welcome_profile");
       const welcome = Array.isArray(welcomeRows) ? welcomeRows[0] : null;
       if (active) {
@@ -913,7 +999,24 @@ export default function TagTokyoApp() {
       active = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [loadPersistentAccountState]);
+
+  useEffect(() => {
+    if (!liveEnabled || !liveMemberReady || !currentUserId || !supabase) return;
+    let active = true;
+    async function claimServerDailyBonus() {
+      const { data, error } = await supabase!.rpc("claim_daily_login_bonus");
+      if (!active || error) return;
+      const awarded = Number(data ?? 0);
+      await loadPersistentAccountState(currentUserId!);
+      if (active && awarded > 0) {
+        setDailyBonusNotice(`毎日ログイン +${awarded} EXP`);
+        track("tagtokyo_daily_login_bonus", { exp: awarded, backend: true });
+      }
+    }
+    void claimServerDailyBonus();
+    return () => { active = false; };
+  }, [currentUserId, liveEnabled, liveMemberReady, loadPersistentAccountState]);
 
   useEffect(() => {
     if (!liveEnabled || !liveMemberReady || !currentUserId || !supabase) return;
@@ -1115,9 +1218,16 @@ export default function TagTokyoApp() {
     track(isOwner ? "tagtokyo_owner_cosmetic_unlocked" : "tagtokyo_cosmetic_exchanged", { cosmetic_id: id, exp_cost: isOwner ? 0 : item.cost });
   }
 
-  function equipCosmetic(id: string) {
+  async function equipCosmetic(id: string) {
     const item = COSMETICS.find((candidate) => candidate.id === id);
     if (!item || (!isOwner && !growth.ownedCosmetics.includes(id))) return;
+    if (supabase && isEmailAuthenticated) {
+      const { error } = await supabase.rpc("equip_profile_cosmetic", { p_cosmetic_id: id });
+      if (error) {
+        setAuthNotice(error.message.includes("equip_profile_cosmetic") ? "装飾のクラウド保存設定が必要です" : error.message);
+        return;
+      }
+    }
     setGrowth((current) => ({
       ...current,
       equippedFrame: item.slot === "frame" ? id : current.equippedFrame,

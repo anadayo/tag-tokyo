@@ -1,4 +1,4 @@
-const CACHE_NAME = "tag-tokyo-v038";
+const CACHE_NAME = "tag-tokyo-v039";
 const BASE = self.location.pathname.replace(/\/sw\.js$/, "");
 const APP_SHELL = [`${BASE}/`, `${BASE}/manifest.webmanifest`, `${BASE}/icon-192.png`];
 
