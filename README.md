@@ -36,6 +36,8 @@ Supabase未設定でも、位置情報を外部送信しないプレビューモ
 
 実在ユーザー同士の交流は、Supabaseを設定しただけでは有効になりません。年齢確認・届出・通報対応・データ削除の運用を完了し、デプロイ設定とデータベースの二重の開始制御をオーナーが承認した後にだけ限定ベータを開始します。詳細は [live launch checklist](docs/live-launch-checklist.md) と [live-beta runbook](docs/live-beta-runbook.md) を参照してください。
 
+実メッセージは相互TAGで成立したマッチ内だけで利用できます。`010_live_messaging.sql` は、サーバー側の参加資格確認、直接INSERT禁止、重複・連投制限、ブロック、通報、Realtime配信を追加します。`011_profile_onboarding_alignment.sql` は認証後のプロフィール登録条件をUIと揃え、`012_report_write_hardening.sql` は通報を検証済みRPC経由に限定します。
+
 GitHub Pages の静的公開はこの安全デモ専用です。本番の年齢確認結果・管理者操作・通知は秘密鍵を必要とするため、Supabase Edge Functions 等を含むサーバー実行環境へ移行してから扱います。
 
 オーナー確認用URLでは全プロフィール項目と装飾を試着できます。本番のオーナー権限は `users.role = 'owner'` のアカウントだけに付与され、一般ユーザーのEXPやエリアランキング条件は変更しません。

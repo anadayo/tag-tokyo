@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Bell, Camera, ChevronRight, Clock3, Crown, Gift, HeartHandshake, Home, LockKeyhole, LogOut, Map,
+  Ban, Bell, Camera, ChevronRight, Clock3, Crown, Flag, Gift, HeartHandshake, Home, LockKeyhole, LogOut, Map,
   MapPin, MessageCircle, Minus, OctagonAlert, Plus, Power, ShieldCheck, ShoppingBag,
-  Sparkles, Star, Trophy, UserRound, UsersRound, Zap,
+  Send, Sparkles, Star, Trophy, UserRound, UsersRound, Zap,
 } from "lucide-react";
 import { track } from "@/lib/analytics";
 import { sampleCrossings } from "@/lib/demo-profiles";
@@ -14,7 +14,7 @@ import {
 } from "@/lib/game";
 import { isInsideTokyo, requestPrivateLocation } from "@/lib/location";
 import { hasSupabase, isLiveCommunityEnabled, supabase } from "@/lib/supabase";
-import type { CrossItem, EditableProfile, GrowthState, TabId, TagDuration, TagSessionState } from "@/lib/types";
+import type { CrossItem, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, TabId, TagDuration, TagSessionState } from "@/lib/types";
 
 const INITIAL_SESSION: TagSessionState = {
   active: false,
@@ -26,6 +26,8 @@ const INITIAL_SESSION: TagSessionState = {
 const MY_TAGS = ["音楽", "カフェ", "ゲーム", "散歩", "映画", "ラーメン"];
 const ASSET_PREFIX = process.env.NODE_ENV === "production" ? "/tag-tokyo" : "";
 const HANDLE_PATTERN = /^[A-Za-z0-9_]{5,15}$/;
+const TERMS_VERSION = "2026-10-04";
+const PRIVACY_VERSION = "2026-10-04";
 
 function ProfilePhoto({ profile, className = "" }: { profile: EditableProfile; className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element -- local preview data URL, not a network image.
@@ -55,7 +57,7 @@ function MessageAccessGate({ onClose, onEmail }: { onClose: () => void; onEmail:
       <label className="access-check"><input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/privacy/`} target="_blank" rel="noreferrer">プライバシーポリシー</a>に同意する</span></label>
       {error && <p className="access-error" role="alert">{error}</p>}
       <button className="access-button" onClick={submit}>メール認証へ進む <ChevronRight /></button>
-      <p className="access-note"><ShieldCheck /> 現在は安全な公開プレビューです。入力したメールアドレスは、認証接続が有効になるまで外部送信・保存しません。</p>
+      <p className="access-note"><ShieldCheck /> {hasSupabase ? "メールアドレスはログイン認証のためSupabase Authへ送信されます。プロフィール画面には公開されません。" : "現在は安全な公開プレビューです。入力したメールアドレスは外部送信・保存しません。"}</p>
     </section>
   </div>;
 }
@@ -326,6 +328,17 @@ function CrossScreen({ crossings, taggedIds, onTag }: { crossings: CrossItem[]; 
   );
 }
 
+function LiveCrossScreen({ crossings, onTag, error }: { crossings: LiveCrossing[]; onTag: (crossing: LiveCrossing) => Promise<void>; error: string }) {
+  return <section className="screen">
+    <header className="screen-header"><div><span>CROSS</span><h2>すれ違い</h2></div><button className="icon-button" aria-label="通知"><Bell /></button></header>
+    <div className="privacy-strip"><ShieldCheck /><span><b>場所と時刻はぼかして表示</b><small>現在地・正確な距離・移動方向は相手に公開しません</small></span></div>
+    {crossings.length === 0 ? <div className="empty-state"><div className="empty-icon"><Sparkles /></div><h3>新しいCROSSを待っています</h3><p>東京都内でTAG ONにすると、近くにいた年齢確認済みユーザーが後から表示されます。</p></div> : <div className="live-cross-list">
+      {crossings.map((crossing) => <article className="live-cross-card" key={crossing.id}><div className="chat-avatar">{crossing.displayName.slice(0, 1)}</div><div><small>{crossing.areaLabel}</small><h3>{crossing.displayName}</h3><p>{crossing.handle ? `@${crossing.handle}` : crossing.bio || "プロフィールを確認してTAGできます"}</p></div><button disabled={crossing.tagged} onClick={() => void onTag(crossing)}><Sparkles />{crossing.tagged ? "TAG済み" : "TAG"}</button></article>)}
+    </div>}
+    {error && <p className="chat-error" role="alert">{error}</p>}
+  </section>;
+}
+
 function MatchScreen({ matches, onClear, messageAccessReady, onRequireEmail }: { matches: CrossItem[]; onClear: () => void; messageAccessReady: boolean; onRequireEmail: () => void }) {
   const [selectedMessage, setSelectedMessage] = useState("共通のTAGが多くて気になりました。よかったら話しませんか？");
   const [sent, setSent] = useState(false);
@@ -375,6 +388,86 @@ function MatchScreen({ matches, onClear, messageAccessReady, onRequireEmail }: {
       </div>
     </section>
   );
+}
+
+function LiveMatchScreen({
+  matches, messages, currentUserId, selectedMatchId, loading, error, memberReady, messageAccessReady,
+  onSelect, onSend, onBlock, onReport, onRequireEmail,
+}: {
+  matches: LiveMatch[];
+  messages: Record<string, LiveMessage[]>;
+  currentUserId: string | null;
+  selectedMatchId: string | null;
+  loading: boolean;
+  error: string;
+  memberReady: boolean;
+  messageAccessReady: boolean;
+  onSelect: (matchId: string) => void;
+  onSend: (matchId: string, body: string) => Promise<boolean>;
+  onBlock: (matchId: string) => Promise<void>;
+  onReport: (matchId: string, reason: string, detail: string) => Promise<boolean>;
+  onRequireEmail: () => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [showSafety, setShowSafety] = useState(false);
+  const [reportReason, setReportReason] = useState("harassment");
+  const [reportDetail, setReportDetail] = useState("");
+  const selectedMatch = matches.find((match) => match.id === selectedMatchId) ?? matches[0] ?? null;
+  const thread = selectedMatch ? messages[selectedMatch.id] ?? [] : [];
+
+  async function submitMessage(event: React.FormEvent) {
+    event.preventDefault();
+    if (!selectedMatch || !draft.trim() || sending) return;
+    setSending(true);
+    const sent = await onSend(selectedMatch.id, draft);
+    if (sent) setDraft("");
+    setSending(false);
+  }
+
+  if (!messageAccessReady) {
+    return <section className="screen">
+      <header className="screen-header"><div><span>MATCH</span><h2>メッセージ</h2></div></header>
+      <div className="empty-state"><div className="empty-icon"><LockKeyhole /></div><h3>メール認証が必要です</h3><p>実在ユーザーとのメッセージは、認証後に相互マッチした相手とだけ利用できます。</p><button className="primary-wide" onClick={onRequireEmail}>メール認証へ進む</button></div>
+    </section>;
+  }
+
+  if (!memberReady) {
+    return <section className="screen">
+      <header className="screen-header"><div><span>MATCH</span><h2>メッセージ</h2></div></header>
+      <div className="empty-state"><div className="empty-icon"><ShieldCheck /></div><h3>年齢確認の完了後に開きます</h3><p>規定の年齢確認と利用規約への同意が完了したユーザーだけが、実在ユーザーと交流できます。</p></div>
+    </section>;
+  }
+
+  if (!selectedMatch) {
+    return <section className="screen">
+      <header className="screen-header"><div><span>MATCH</span><h2>マッチ</h2></div></header>
+      <div className="empty-state"><div className="empty-icon"><MessageCircle /></div><h3>{loading ? "マッチを確認中" : "相互TAGを待っています"}</h3><p>お互いにTAGした相手だけがここに表示され、メッセージを交換できます。</p></div>
+      {error && <p className="chat-error" role="alert">{error}</p>}
+    </section>;
+  }
+
+  return <section className="screen live-match-screen">
+    <header className="screen-header"><div><span>MATCH</span><h2>メッセージ</h2></div><span className="match-count">{matches.length}</span></header>
+    <div className="live-match-tabs" aria-label="マッチ一覧">
+      {matches.map((match) => <button key={match.id} className={selectedMatch.id === match.id ? "active" : ""} onClick={() => { onSelect(match.id); setShowSafety(false); }}><span>{match.displayName.slice(0, 1)}</span><b>{match.displayName}</b></button>)}
+    </div>
+    <div className="chat-card">
+      <header className="chat-header"><div className="chat-avatar">{selectedMatch.displayName.slice(0, 1)}</div><div><b>{selectedMatch.displayName}</b><small>{selectedMatch.handle ? `@${selectedMatch.handle}` : "相互TAGでマッチ"}</small></div><button aria-label="安全メニュー" onClick={() => setShowSafety((value) => !value)}><ShieldCheck /></button></header>
+      {showSafety && <div className="chat-safety-panel">
+        <b>安全メニュー</b>
+        <label><span>通報理由</span><select value={reportReason} onChange={(event) => setReportReason(event.target.value)}><option value="harassment">迷惑行為・嫌がらせ</option><option value="impersonation">なりすまし</option><option value="solicitation">勧誘・営業</option><option value="unsafe">危険を感じる行為</option><option value="other">その他</option></select></label>
+        <textarea value={reportDetail} maxLength={1000} placeholder="状況を入力（任意）" onChange={(event) => setReportDetail(event.target.value)} />
+        <div><button onClick={async () => { if (await onReport(selectedMatch.id, reportReason, reportDetail)) { setReportDetail(""); setShowSafety(false); } }}><Flag />通報する</button><button className="danger" onClick={() => void onBlock(selectedMatch.id)}><Ban />ブロック</button></div>
+      </div>}
+      <div className="chat-thread" aria-live="polite">
+        {thread.length === 0 && <div className="chat-start"><Sparkles /><b>マッチしました</b><span>まずは共通点から話してみましょう</span></div>}
+        {thread.map((message) => <div key={message.id} className={`chat-message ${message.senderId === currentUserId ? "mine" : "theirs"}`}><p>{message.body}</p><time>{new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(message.createdAt))}</time></div>)}
+      </div>
+      <form className="chat-compose" onSubmit={submitMessage}><textarea aria-label="メッセージ" value={draft} maxLength={1000} rows={2} placeholder="メッセージを入力" onChange={(event) => setDraft(event.target.value)} /><button type="submit" aria-label="送信" disabled={sending || !draft.trim()}><Send /></button></form>
+    </div>
+    {error && <p className="chat-error" role="alert">{error}</p>}
+  </section>;
 }
 
 function FeedbackPanel() {
@@ -526,7 +619,7 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
       <div className={`settings-card launch-status ${liveEnabled ? "is-live" : ""}`}>
         <div className="section-heading"><div><small>COMMUNITY STATUS</small><h3>{liveEnabled ? "限定ベータを運用中" : "安全なプレビューを公開中"}</h3></div><ShieldCheck /></div>
         <p>{liveEnabled ? "年齢確認済みの参加者だけが交流機能を利用できます。" : "実在ユーザー同士のTAG・MATCH・メッセージはまだ有効化していません。"}</p>
-        <ul><li>現在地・正確な距離は非公開</li><li>ブロック・通報を常時利用可能</li><li>18歳未満は利用不可</li></ul>
+        <ul><li>現在地・正確な距離は非公開</li><li>ブロック・通報を常時利用可能</li><li>20歳未満は利用不可</li></ul>
       </div>
       <FeedbackPanel />
       {editing && <div className="profile-editor-overlay" role="dialog" aria-modal="true" aria-label="プロフィール編集">
@@ -561,11 +654,114 @@ export default function TagTokyoApp() {
   const [profile, setProfile] = useState<EditableProfile>(INITIAL_PROFILE);
   const [isOwner, setIsOwner] = useState(false);
   const [isEmailAuthenticated, setIsEmailAuthenticated] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [databaseLiveEnabled, setDatabaseLiveEnabled] = useState(false);
+  const [liveMemberReady, setLiveMemberReady] = useState(false);
+  const [liveCrossings, setLiveCrossings] = useState<LiveCrossing[]>([]);
+  const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
+  const [liveMessages, setLiveMessages] = useState<Record<string, LiveMessage[]>>({});
+  const [selectedLiveMatchId, setSelectedLiveMatchId] = useState<string | null>(null);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState("");
   const [demoMatches, setDemoMatches] = useState<CrossItem[]>([]);
   const [showMessageGate, setShowMessageGate] = useState(false);
   const [growthLoaded, setGrowthLoaded] = useState(false);
   const [dailyBonusNotice, setDailyBonusNotice] = useState("");
   const crossings = useMemo(() => sampleCrossings(MY_TAGS), []);
+  const liveEnabled = isLiveCommunityEnabled && databaseLiveEnabled;
+
+  const refreshLiveCommunity = useCallback(async (userId: string) => {
+    if (!supabase) return;
+    setLiveLoading(true);
+    setLiveError("");
+    const [{ data: matchRows, error: matchError }, { data: crossingRows, error: crossingError }, { data: likeRows }] = await Promise.all([
+      supabase.from("matches").select("id,user_a,user_b,created_at").order("created_at", { ascending: false }),
+      supabase.from("crossings").select("id,user_a,user_b,area_label,crossed_at").order("crossed_at", { ascending: false }),
+      supabase.from("likes").select("sender_id,crossing_id").eq("sender_id", userId),
+    ]);
+    if (matchError) {
+      setLiveError(matchError.message);
+      setLiveLoading(false);
+      return;
+    }
+    if (crossingError) {
+      setLiveError(crossingError.message);
+      setLiveLoading(false);
+      return;
+    }
+
+    const rows = (matchRows ?? []) as Array<{ id: string; user_a: string; user_b: string; created_at: string }>;
+    const crossingItems = (crossingRows ?? []) as Array<{ id: string; user_a: string; user_b: string; area_label: string; crossed_at: string }>;
+    const otherIds = [...new Set([
+      ...rows.map((match) => match.user_a === userId ? match.user_b : match.user_a),
+      ...crossingItems.map((crossing) => crossing.user_a === userId ? crossing.user_b : crossing.user_a),
+    ])];
+    const matchIds = rows.map((match) => match.id);
+    const profileByUser = new globalThis.Map<string, { display_name: string; handle: string | null; bio: string; avatar_url: string | null }>();
+
+    if (otherIds.length > 0) {
+      const { data: profileRows, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id,display_name,handle,bio,avatar_url")
+        .in("user_id", otherIds);
+      if (profileError) {
+        setLiveError(profileError.message);
+        setLiveLoading(false);
+        return;
+      }
+      for (const item of profileRows ?? []) profileByUser.set(item.user_id, item);
+    }
+
+    const nextMatches = rows.map((match) => {
+      const otherUserId = match.user_a === userId ? match.user_b : match.user_a;
+      const other = profileByUser.get(otherUserId);
+      return {
+        id: match.id,
+        otherUserId,
+        displayName: other?.display_name ?? "TAGユーザー",
+        handle: other?.handle ?? null,
+        bio: other?.bio ?? "",
+        avatarUrl: other?.avatar_url ?? null,
+        createdAt: match.created_at,
+      } satisfies LiveMatch;
+    });
+    const taggedCrossings = new Set((likeRows ?? []).map((like) => like.crossing_id));
+    setLiveCrossings(crossingItems.map((crossing) => {
+      const otherUserId = crossing.user_a === userId ? crossing.user_b : crossing.user_a;
+      const other = profileByUser.get(otherUserId);
+      return {
+        id: crossing.id,
+        otherUserId,
+        displayName: other?.display_name ?? "TAGユーザー",
+        handle: other?.handle ?? null,
+        bio: other?.bio ?? "",
+        areaLabel: crossing.area_label,
+        crossedAt: crossing.crossed_at,
+        tagged: taggedCrossings.has(crossing.id),
+      } satisfies LiveCrossing;
+    }));
+    setLiveMatches(nextMatches);
+    setSelectedLiveMatchId((current) => current && matchIds.includes(current) ? current : matchIds[0] ?? null);
+
+    if (matchIds.length > 0) {
+      const { data: messageRows, error: messageError } = await supabase
+        .from("messages")
+        .select("id,match_id,sender_id,body,created_at")
+        .in("match_id", matchIds)
+        .order("created_at", { ascending: true })
+        .limit(500);
+      if (messageError) setLiveError(messageError.message);
+      else {
+        const grouped: Record<string, LiveMessage[]> = {};
+        for (const item of messageRows ?? []) {
+          const message: LiveMessage = { id: item.id, matchId: item.match_id, senderId: item.sender_id, body: item.body, createdAt: item.created_at };
+          grouped[message.matchId] = [...(grouped[message.matchId] ?? []), message];
+        }
+        setLiveMessages(grouped);
+      }
+    } else setLiveMessages({});
+    setLiveLoading(false);
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -650,18 +846,44 @@ export default function TagTokyoApp() {
     const connectedClient = client;
     let active = true;
     async function syncOwnerRole() {
+      const { data: statusData } = await connectedClient.rpc("live_community_status");
+      if (active) setDatabaseLiveEnabled(statusData === true);
       const { data: { user } } = await connectedClient.auth.getUser();
       if (!user) {
         if (active) {
           setIsOwner(false);
           setIsEmailAuthenticated(false);
+          setCurrentUserId(null);
+          setLiveMemberReady(false);
         }
         return;
       }
-      const { data } = await connectedClient.from("users").select("role").eq("auth_user_id", user.id).maybeSingle();
+      let { data } = await connectedClient.from("users").select("id,role,status,age_verified,age_verification_status,terms_accepted_at,privacy_accepted_at").eq("auth_user_id", user.id).maybeSingle();
+      const pendingConsent = window.sessionStorage.getItem("tagtokyo_pending_message_consent_v1");
+      if (data && pendingConsent && (!data.terms_accepted_at || !data.privacy_accepted_at)) {
+        const savedProfile = window.localStorage.getItem("tagtokyo_profile_preview_v1");
+        let onboardingProfile = INITIAL_PROFILE;
+        if (savedProfile) {
+          try { onboardingProfile = { ...INITIAL_PROFILE, ...JSON.parse(savedProfile) as EditableProfile }; } catch { /* Use defaults. */ }
+        }
+        const { error: onboardingError } = await connectedClient.rpc("complete_profile_onboarding", {
+          p_display_name: onboardingProfile.displayName,
+          p_handle: onboardingProfile.handle,
+          p_terms_version: TERMS_VERSION,
+          p_privacy_version: PRIVACY_VERSION,
+        });
+        if (onboardingError) setAuthNotice(onboardingError.message);
+        else {
+          window.sessionStorage.removeItem("tagtokyo_pending_message_consent_v1");
+          const refreshed = await connectedClient.from("users").select("id,role,status,age_verified,age_verification_status,terms_accepted_at,privacy_accepted_at").eq("auth_user_id", user.id).maybeSingle();
+          data = refreshed.data;
+        }
+      }
       if (active) {
         setIsOwner(data?.role === "owner");
         setIsEmailAuthenticated(Boolean(user.email));
+        setCurrentUserId(data?.id ?? null);
+        setLiveMemberReady(Boolean(data?.status === "active" && data?.age_verified && data?.age_verification_status === "verified" && data?.terms_accepted_at && data?.privacy_accepted_at));
       }
     }
     void syncOwnerRole();
@@ -671,6 +893,29 @@ export default function TagTokyoApp() {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!liveEnabled || !currentUserId || !supabase) return;
+    const refreshTimer = window.setTimeout(() => void refreshLiveCommunity(currentUserId), 0);
+    const client = supabase;
+    const channel = client.channel(`messages-${currentUserId}`).on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages" },
+      (payload) => {
+        const item = payload.new as { id: number; match_id: string; sender_id: string; body: string; created_at: string };
+        const message: LiveMessage = { id: item.id, matchId: item.match_id, senderId: item.sender_id, body: item.body, createdAt: item.created_at };
+        setLiveMessages((current) => {
+          const thread = current[message.matchId] ?? [];
+          if (thread.some((existing) => existing.id === message.id)) return current;
+          return { ...current, [message.matchId]: [...thread, message] };
+        });
+      },
+    ).subscribe();
+    return () => {
+      window.clearTimeout(refreshTimer);
+      void client.removeChannel(channel);
+    };
+  }, [currentUserId, liveEnabled, refreshLiveCommunity]);
 
   useEffect(() => {
     if (!session.active || !session.expiresAt) return;
@@ -689,7 +934,7 @@ export default function TagTokyoApp() {
       setTab("me");
       return;
     }
-    if (!isLiveCommunityEnabled) {
+    if (!liveEnabled) {
       const startedAt = Date.now();
       const expiresAt = startedAt + session.duration * 60 * 1000;
       setNow(startedAt);
@@ -750,9 +995,63 @@ export default function TagTokyoApp() {
       setTab("me");
       return;
     }
+    window.sessionStorage.setItem("tagtokyo_pending_message_consent_v1", JSON.stringify({ termsVersion: TERMS_VERSION, privacyVersion: PRIVACY_VERSION }));
     const { error } = await supabase.auth.signInWithOtp({ email: nextEmail, options: { emailRedirectTo: window.location.href } });
     setAuthNotice(error ? error.message : "ログインリンクをメールへ送りました。認証後にメッセージを開けます。");
     setTab("me");
+  }
+
+  async function sendLiveMessage(matchId: string, body: string) {
+    if (!supabase || !currentUserId) return false;
+    setLiveError("");
+    const { data, error } = await supabase.rpc("send_match_message", { p_match_id: matchId, p_body: body });
+    if (error) {
+      setLiveError(error.message);
+      return false;
+    }
+    const item = Array.isArray(data) ? data[0] : data;
+    if (item) {
+      const message: LiveMessage = { id: item.id, matchId: item.match_id, senderId: item.sender_id, body: item.body, createdAt: item.created_at };
+      setLiveMessages((current) => {
+        const thread = current[matchId] ?? [];
+        return thread.some((existing) => existing.id === message.id) ? current : { ...current, [matchId]: [...thread, message] };
+      });
+    }
+    track("tagtokyo_message_sent", { match_id: matchId });
+    return true;
+  }
+
+  async function sendLiveTag(crossing: LiveCrossing) {
+    if (!supabase || !currentUserId) return;
+    setLiveError("");
+    const { data: matched, error } = await supabase.rpc("send_crossing_tag", { p_crossing_id: crossing.id });
+    if (error) return setLiveError(error.message);
+    setLiveCrossings((current) => current.map((item) => item.id === crossing.id ? { ...item, tagged: true } : item));
+    setNotice(matched ? `${crossing.displayName}さんとMATCHしました` : `${crossing.displayName}さんへTAGを送りました`);
+    track("tagtokyo_live_tag_sent", { crossing_id: crossing.id, matched: Boolean(matched) });
+    if (matched) await refreshLiveCommunity(currentUserId);
+  }
+
+  async function blockLiveMatch(matchId: string) {
+    if (!supabase || !currentUserId) return;
+    const { error } = await supabase.rpc("block_match_member", { p_match_id: matchId });
+    if (error) return setLiveError(error.message);
+    setLiveMatches((current) => current.filter((match) => match.id !== matchId));
+    setSelectedLiveMatchId(null);
+    setLiveError("ブロックしました。この相手とのメッセージ送信は停止されました。");
+    track("tagtokyo_match_blocked", { match_id: matchId });
+  }
+
+  async function reportLiveMatch(matchId: string, reason: string, detail: string) {
+    if (!supabase) return false;
+    const { error } = await supabase.rpc("report_match_member", { p_match_id: matchId, p_reason: reason, p_detail: detail });
+    if (error) {
+      setLiveError(error.message);
+      return false;
+    }
+    setLiveError("通報を受け付けました。必要に応じてブロックも利用してください。");
+    track("tagtokyo_match_reported", { match_id: matchId, reason });
+    return true;
   }
 
   async function buyCosmetic(id: string) {
@@ -800,10 +1099,14 @@ export default function TagTokyoApp() {
     <main className="app-shell">
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>PLAY BETA</small></div>
       {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={startTag} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} />}
-      {tab === "cross" && <CrossScreen crossings={crossings} taggedIds={demoMatches.map((item) => item.id)} onTag={createDemoMatch} />}
-      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={isLiveCommunityEnabled} />}
-      {tab === "match" && <MatchScreen matches={demoMatches} onClear={() => setDemoMatches([])} messageAccessReady={isEmailAuthenticated} onRequireEmail={() => setShowMessageGate(true)} />}
-      {tab === "me" && <MeScreen verified={verified} setVerified={setVerified} email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} isOwner={isOwner} liveEnabled={isLiveCommunityEnabled} />}
+      {tab === "cross" && (liveEnabled && liveMemberReady
+        ? <LiveCrossScreen crossings={liveCrossings} onTag={sendLiveTag} error={liveError} />
+        : <CrossScreen crossings={crossings} taggedIds={demoMatches.map((item) => item.id)} onTag={createDemoMatch} />)}
+      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} />}
+      {tab === "match" && (liveEnabled
+        ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={setSelectedLiveMatchId} onSend={sendLiveMessage} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
+        : <MatchScreen matches={demoMatches} onClear={() => setDemoMatches([])} messageAccessReady={isEmailAuthenticated} onRequireEmail={() => setShowMessageGate(true)} />)}
+      {tab === "me" && <MeScreen verified={verified} setVerified={setVerified} email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} isOwner={isOwner} liveEnabled={liveEnabled} />}
       <BottomNav tab={tab} onChange={(next) => {
         setTab(next);
         window.scrollTo({ top: 0, behavior: "instant" });

@@ -19,6 +19,35 @@ export type CrossItem = DemoProfile & {
   sharedTags: string[];
 };
 
+export type LiveMatch = {
+  id: string;
+  otherUserId: string;
+  displayName: string;
+  handle: string | null;
+  bio: string;
+  avatarUrl: string | null;
+  createdAt: string;
+};
+
+export type LiveCrossing = {
+  id: string;
+  otherUserId: string;
+  displayName: string;
+  handle: string | null;
+  bio: string;
+  areaLabel: string;
+  crossedAt: string;
+  tagged: boolean;
+};
+
+export type LiveMessage = {
+  id: number;
+  matchId: string;
+  senderId: string;
+  body: string;
+  createdAt: string;
+};
+
 export type TagSessionState = {
   active: boolean;
   duration: TagDuration;

@@ -9,7 +9,7 @@ All of these must be complete before `NEXT_PUBLIC_TAG_TOKYO_LIVE_ENABLED=true` i
 1. Move the live app off static GitHub Pages to a server-capable deployment. Age-verification webhooks, service-role keys, and moderation alerts must run only in Supabase Edge Functions or another server runtime.
 2. The owner has obtained legal advice on whether the planned service falls within the Internet Dating Introduction Business rules, and has completed any required notification.
 3. A contracted age-verification provider returns a verified result before `users.age_verified` and `age_verification_status` can be changed to `verified`. The app never accepts a checkbox, birth-date form, or client claim as proof.
-4. Migration `008_live_safety_operations.sql` has been applied in a production Supabase project and its RLS policies have been tested using separate member and moderator accounts.
+4. Migrations through `012_report_write_hardening.sql` have been applied in a production Supabase project. RLS, mutual-TAG messaging, rate limits, block, and report flows have been tested using separate member and moderator accounts.
 5. One owner and at least one moderator have been assigned. They have rehearsed report review, user pause, restoration, deletion requests, and an urgent service stop.
 6. Terms, privacy policy, contact channel, retention periods, and prohibited conduct are reviewed by the owner and published with version numbers.
 7. The owner records the review in `live_launch_controls`; database control remains `false` until the final go/no-go decision.
