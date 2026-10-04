@@ -123,6 +123,11 @@ button { color: inherit; }
 .message-bubble { min-height: 50px; margin-top: 12px; padding: 11px; border-radius: 8px 8px 2px 8px; background: var(--mint-soft); color: #087d55; font-size: 10px; line-height: 1.6; }
 .live-cross-list { display: grid; gap: 9px; }
 .live-cross-card { min-height: 82px; padding: 12px; display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; background: white; }
+.official-profile-card { margin-bottom: 9px; border-color: #9ccfe7; background: #f4fbff; }
+.official-profile-card .chat-avatar { background: #087fb7; }
+.official-badge { display: inline-flex; align-items: center; gap: 3px; color: #087fb7; font-size: 8px; font-weight: 900; vertical-align: middle; }
+.official-badge svg { width: 12px; height: 12px; fill: #087fb7; color: white; }
+.official-profile-label { padding: 6px 7px; border: 1px solid #9ccfe7; border-radius: 5px; color: #087fb7; font-size: 7px; font-weight: 900; }
 .live-cross-card > div:nth-child(2) { min-width: 0; }
 .live-cross-card small { color: var(--coral); font-size: 8px; font-weight: 900; }
 .live-cross-card h3 { margin: 2px 0; font-size: 13px; }
@@ -136,6 +141,7 @@ button { color: inherit; }
 .live-match-tabs button.active { color: var(--ink); }
 .live-match-tabs button.active > span { border-color: var(--coral); background: #fff0ef; }
 .live-match-tabs button b { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-match-tabs button b svg { width: 10px; height: 10px; color: #087fb7; vertical-align: -2px; }
 .chat-card { overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: white; }
 .chat-header { min-height: 62px; padding: 10px 12px; display: grid; grid-template-columns: 38px 1fr 34px; align-items: center; gap: 9px; border-bottom: 1px solid var(--line); }
 .chat-avatar { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: white; font-size: 14px; font-weight: 900; }
@@ -269,9 +275,9 @@ button { color: inherit; }
 .editor-fields label > span { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 800; }
 .editor-fields label > span small { display: flex; align-items: center; gap: 3px; color: var(--muted); font-size: 8px; }
 .editor-fields label > span svg { width: 11px; }
-.editor-fields input, .editor-fields textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; background: white; outline: none; font-size: 12px; }
+.editor-fields input, .editor-fields textarea, .editor-fields select { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; background: white; outline: none; font-size: 12px; }
 .editor-fields textarea { min-height: 86px; resize: vertical; line-height: 1.6; }
-.editor-fields input:focus, .editor-fields textarea:focus { border-color: var(--mint); box-shadow: 0 0 0 3px var(--mint-soft); }
+.editor-fields input:focus, .editor-fields textarea:focus, .editor-fields select:focus { border-color: var(--mint); box-shadow: 0 0 0 3px var(--mint-soft); }
 .locked-field input, .locked-field textarea { color: #9d9799; background: #f2efef; }
 .editor-actions { position: sticky; bottom: -22px; display: grid; grid-template-columns: .8fr 1.2fr; gap: 8px; margin: 18px -18px -22px; padding: 12px 18px max(18px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: rgba(255,253,251,.97); }
 .editor-actions button { height: 44px; border: 1px solid var(--line); border-radius: 8px; background: white; font-size: 11px; font-weight: 800; }
@@ -289,8 +295,8 @@ button { color: inherit; }
 .access-copy p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.8; }
 .access-field { display: grid; gap: 7px; }
 .access-field span { font-size: 11px; font-weight: 800; }
-.access-field input { width: 100%; height: 46px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: white; outline: none; }
-.access-field input:focus { border-color: var(--mint); box-shadow: 0 0 0 3px var(--mint-soft); }
+.access-field input, .access-field select { width: 100%; height: 46px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: white; outline: none; }
+.access-field input:focus, .access-field select:focus { border-color: var(--mint); box-shadow: 0 0 0 3px var(--mint-soft); }
 .access-check { display: flex; align-items: flex-start; gap: 8px; margin-top: 13px; color: #575154; font-size: 10px; line-height: 1.5; }
 .access-check input { width: 17px; height: 17px; margin: 0; accent-color: var(--mint); }
 .access-check a { color: #087d55; font-weight: 800; }

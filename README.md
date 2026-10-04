@@ -42,6 +42,8 @@ Supabase未設定時やライブ停止中は架空プロフィールを表示せ
 
 `015_remove_demo_data.sql` は旧デモユーザー、デモ設定、デモ向け公開RLSを削除します。公開画面にも架空ランキング・架空プロフィール・端末内マッチはありません。
 
+`016_official_owner_profile.sql` は、実在・稼働中・年齢確認済みの `owner` だけに公認表示を付けます。女性として登録したユーザーのCROSS最上部には、通常のすれ違いを装わない「公認・管理人」ウェルカムプロフィールを表示します。ブロック済みの場合は表示せず、架空のすれ違い・TAG・マッチは作成しません。
+
 審査は [age verification review policy](docs/age-verification-review-policy.md) の客観的な3項目だけで行い、不鮮明・判断不能なケースは推測せずオーナー確認へ回します。
 
 GitHub Pagesは公開クライアントを配信し、秘密鍵が必要な年齢確認通知・定期削除はSupabase Edge Functionsで処理します。

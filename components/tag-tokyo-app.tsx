@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Ban, Bell, Camera, ChevronRight, Clock3, Crown, Flag, Gift, HeartHandshake, Home, LockKeyhole, LogOut, Map,
+  BadgeCheck, Ban, Bell, Camera, ChevronRight, Clock3, Crown, Flag, Gift, HeartHandshake, Home, LockKeyhole, LogOut, Map,
   MapPin, MessageCircle, Minus, Plus, Power, ShieldCheck, ShoppingBag,
   Send, Sparkles, Star, Trophy, UserRound, UsersRound, Zap,
 } from "lucide-react";
@@ -14,7 +14,7 @@ import {
 } from "@/lib/game";
 import { isInsideTokyo, requestPrivateLocation } from "@/lib/location";
 import { hasSupabase, isLiveCommunityEnabled, supabase } from "@/lib/supabase";
-import type { EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, TabId, TagDuration, TagSessionState } from "@/lib/types";
+import type { EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagDuration, TagSessionState } from "@/lib/types";
 
 const INITIAL_SESSION: TagSessionState = {
   active: false,
@@ -34,8 +34,9 @@ function ProfilePhoto({ profile, className = "" }: { profile: EditableProfile; c
   return <span className={className}>{profile.displayName.slice(0, 1).toUpperCase()}</span>;
 }
 
-function MessageAccessGate({ onClose, onEmail }: { onClose: () => void; onEmail: (email: string) => void }) {
+function MessageAccessGate({ onClose, onEmail }: { onClose: () => void; onEmail: (email: string, gender: EditableProfile["gender"]) => void }) {
   const [email, setEmail] = useState("");
+  const [gender, setGender] = useState<EditableProfile["gender"]>("unspecified");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [error, setError] = useState("");
@@ -43,7 +44,7 @@ function MessageAccessGate({ onClose, onEmail }: { onClose: () => void; onEmail:
   function submit() {
     if (!email.includes("@")) return setError("メールアドレスを入力してください");
     if (!termsAccepted || !privacyAccepted) return setError("利用規約とプライバシーポリシーへの同意が必要です");
-    onEmail(email.trim().toLowerCase());
+    onEmail(email.trim().toLowerCase(), gender);
   }
 
   return <div className="message-gate-overlay" role="dialog" aria-modal="true" aria-labelledby="message-gate-title">
@@ -52,6 +53,7 @@ function MessageAccessGate({ onClose, onEmail }: { onClose: () => void; onEmail:
       <div className="access-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>MESSAGE</small></div>
       <div className="access-copy"><span>MESSAGE ACCESS</span><h1 id="message-gate-title">メッセージは、<br />メール認証のあと。</h1><p>すれ違い・MAP・プロフィール育成は登録なしで遊べます。メッセージを開く時だけ、メール認証と同意が必要です。</p></div>
       <label className="access-field"><span>メールアドレス</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" /></label>
+      <label className="access-field"><span>性別</span><select value={gender} onChange={(event) => setGender(event.target.value as EditableProfile["gender"])}><option value="unspecified">回答しない</option><option value="woman">女性</option><option value="man">男性</option><option value="nonbinary">その他</option></select></label>
       <label className="access-check"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/terms/`} target="_blank" rel="noreferrer">利用規約</a>に同意する</span></label>
       <label className="access-check"><input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/privacy/`} target="_blank" rel="noreferrer">プライバシーポリシー</a>に同意する</span></label>
       {error && <p className="access-error" role="alert">{error}</p>}
@@ -275,12 +277,17 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
   );
 }
 
-function LiveCrossScreen({ crossings, onTag, error }: { crossings: LiveCrossing[]; onTag: (crossing: LiveCrossing) => Promise<void>; error: string }) {
+function OfficialBadge() {
+  return <span className="official-badge" title="TAG TOKYO公認・管理人"><BadgeCheck />公認・管理人</span>;
+}
+
+function LiveCrossScreen({ crossings, officialProfile, onTag, error }: { crossings: LiveCrossing[]; officialProfile: OfficialProfile | null; onTag: (crossing: LiveCrossing) => Promise<void>; error: string }) {
   return <section className="screen">
     <header className="screen-header"><div><span>CROSS</span><h2>すれ違い</h2></div><button className="icon-button" aria-label="通知"><Bell /></button></header>
     <div className="privacy-strip"><ShieldCheck /><span><b>場所と時刻はぼかして表示</b><small>現在地・正確な距離・移動方向は相手に公開しません</small></span></div>
+    {officialProfile && <article className="live-cross-card official-profile-card"><div className="chat-avatar">{officialProfile.displayName.slice(0, 1)}</div><div><OfficialBadge /><h3>{officialProfile.displayName}</h3><p>{officialProfile.handle ? `@${officialProfile.handle} · ${officialProfile.bio || "TAG TOKYOを運営しています"}` : officialProfile.bio || "TAG TOKYOを運営しています"}</p></div><span className="official-profile-label">WELCOME</span></article>}
     {crossings.length === 0 ? <div className="empty-state"><div className="empty-icon"><Sparkles /></div><h3>新しいCROSSを待っています</h3><p>東京都内でTAG ONにすると、近くにいた年齢確認済みユーザーが後から表示されます。</p></div> : <div className="live-cross-list">
-      {crossings.map((crossing) => <article className="live-cross-card" key={crossing.id}><div className="chat-avatar">{crossing.displayName.slice(0, 1)}</div><div><small>{crossing.areaLabel}</small><h3>{crossing.displayName}</h3><p>{crossing.handle ? `@${crossing.handle}` : crossing.bio || "プロフィールを確認してTAGできます"}</p></div><button disabled={crossing.tagged} onClick={() => void onTag(crossing)}><Sparkles />{crossing.tagged ? "TAG済み" : "TAG"}</button></article>)}
+      {crossings.map((crossing) => <article className={`live-cross-card ${crossing.isOfficial ? "official-profile-card" : ""}`} key={crossing.id}><div className="chat-avatar">{crossing.displayName.slice(0, 1)}</div><div><small>{crossing.areaLabel}</small><h3>{crossing.displayName} {crossing.isOfficial && <OfficialBadge />}</h3><p>{crossing.handle ? `@${crossing.handle}` : crossing.bio || "プロフィールを確認してTAGできます"}</p></div><button disabled={crossing.tagged} onClick={() => void onTag(crossing)}><Sparkles />{crossing.tagged ? "TAG済み" : "TAG"}</button></article>)}
     </div>}
     {error && <p className="chat-error" role="alert">{error}</p>}
   </section>;
@@ -364,10 +371,10 @@ function LiveMatchScreen({
   return <section className="screen live-match-screen">
     <header className="screen-header"><div><span>MATCH</span><h2>メッセージ</h2></div><span className="match-count">{matches.length}</span></header>
     <div className="live-match-tabs" aria-label="マッチ一覧">
-      {matches.map((match) => <button key={match.id} className={selectedMatch.id === match.id ? "active" : ""} onClick={() => { onSelect(match.id); setShowSafety(false); }}><span>{match.displayName.slice(0, 1)}</span><b>{match.displayName}</b></button>)}
+      {matches.map((match) => <button key={match.id} className={selectedMatch.id === match.id ? "active" : ""} onClick={() => { onSelect(match.id); setShowSafety(false); }}><span>{match.displayName.slice(0, 1)}</span><b>{match.displayName}{match.isOfficial && <BadgeCheck aria-label="公式" />}</b></button>)}
     </div>
     <div className="chat-card">
-      <header className="chat-header"><div className="chat-avatar">{selectedMatch.displayName.slice(0, 1)}</div><div><b>{selectedMatch.displayName}</b><small>{selectedMatch.handle ? `@${selectedMatch.handle}` : "相互TAGでマッチ"}</small></div><button aria-label="安全メニュー" onClick={() => setShowSafety((value) => !value)}><ShieldCheck /></button></header>
+      <header className="chat-header"><div className="chat-avatar">{selectedMatch.displayName.slice(0, 1)}</div><div><b>{selectedMatch.displayName} {selectedMatch.isOfficial && <OfficialBadge />}</b><small>{selectedMatch.handle ? `@${selectedMatch.handle}` : "相互TAGでマッチ"}</small></div><button aria-label="安全メニュー" onClick={() => setShowSafety((value) => !value)}><ShieldCheck /></button></header>
       {showSafety && <div className="chat-safety-panel">
         <b>安全メニュー</b>
         <label><span>通報理由</span><select value={reportReason} onChange={(event) => setReportReason(event.target.value)}><option value="harassment">迷惑行為・嫌がらせ</option><option value="impersonation">なりすまし</option><option value="solicitation">勧誘・営業</option><option value="unsafe">危険を感じる行為</option><option value="other">その他</option></select></label>
@@ -449,13 +456,26 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
     track("tagtokyo_profile_editor_opened");
   }
 
-  function saveProfile() {
+  async function saveProfile() {
     const handle = draft.handle.trim().toLowerCase();
     if (!HANDLE_PATTERN.test(handle)) {
       setEditorError("ユーザーIDは5〜15文字の英数字または _ で入力してください");
       return;
     }
-    setProfile({ ...draft, displayName: draft.displayName.trim().slice(0, 50) || "あなた", handle });
+    const nextProfile = { ...draft, displayName: draft.displayName.trim().slice(0, 50) || "あなた", handle };
+    if (emailAuthenticated && supabase) {
+      const { error } = await supabase.rpc("update_member_profile", {
+        p_display_name: nextProfile.displayName,
+        p_handle: nextProfile.handle,
+        p_bio: nextProfile.bio,
+        p_gender: nextProfile.gender,
+      });
+      if (error) {
+        setEditorError(error.message.includes("update_member_profile") ? "プロフィール更新機能のDB設定が必要です" : error.message);
+        return;
+      }
+    }
+    setProfile(nextProfile);
     setEditing(false);
     track("tagtokyo_profile_updated", { unlocked_level: progress.level });
   }
@@ -482,7 +502,7 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
       {isOwner && <div className="owner-note"><Crown /><span><b>OWNER MODE</b><small>全プロフィール項目と装飾を自由に確認できます</small></span></div>}
       <div className={`me-card profile-showcase ${growth.equippedBackground ? `equip-${growth.equippedBackground}` : ""}`}>
         <label className={`me-avatar avatar-upload ${growth.equippedFrame ? `equip-${growth.equippedFrame}` : ""}`}><ProfilePhoto profile={profile} /><input type="file" accept="image/*" onChange={selectPhoto} /><span className="avatar-camera"><Camera /></span></label>
-        <div>{equippedTitle && <small className="equipped-title">{equippedTitle}</small>}<h3>{profile.displayName} <span className="profile-level">Lv.{progress.level}</span></h3><p>@{profile.handle} · {profile.bio}</p>{photoNotice && <small className="photo-notice">{photoNotice}</small>}</div>
+        <div>{equippedTitle && <small className="equipped-title">{equippedTitle}</small>}<h3>{profile.displayName} {isOwner && <OfficialBadge />} <span className="profile-level">Lv.{progress.level}</span></h3><p>@{profile.handle} · {profile.bio}</p>{photoNotice && <small className="photo-notice">{photoNotice}</small>}</div>
         <button aria-label="プロフィール編集" onClick={openEditor}><ChevronRight /></button>
       </div>
       <div className="settings-card growth-card">
@@ -540,6 +560,7 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
           <header><div><small>EDIT PROFILE</small><h3>プロフィールを編集</h3></div><button aria-label="編集を閉じる" onClick={() => setEditing(false)}>×</button></header>
           <p className="editor-guide">{isOwner ? "オーナーはすべての項目を編集できます" : `Lv.${progress.level}までの項目を編集できます`}。表示名は50文字まで、ユーザーIDは5〜15文字の英数字または _ です。</p>
           <div className="editor-fields">
+            <label><span>性別</span><select value={draft.gender} onChange={(event) => setDraft((current) => ({ ...current, gender: event.target.value as EditableProfile["gender"] }))}><option value="unspecified">回答しない</option><option value="woman">女性</option><option value="man">男性</option><option value="nonbinary">その他</option></select></label>
             {profileFields.map((field) => {
               const unlocked = isOwner || progress.level >= field.level;
               return <label key={field.key} className={!unlocked ? "locked-field" : ""}><span>{field.label}{!unlocked && <small><LockKeyhole />Lv.{field.level}で解放</small>}</span>{field.long
@@ -548,7 +569,7 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
             })}
           </div>
           {editorError && <p className="editor-error" role="alert">{editorError}</p>}
-          <div className="editor-actions"><button onClick={() => setEditing(false)}>キャンセル</button><button onClick={saveProfile}>保存する</button></div>
+          <div className="editor-actions"><button onClick={() => setEditing(false)}>キャンセル</button><button onClick={() => void saveProfile()}>保存する</button></div>
         </div>
       </div>}
     </section>
@@ -573,6 +594,7 @@ export default function TagTokyoApp() {
   const [consentReady, setConsentReady] = useState(false);
   const [liveCrossings, setLiveCrossings] = useState<LiveCrossing[]>([]);
   const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
+  const [officialProfile, setOfficialProfile] = useState<OfficialProfile | null>(null);
   const [liveMessages, setLiveMessages] = useState<Record<string, LiveMessage[]>>({});
   const [selectedLiveMatchId, setSelectedLiveMatchId] = useState<string | null>(null);
   const [liveLoading, setLiveLoading] = useState(false);
@@ -609,13 +631,15 @@ export default function TagTokyoApp() {
       ...crossingItems.map((crossing) => crossing.user_a === userId ? crossing.user_b : crossing.user_a),
     ])];
     const matchIds = rows.map((match) => match.id);
-    const profileByUser = new globalThis.Map<string, { display_name: string; handle: string | null; bio: string; avatar_url: string | null }>();
+    const profileByUser = new globalThis.Map<string, { display_name: string; handle: string | null; bio: string; avatar_url: string | null; is_official: boolean }>();
 
     if (otherIds.length > 0) {
-      const { data: profileRows, error: profileError } = await supabase
-        .from("profiles")
-        .select("user_id,display_name,handle,bio,avatar_url")
-        .in("user_id", otherIds);
+      let { data: profileRows, error: profileError } = await supabase.rpc("get_visible_member_profiles", { p_user_ids: otherIds });
+      if (profileError) {
+        const fallback = await supabase.from("profiles").select("user_id,display_name,handle,bio,avatar_url").in("user_id", otherIds);
+        profileRows = (fallback.data ?? []).map((item) => ({ ...item, is_official: false }));
+        profileError = fallback.error;
+      }
       if (profileError) {
         setLiveError(profileError.message);
         setLiveLoading(false);
@@ -634,6 +658,7 @@ export default function TagTokyoApp() {
         handle: other?.handle ?? null,
         bio: other?.bio ?? "",
         avatarUrl: other?.avatar_url ?? null,
+        isOfficial: other?.is_official ?? false,
         createdAt: match.created_at,
       } satisfies LiveMatch;
     });
@@ -650,6 +675,7 @@ export default function TagTokyoApp() {
         areaLabel: crossing.area_label,
         crossedAt: crossing.crossed_at,
         tagged: taggedCrossings.has(crossing.id),
+        isOfficial: other?.is_official ?? false,
       } satisfies LiveCrossing;
     }));
     setLiveMatches(nextMatches);
@@ -758,6 +784,7 @@ export default function TagTokyoApp() {
           setLiveMemberReady(false);
           setAgeVerificationStatus("not_started");
           setConsentReady(false);
+          setOfficialProfile(null);
         }
         return;
       }
@@ -765,13 +792,14 @@ export default function TagTokyoApp() {
       const pendingConsent = window.sessionStorage.getItem("tagtokyo_pending_message_consent_v1");
       if (data && pendingConsent && (!data.terms_accepted_at || !data.privacy_accepted_at)) {
         const savedProfile = window.localStorage.getItem("tagtokyo_profile_v2");
-        let onboardingProfile = INITIAL_PROFILE;
+        let onboardingProfile: EditableProfile = INITIAL_PROFILE;
         if (savedProfile) {
           try { onboardingProfile = { ...INITIAL_PROFILE, ...JSON.parse(savedProfile) as EditableProfile }; } catch { /* Use defaults. */ }
         }
         const { error: onboardingError } = await connectedClient.rpc("complete_profile_onboarding", {
           p_display_name: onboardingProfile.displayName,
           p_handle: onboardingProfile.handle,
+          p_gender: onboardingProfile.gender,
           p_terms_version: TERMS_VERSION,
           p_privacy_version: PRIVACY_VERSION,
         });
@@ -782,6 +810,18 @@ export default function TagTokyoApp() {
           data = refreshed.data;
         }
       }
+      const { data: ownProfile } = await connectedClient.from("profiles").select("display_name,handle,bio,gender").eq("user_id", data?.id ?? "").maybeSingle();
+      if (ownProfile && active) {
+        setProfile((current) => ({
+          ...current,
+          displayName: ownProfile.display_name,
+          handle: ownProfile.handle ?? current.handle,
+          bio: ownProfile.bio ?? "",
+          gender: (["woman", "man", "nonbinary", "unspecified"] as const).includes(ownProfile.gender) ? ownProfile.gender : "unspecified",
+        }));
+      }
+      const { data: welcomeRows } = await connectedClient.rpc("get_official_welcome_profile");
+      const welcome = Array.isArray(welcomeRows) ? welcomeRows[0] : null;
       if (active) {
         setIsOwner(data?.role === "owner");
         setIsEmailAuthenticated(Boolean(user.email));
@@ -789,6 +829,13 @@ export default function TagTokyoApp() {
         setLiveMemberReady(Boolean(data?.status === "active" && data?.age_verified && data?.age_verification_status === "verified" && data?.terms_accepted_at && data?.privacy_accepted_at));
         setAgeVerificationStatus(data?.age_verification_status ?? "not_started");
         setConsentReady(Boolean(data?.terms_accepted_at && data?.privacy_accepted_at));
+        setOfficialProfile(welcome ? {
+          userId: welcome.user_id,
+          displayName: welcome.display_name,
+          handle: welcome.handle,
+          bio: welcome.bio,
+          avatarUrl: welcome.avatar_url,
+        } : null);
       }
     }
     void syncOwnerRole();
@@ -887,8 +934,11 @@ export default function TagTokyoApp() {
     setAuthNotice(error ? error.message : "ログインリンクをメールへ送りました");
   }
 
-  async function requestMessageAccess(nextEmail: string) {
+  async function requestMessageAccess(nextEmail: string, gender: EditableProfile["gender"]) {
     setEmail(nextEmail);
+    const nextProfile = { ...profile, gender };
+    setProfile(nextProfile);
+    window.localStorage.setItem("tagtokyo_profile_v2", JSON.stringify(nextProfile));
     setShowMessageGate(false);
     if (!hasSupabase || !supabase) {
       setAuthNotice("メール認証の接続を準備中です。現在はメッセージを送信できません。");
@@ -993,7 +1043,7 @@ export default function TagTokyoApp() {
     <main className="app-shell">
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>PLAY BETA</small></div>
       {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={startTag} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} />}
-      {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} onTag={sendLiveTag} error={liveError} />}
+      {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} officialProfile={officialProfile} onTag={sendLiveTag} error={liveError} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} />}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={setSelectedLiveMatchId} onSend={sendLiveMessage} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />

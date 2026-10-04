@@ -8,6 +8,7 @@ export type LiveMatch = {
   handle: string | null;
   bio: string;
   avatarUrl: string | null;
+  isOfficial: boolean;
   createdAt: string;
 };
 
@@ -20,6 +21,15 @@ export type LiveCrossing = {
   areaLabel: string;
   crossedAt: string;
   tagged: boolean;
+  isOfficial: boolean;
+};
+
+export type OfficialProfile = {
+  userId: string;
+  displayName: string;
+  handle: string | null;
+  bio: string;
+  avatarUrl: string | null;
 };
 
 export type LiveMessage = {
@@ -53,6 +63,7 @@ export type GrowthState = {
 export type EditableProfile = {
   displayName: string;
   handle: string;
+  gender: "woman" | "man" | "nonbinary" | "unspecified";
   avatarDataUrl: string;
   bio: string;
   weekend: string;
