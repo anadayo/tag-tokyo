@@ -36,7 +36,7 @@ Supabase未設定でも、位置情報を外部送信しないプレビューモ
 
 実在ユーザー同士の交流は、Supabaseを設定しただけでは有効になりません。年齢確認・届出・通報対応・データ削除の運用を完了し、デプロイ設定とデータベースの二重の開始制御をオーナーが承認した後にだけ限定ベータを開始します。詳細は [live launch checklist](docs/live-launch-checklist.md) と [live-beta runbook](docs/live-beta-runbook.md) を参照してください。
 
-実メッセージは相互TAGで成立したマッチ内だけで利用できます。`010_live_messaging.sql` は、サーバー側の参加資格確認、直接INSERT禁止、重複・連投制限、ブロック、通報、Realtime配信を追加します。`011_profile_onboarding_alignment.sql` は認証後のプロフィール登録条件をUIと揃え、`012_report_write_hardening.sql` は通報を検証済みRPC経由に限定します。
+実メッセージは相互TAGで成立したマッチ内だけで利用できます。`010_live_messaging.sql` は、サーバー側の参加資格確認、直接INSERT禁止、重複・連投制限、ブロック、通報、Realtime配信を追加します。`011_profile_onboarding_alignment.sql` は認証後のプロフィール登録条件をUIと揃え、`012_report_write_hardening.sql` は通報を検証済みRPC経由に限定します。`013_manual_age_verification.sql` は、加工済み身分証画像を使う運営確認、非公開Storage、審査RPC、原本削除記録を追加します。
 
 GitHub Pages の静的公開はこの安全デモ専用です。本番の年齢確認結果・管理者操作・通知は秘密鍵を必要とするため、Supabase Edge Functions 等を含むサーバー実行環境へ移行してから扱います。
 
@@ -52,6 +52,7 @@ GitHub Pages の静的公開はこの安全デモ専用です。本番の年齢�
 - MAPに一般ユーザーの現在地・移動履歴・正確な距離を表示しません。
 - エリア投下時の現在地は1km判定だけに利用し、投下履歴には保存しません。
 - TAG SPOT抽選は有料販売せず、現地利用の無料報酬として扱います。
-- 本番の年齢確認は確認事業者の結果だけを使い、自己申告・誕生日入力・クライアント値では有効化しません。
+- 本番の年齢確認は運営者による公的証明書の画像確認結果だけを使い、自己申告・誕生日入力・クライアント値では有効化しません。
+- 身分証画像は氏名・住所・顔写真・番号を隠して提出し、非公開Storageで審査後ただちに削除します。Notionへは保存しません。
 
 旧コンセプト版は `archive/v0.1-static/` に保存しています。

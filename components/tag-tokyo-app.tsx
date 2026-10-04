@@ -7,6 +7,7 @@ import {
   Send, Sparkles, Star, Trophy, UserRound, UsersRound, Zap,
 } from "lucide-react";
 import { track } from "@/lib/analytics";
+import { AgeVerificationPanel } from "@/components/age-verification-panel";
 import { sampleCrossings } from "@/lib/demo-profiles";
 import {
   COSMETICS, DAILY_LOGIN_EXP, drawSpotReward, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_UNLOCKS,
@@ -491,7 +492,7 @@ function FeedbackPanel() {
   </div>;
 }
 
-function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagicLink, growth, buyCosmetic, equipCosmetic, profile, setProfile, isOwner, liveEnabled }: {
+function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagicLink, growth, buyCosmetic, equipCosmetic, profile, setProfile, isOwner, liveEnabled, emailAuthenticated, consentReady, ageVerificationStatus }: {
   verified: boolean;
   setVerified: (value: boolean) => void;
   email: string;
@@ -505,6 +506,9 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
   setProfile: (profile: EditableProfile) => void;
   isOwner: boolean;
   liveEnabled: boolean;
+  emailAuthenticated: boolean;
+  consentReady: boolean;
+  ageVerificationStatus: "not_started" | "pending" | "verified" | "rejected" | "expired";
 }) {
   const progress = getLevelProgress(growth.totalEarnedExp);
   const [editing, setEditing] = useState(false);
@@ -608,6 +612,8 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
           <span><b>20歳以上の自己申告（プレビュー）</b><small>実交流の開始時は、別途公的な年齢確認を行います</small></span>
           <input type="checkbox" checked={verified} onChange={(event) => setVerified(event.target.checked)} />
         </label>
+        <AgeVerificationPanel key={`${ageVerificationStatus}-${consentReady}`} authenticated={emailAuthenticated} consentReady={consentReady} initialStatus={ageVerificationStatus} profile={profile} />
+        {isOwner && <a className="moderation-link" href={`${ASSET_PREFIX}/moderation/`}><ShieldCheck /><span><b>運営審査画面</b><small>提出画像の確認・承認・削除</small></span><ChevronRight /></a>}
         <button className="setting-link"><span>ブロックしたユーザー</span><ChevronRight /></button>
         <button className="setting-link"><span>通報履歴</span><ChevronRight /></button>
         <button className="setting-link danger"><span>退会する</span><LogOut /></button>
@@ -657,6 +663,8 @@ export default function TagTokyoApp() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [databaseLiveEnabled, setDatabaseLiveEnabled] = useState(false);
   const [liveMemberReady, setLiveMemberReady] = useState(false);
+  const [ageVerificationStatus, setAgeVerificationStatus] = useState<"not_started" | "pending" | "verified" | "rejected" | "expired">("not_started");
+  const [consentReady, setConsentReady] = useState(false);
   const [liveCrossings, setLiveCrossings] = useState<LiveCrossing[]>([]);
   const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
   const [liveMessages, setLiveMessages] = useState<Record<string, LiveMessage[]>>({});
@@ -855,6 +863,8 @@ export default function TagTokyoApp() {
           setIsEmailAuthenticated(false);
           setCurrentUserId(null);
           setLiveMemberReady(false);
+          setAgeVerificationStatus("not_started");
+          setConsentReady(false);
         }
         return;
       }
@@ -884,6 +894,8 @@ export default function TagTokyoApp() {
         setIsEmailAuthenticated(Boolean(user.email));
         setCurrentUserId(data?.id ?? null);
         setLiveMemberReady(Boolean(data?.status === "active" && data?.age_verified && data?.age_verification_status === "verified" && data?.terms_accepted_at && data?.privacy_accepted_at));
+        setAgeVerificationStatus(data?.age_verification_status ?? "not_started");
+        setConsentReady(Boolean(data?.terms_accepted_at && data?.privacy_accepted_at));
       }
     }
     void syncOwnerRole();
@@ -1106,7 +1118,7 @@ export default function TagTokyoApp() {
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={setSelectedLiveMatchId} onSend={sendLiveMessage} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen matches={demoMatches} onClear={() => setDemoMatches([])} messageAccessReady={isEmailAuthenticated} onRequireEmail={() => setShowMessageGate(true)} />)}
-      {tab === "me" && <MeScreen verified={verified} setVerified={setVerified} email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} isOwner={isOwner} liveEnabled={liveEnabled} />}
+      {tab === "me" && <MeScreen verified={verified} setVerified={setVerified} email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} isOwner={isOwner} liveEnabled={liveEnabled} emailAuthenticated={isEmailAuthenticated} consentReady={consentReady} ageVerificationStatus={ageVerificationStatus} />}
       <BottomNav tab={tab} onChange={(next) => {
         setTab(next);
         window.scrollTo({ top: 0, behavior: "instant" });

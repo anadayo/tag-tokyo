@@ -6,10 +6,10 @@ This runbook is for a real-user limited beta. It is not a checklist for turning 
 
 All of these must be complete before `NEXT_PUBLIC_TAG_TOKYO_LIVE_ENABLED=true` is deployed:
 
-1. Move the live app off static GitHub Pages to a server-capable deployment. Age-verification webhooks, service-role keys, and moderation alerts must run only in Supabase Edge Functions or another server runtime.
+1. Keep service-role keys out of GitHub Pages. Client moderation actions must use authenticated Supabase RPC and RLS only; scheduled cleanup and alerts must run in Supabase Edge Functions or another server runtime.
 2. The owner has obtained legal advice on whether the planned service falls within the Internet Dating Introduction Business rules, and has completed any required notification.
-3. A contracted age-verification provider returns a verified result before `users.age_verified` and `age_verification_status` can be changed to `verified`. The app never accepts a checkbox, birth-date form, or client claim as proof.
-4. Migrations through `012_report_write_hardening.sql` have been applied in a production Supabase project. RLS, mutual-TAG messaging, rate limits, block, and report flows have been tested using separate member and moderator accounts.
+3. An operator reviews the masked government-ID image and confirms the required three fields before `users.age_verified` and `age_verification_status` change to verified. The app never accepts a checkbox, birth-date form, or client claim as proof.
+4. Migrations through `013_manual_age_verification.sql` have been applied in a production Supabase project. RLS, upload, review, evidence deletion, mutual-TAG messaging, rate limits, block, and report flows have been tested using separate member and moderator accounts.
 5. One owner and at least one moderator have been assigned. They have rehearsed report review, user pause, restoration, deletion requests, and an urgent service stop.
 6. Terms, privacy policy, contact channel, retention periods, and prohibited conduct are reviewed by the owner and published with version numbers.
 7. The owner records the review in `live_launch_controls`; database control remains `false` until the final go/no-go decision.
@@ -19,7 +19,7 @@ The client environment flag alone does not authorise live interactions. The data
 ## Server functions and secrets
 
 - Schedule `cleanup-private-data` at least hourly with `CRON_SECRET`; it calls the existing database cleanup RPC for expired location samples and crossings.
-- `age-verification-webhook` is an adapter endpoint, not a browser endpoint. Configure a verification provider or trusted relay to send the documented JSON envelope with an HMAC-SHA256 signature in `x-tag-verification-signature`.
+- The current flow is manual review at `/moderation/`. Keep `age-verification-webhook` disabled unless a contracted provider replaces manual review.
 - Store `AGE_VERIFICATION_WEBHOOK_SECRET`, `CRON_SECRET`, and the Supabase service-role key only in the function runtime. Never put them in `.env` files committed to Git or `NEXT_PUBLIC_` variables.
 - The webhook stores only provider method, opaque verification reference, status, and verification time. It rejects unsigned payloads and cannot be used to claim verification from the client.
 
@@ -27,7 +27,8 @@ The client environment flag alone does not authorise live interactions. The data
 
 - Supabase Auth holds email authentication.
 - The app database holds consent versions, a verification-provider reference, and moderation case data.
-- The verification provider holds any identity-document material. Do not copy document images, ID numbers, or raw verification payloads into Supabase or Notion.
+- Masked identity-document images stay only in the private `age-verification-evidence` bucket until the decision. Never copy them to the database, logs, analytics, Notion, or a public URL.
+- The moderator checks only age/date of birth, document name, and issuing authority, records the decision, deletes the original immediately, and confirms `evidence_deleted_at` was written.
 - Profile images are placed only in the private `profile-photos` bucket, under `<auth-user-id>/...`; never use public URLs.
 - Notion receives only case IDs, status, assignee, timestamps, and redacted operational summaries.
 

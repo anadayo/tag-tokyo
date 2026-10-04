@@ -12,3 +12,5 @@
 - Limit owner and moderator access, and maintain an access log for report review.
 - Give users a way to request account deletion and delete their related personal data according to the published retention policy.
 - Configure private photo storage and RLS before accepting real profile photos.
+- Apply `013_manual_age_verification.sql`, verify every evidence view creates an audit row, and schedule `cleanup-private-data` at least hourly.
+- Delete age-verification evidence immediately after a decision. The scheduled job is a backstop for any evidence still present after seven days.
