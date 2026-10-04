@@ -27,6 +27,10 @@ const ASSET_PREFIX = process.env.NODE_ENV === "production" ? "/tag-tokyo" : "";
 const HANDLE_PATTERN = /^[A-Za-z0-9_]{5,15}$/;
 const TERMS_VERSION = "2026-10-04";
 const PRIVACY_VERSION = "2026-10-04";
+const PROFILE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+const PROFILE_PHOTO_MAX_SIDE = 1200;
+const PROFILE_PHOTO_TARGET_BYTES = 1.5 * 1024 * 1024;
+const PROFILE_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 function ProfilePhoto({ profile, className = "" }: { profile: EditableProfile; className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element -- local data URL, not a network image.
@@ -503,20 +507,44 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
     track("tagtokyo_profile_updated", { unlocked_level: progress.level });
   }
 
-  function selectPhoto(event: React.ChangeEvent<HTMLInputElement>) {
+  async function selectPhoto(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/") || file.size > 750 * 1024) {
-      setPhotoNotice("写真は750KB以下の画像を選んでください");
+    if (!PROFILE_PHOTO_TYPES.includes(file.type) || file.size > PROFILE_PHOTO_MAX_BYTES) {
+      setPhotoNotice("写真は5MB以下のJPEG・PNG・WebPを選んでください");
       event.target.value = "";
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setProfile({ ...profile, avatarDataUrl: String(reader.result) });
-      setPhotoNotice("この端末に写真を保存しました");
-    };
-    reader.readAsDataURL(file);
+    setPhotoNotice("写真を調整しています…");
+    const objectUrl = URL.createObjectURL(file);
+    try {
+      const image = new Image();
+      image.src = objectUrl;
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error("invalid image"));
+      });
+      const scale = Math.min(1, PROFILE_PHOTO_MAX_SIDE / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("canvas unavailable");
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      let quality = 0.86;
+      let avatarDataUrl = canvas.toDataURL("image/jpeg", quality);
+      while (avatarDataUrl.length * 0.75 > PROFILE_PHOTO_TARGET_BYTES && quality > 0.5) {
+        quality -= 0.1;
+        avatarDataUrl = canvas.toDataURL("image/jpeg", quality);
+      }
+      setProfile({ ...profile, avatarDataUrl });
+      setPhotoNotice("5MBまでの写真を表示用に調整して保存しました");
+    } catch {
+      setPhotoNotice("画像を読み込めませんでした。別の写真を選んでください");
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+      event.target.value = "";
+    }
   }
 
   return (
@@ -524,7 +552,7 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
       <header className="screen-header"><div><span>ME</span><h2>プロフィール</h2></div></header>
       {isOwner && <div className="owner-note"><Crown /><span><b>OWNER MODE</b><small>全プロフィール項目と装飾を自由に確認できます</small></span></div>}
       <div className={`me-card profile-showcase ${growth.equippedBackground ? `equip-${growth.equippedBackground}` : ""}`}>
-        <label className={`me-avatar avatar-upload ${growth.equippedFrame ? `equip-${growth.equippedFrame}` : ""}`}><ProfilePhoto profile={profile} /><input type="file" accept="image/*" onChange={selectPhoto} /><span className="avatar-camera"><Camera /></span></label>
+        <label className={`me-avatar avatar-upload ${growth.equippedFrame ? `equip-${growth.equippedFrame}` : ""}`}><ProfilePhoto profile={profile} /><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void selectPhoto(event)} /><span className="avatar-camera"><Camera /></span></label>
         <div>{equippedTitle && <small className="equipped-title">{equippedTitle}</small>}<h3>{profile.displayName} {isOwner && <OfficialBadge />} <span className="profile-level">Lv.{progress.level}</span></h3><p>@{profile.handle} · {profile.bio}</p>{photoNotice && <small className="photo-notice">{photoNotice}</small>}</div>
         <button aria-label="プロフィール編集" onClick={openEditor}><ChevronRight /></button>
       </div>
