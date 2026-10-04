@@ -32,8 +32,8 @@ const INITIAL_SESSION: TagSessionState = {
 };
 const ASSET_PREFIX = process.env.NODE_ENV === "production" ? "/tag-tokyo" : "";
 const HANDLE_PATTERN = /^[A-Za-z0-9_]{5,15}$/;
-const TERMS_VERSION = "2026-10-04";
-const PRIVACY_VERSION = "2026-10-04";
+const TERMS_VERSION = "2026-10-05";
+const PRIVACY_VERSION = "2026-10-05";
 const PROFILE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 const PROFILE_PHOTO_MAX_SIDE = 1200;
 const PROFILE_PHOTO_TARGET_BYTES = 1.5 * 1024 * 1024;
@@ -553,11 +553,13 @@ function FeedbackPanel() {
   </div>;
 }
 
-function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosmetic, equipCosmetic, profile, setProfile, isOwner, liveEnabled, emailAuthenticated, consentReady, ageVerificationStatus }: {
+function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, requestAccountDeletion, growth, buyCosmetic, equipCosmetic, profile, setProfile, isOwner, liveEnabled, emailAuthenticated, consentReady, ageVerificationStatus }: {
   email: string;
   setEmail: (value: string) => void;
   authNotice: string;
-  sendMagicLink: () => void;
+  sendMagicLink: (termsAccepted: boolean, privacyAccepted: boolean) => void;
+  signOut: () => void;
+  requestAccountDeletion: () => void;
   growth: GrowthState;
   buyCosmetic: (id: string) => void;
   equipCosmetic: (id: string) => void;
@@ -574,6 +576,8 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
   const [draft, setDraft] = useState(profile);
   const [editorError, setEditorError] = useState("");
   const [photoNotice, setPhotoNotice] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(consentReady);
+  const [privacyAccepted, setPrivacyAccepted] = useState(consentReady);
   const equippedTitle = COSMETICS.find((item) => item.id === growth.equippedTitle)?.name;
   const profileFields: Array<{ key: keyof EditableProfile; label: string; level: number; placeholder: string; long?: boolean }> = [
     { key: "displayName", label: "表示名", level: 1, placeholder: "表示名" },
@@ -739,25 +743,34 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosme
         </div>
       </div>
       <div className="settings-card">
-        <h3>アカウント</h3>
-        <label className="field"><span>メールアドレス</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /></label>
-        <button className="primary-wide" onClick={sendMagicLink}>{hasSupabase ? "ログインリンクを送る" : "接続準備中"}</button>
+        <div className="section-heading"><div><small>ACCOUNT</small><h3>{emailAuthenticated ? "アカウント登録済み" : "無料アカウントを作成"}</h3></div><ShieldCheck /></div>
+        <div className="registration-progress" aria-label="登録状況">
+          <span className={emailAuthenticated ? "complete" : ""}><b>1</b>メール認証</span>
+          <span className={consentReady ? "complete" : ""}><b>2</b>規約同意</span>
+          <span className={ageVerificationStatus === "verified" ? "complete" : ""}><b>3</b>20歳以上確認</span>
+        </div>
+        <label className="field"><span>メールアドレス</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" disabled={emailAuthenticated} /></label>
+        {!consentReady && <>
+          <label className="access-check"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/terms/`} target="_blank" rel="noreferrer">利用規約</a>に同意する</span></label>
+          <label className="access-check"><input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/privacy/`} target="_blank" rel="noreferrer">プライバシーポリシー</a>に同意する</span></label>
+        </>}
+        {!emailAuthenticated || !consentReady
+          ? <button className="primary-wide" onClick={() => sendMagicLink(termsAccepted, privacyAccepted)}>{hasSupabase ? emailAuthenticated ? "同意して登録を完了" : "認証メールを送る" : "接続準備中"}</button>
+          : <button className="secondary-wide" onClick={signOut}>ログアウト</button>}
         {authNotice && <p className="field-notice">{authNotice}</p>}
       </div>
       <div className="settings-card">
-        <h3>安全と本人確認</h3>
+        <h3>安全と20歳以上確認</h3>
         <AgeVerificationPanel key={`${ageVerificationStatus}-${consentReady}`} authenticated={emailAuthenticated} consentReady={consentReady} initialStatus={ageVerificationStatus} profile={profile} />
         {isOwner && <a className="moderation-link" href={`${ASSET_PREFIX}/moderation/`}><ShieldCheck /><span><b>運営審査画面</b><small>提出画像の確認・承認・削除</small></span><ChevronRight /></a>}
-        <button className="setting-link"><span>ブロックしたユーザー</span><ChevronRight /></button>
-        <button className="setting-link"><span>通報履歴</span><ChevronRight /></button>
-        <button className="setting-link danger"><span>退会する</span><LogOut /></button>
+        {emailAuthenticated && <button className="setting-link danger" onClick={requestAccountDeletion}><span>退会・データ削除を申請</span><LogOut /></button>}
       </div>
       <div className="settings-card compact">
         <p><b>位置情報の扱い</b></p>
         <p>すれ違い判定だけに利用し、生の位置情報は数時間から24時間以内に削除します。他ユーザーへ現在地や正確な距離を公開しません。</p>
       </div>
       <div className={`settings-card launch-status ${liveEnabled ? "is-live" : ""}`}>
-        <div className="section-heading"><div><small>COMMUNITY STATUS</small><h3>{liveEnabled ? "限定ベータを運用中" : "コミュニティ開始準備中"}</h3></div><ShieldCheck /></div>
+        <div className="section-heading"><div><small>COMMUNITY STATUS</small><h3>{liveEnabled ? "正式サービス運用中" : "正式公開の最終準備中"}</h3></div><ShieldCheck /></div>
         <p>{liveEnabled ? "年齢確認済みの参加者だけが交流機能を利用できます。" : "実在ユーザー同士のTAG・MATCH・メッセージはまだ有効化していません。"}</p>
         <ul><li>現在地・正確な距離は非公開</li><li>ブロック・通報を常時利用可能</li><li>20歳未満は利用不可</li></ul>
       </div>
@@ -1186,6 +1199,7 @@ export default function TagTokyoApp() {
       if (active) {
         setIsOwner(data?.role === "owner");
         setIsEmailAuthenticated(Boolean(user.email));
+        setEmail(user.email ?? "");
         setCurrentUserId(data?.id ?? null);
         setLiveMemberReady(Boolean(data?.status === "active" && data?.age_verified && data?.age_verification_status === "verified" && data?.terms_accepted_at && data?.privacy_accepted_at));
         setAgeVerificationStatus(data?.age_verification_status ?? "not_started");
@@ -1429,17 +1443,56 @@ export default function TagTokyoApp() {
 
   async function stopTag() { await finishTagSession("manual"); }
 
-  async function sendMagicLink() {
+  async function sendMagicLink(termsAccepted: boolean, privacyAccepted: boolean) {
     if (!hasSupabase || !supabase) {
       setAuthNotice("認証サーバーへ接続できません");
       return;
     }
-    if (!email.includes("@")) {
+    if (!isEmailAuthenticated && !email.includes("@")) {
       setAuthNotice("メールアドレスを入力してください");
       return;
     }
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } });
-    setAuthNotice(error ? error.message : "ログインリンクをメールへ送りました");
+    if (!termsAccepted || !privacyAccepted) {
+      setAuthNotice("利用規約とプライバシーポリシーへの同意が必要です");
+      return;
+    }
+    window.sessionStorage.setItem("tagtokyo_pending_message_consent_v1", JSON.stringify({ termsVersion: TERMS_VERSION, privacyVersion: PRIVACY_VERSION }));
+    if (isEmailAuthenticated) {
+      const { error } = await supabase.rpc("complete_profile_onboarding", {
+        p_display_name: profile.displayName,
+        p_handle: profile.handle,
+        p_gender: profile.gender,
+        p_terms_version: TERMS_VERSION,
+        p_privacy_version: PRIVACY_VERSION,
+      });
+      if (error) return setAuthNotice(error.message);
+      window.sessionStorage.removeItem("tagtokyo_pending_message_consent_v1");
+      setConsentReady(true);
+      setAuthNotice("アカウント登録が完了しました");
+      return;
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const { error } = await supabase.auth.signInWithOtp({ email: normalizedEmail, options: { emailRedirectTo: window.location.href } });
+    setAuthNotice(error ? error.message : "認証メールを送りました。メール内のリンクを開いて登録を完了してください");
+  }
+
+  async function signOut() {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+    setIsEmailAuthenticated(false);
+    setCurrentUserId(null);
+    setLiveMemberReady(false);
+    setConsentReady(false);
+    setAgeVerificationStatus("not_started");
+    setEmail("");
+    setAuthNotice("ログアウトしました");
+  }
+
+  async function requestAccountDeletion() {
+    if (!supabase || !isEmailAuthenticated) return;
+    if (!window.confirm("退会とアカウントデータの削除を申請します。よろしいですか？")) return;
+    const { error } = await supabase.rpc("request_account_deletion");
+    setAuthNotice(error ? error.message : "退会・データ削除の申請を受け付けました");
   }
 
   async function requestMessageAccess(nextEmail: string, gender: EditableProfile["gender"]) {
@@ -1579,14 +1632,14 @@ export default function TagTokyoApp() {
 
   return (
     <main className="app-shell">
-      <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>PLAY BETA</small></div>
+      <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>TOKYO SOCIAL</small></div>
       {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={requestTagStart} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} />}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => setTab("me")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} />}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={setSelectedLiveMatchId} onSend={sendLiveMessage} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen />)}
-      {tab === "me" && <MeScreen email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} isOwner={isOwner} liveEnabled={liveEnabled} emailAuthenticated={isEmailAuthenticated} consentReady={consentReady} ageVerificationStatus={ageVerificationStatus} />}
+      {tab === "me" && <MeScreen email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} signOut={() => void signOut()} requestAccountDeletion={() => void requestAccountDeletion()} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} isOwner={isOwner} liveEnabled={liveEnabled} emailAuthenticated={isEmailAuthenticated} consentReady={consentReady} ageVerificationStatus={ageVerificationStatus} />}
       <BottomNav tab={tab} onChange={(next) => {
         setTab(next);
         window.scrollTo({ top: 0, behavior: "instant" });

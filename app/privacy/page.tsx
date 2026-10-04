@@ -1,7 +1,9 @@
+import { publicOperator, publicOperatorReady } from "@/lib/public-operator";
+
 export default function PrivacyPage() {
   return <main className="policy-page">
-    <h1>TAG TOKYO プライバシーポリシー（限定ベータ版）</h1>
-    <p>最終更新日: 2026年10月4日 / バージョン: 2026-10-04</p>
+    <h1>TAG TOKYO プライバシーポリシー</h1>
+    <p>最終更新日: 2026年10月5日 / バージョン: 2026-10-05</p>
     <h2>1. 取得する情報と目的</h2>
     <p>メールアドレスはログイン認証、年齢確認結果の通知、安全上の連絡、プロフィール・いいね・マッチ情報は利用者同士の交流、性別は本人が選択した表示内容の調整、位置情報はすれ違い・TAG SPOT・エリア拠点の距離判定、通報・ブロック情報は安全対応のために利用します。メールアドレス、正確な位置、性別の表示設定は他の利用者へ公開しません。</p>
     <h2>2. 20歳以上の確認</h2>
@@ -13,6 +15,8 @@ export default function PrivacyPage() {
     <h2>5. 開示・訂正・削除</h2>
     <p>利用者はサービス内の退会・削除申請から、保有情報の削除を申請できます。法令上または安全対応上の保存義務がある記録を除き、確認後に処理します。</p>
     <h2>6. 問い合わせ</h2>
-    <p>限定ベータ開始前に、運営者名と公開問い合わせ窓口をこの項目へ掲示します。窓口が掲示されるまでは実在ユーザー間の交流機能を開始しません。</p>
+    {publicOperatorReady
+      ? <p>運営者: {publicOperator.name}<br />個人情報に関する問い合わせ: <a href={`mailto:${publicOperator.contact}`}>{publicOperator.contact}</a></p>
+      : <p>運営者情報と公開問い合わせ窓口は現在設定中です。掲示が完了するまで実在ユーザー間の交流機能は開始しません。</p>}
   </main>;
 }

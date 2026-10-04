@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     description: "東京を歩くほど、出会いと自分が育つ。",
     url: siteUrl,
     siteName: "TAG TOKYO",
-    images: [{ url: "/tag-tokyo/ogp.png", width: 1200, height: 630 }],
+    images: [{ url: `${siteUrl}ogp.png`, width: 1200, height: 630 }],
     locale: "ja_JP",
     type: "website",
   },

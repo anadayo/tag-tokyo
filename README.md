@@ -8,7 +8,7 @@
 - Supabase Auth / PostgreSQL / Realtime
 - PWA / Geolocation API
 
-## Growth loop (v0.3)
+## Growth loop (v1.0)
 
 - すれ違い・ミッション・無料TAG SPOTでEXPを獲得
 - 累計獲得EXPでプロフィールLvが成長
@@ -34,7 +34,7 @@ Supabase未設定時やライブ停止中は架空プロフィールを表示せ
 
 匿名評価は、満足度と改善テーマだけをGA4イベント `tagtokyo_feedback` として送信します。メールアドレス、写真、自由記述は評価イベントに含めません。
 
-実在ユーザー同士の交流は、Supabaseを設定しただけでは有効になりません。年齢確認・届出・通報対応・データ削除の運用を完了し、デプロイ設定とデータベースの二重の開始制御をオーナーが承認した後にだけ限定ベータを開始します。詳細は [live launch checklist](docs/live-launch-checklist.md) と [live-beta runbook](docs/live-beta-runbook.md) を参照してください。
+実在ユーザー同士の交流は、Supabaseを設定しただけでは有効になりません。年齢確認・届出・通報対応・データ削除の運用を完了し、公開運営者情報、デプロイ設定、データベースの開始制御をオーナーが承認した後にだけ開始します。詳細は [live launch checklist](docs/live-launch-checklist.md) と [live-beta runbook](docs/live-beta-runbook.md) を参照してください。
 
 実メッセージは相互TAGで成立したマッチ内だけで利用できます。`010_live_messaging.sql` は、サーバー側の参加資格確認、直接INSERT禁止、重複・連投制限、ブロック、通報、Realtime配信を追加します。`011_profile_onboarding_alignment.sql` は認証後のプロフィール登録条件をUIと揃え、`012_report_write_hardening.sql` は通報を検証済みRPC経由に限定します。`013_manual_age_verification.sql` は、加工済み身分証画像を使う運営確認、非公開Storage、審査RPC、原本削除記録を追加します。
 

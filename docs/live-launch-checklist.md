@@ -8,7 +8,8 @@ TAG TOKYO is free to use, but live matching must not be enabled until every item
 - Complete the operator manual image review defined in `013_manual_age_verification.sql` before live participation. A self-declaration checkbox or birth-date form never grants access.
 - Publish terms, privacy policy, location-data purpose, retention period, and a contact channel before collecting real profile or location data.
 - Assign an owner for report review, urgent escalation, account suspension, and law-enforcement contact. Test those actions end to end.
-- Apply and test every Supabase migration through `017_profile_discovery_matching.sql`, RLS policy, messaging RPC, decision email, private evidence deletion, official-owner visibility, mutual-like matching, scheduled deletion job, private photo bucket, and backup/incident procedure in the production project.
+- Apply and test every Supabase migration through `021_area_champions_tag_streak.sql`, RLS policy, messaging RPC, decision email, private evidence deletion, official-owner visibility, mutual-like matching, scheduled deletion job, private photo bucket, and backup/incident procedure in the production project.
+- Configure `NEXT_PUBLIC_OPERATOR_NAME`, `NEXT_PUBLIC_CONTACT_EMAIL`, and `NEXT_PUBLIC_DATING_SERVICE_NOTIFICATION_NUMBER`. The client refuses to enable live interaction while any value is missing.
 - Keep both `NEXT_PUBLIC_TAG_TOKYO_LIVE_ENABLED` and `live_launch_controls.live_interactions_enabled` false until all checks are signed off by the owner.
 - Rehearse report review, account pause, deletion request, and the emergency stop with distinct member and moderator accounts.
 

@@ -51,8 +51,8 @@ export function AgeVerificationPanel({ authenticated, consentReady, initialStatu
         p_display_name: profile.displayName,
         p_handle: profile.handle,
         p_gender: profile.gender,
-        p_terms_version: "2026-10-04",
-        p_privacy_version: "2026-10-04",
+        p_terms_version: "2026-10-05",
+        p_privacy_version: "2026-10-05",
       });
       if (consentError) {
         setSubmitting(false);
@@ -79,7 +79,7 @@ export function AgeVerificationPanel({ authenticated, consentReady, initialStatu
 
   if (status === "verified") return <div className="age-status verified"><CheckCircle2 /><span><b>20歳以上を確認済み</b><small>審査に使った画像原本は確認後に削除します</small></span></div>;
   if (status === "pending") return <div className="age-status pending"><ShieldCheck /><span><b>運営確認中</b><small>通常は提出順に確認します。再提出は不要です</small></span></div>;
-  if (authenticated && backendReady !== true) return <div className="age-status pending"><ShieldCheck /><span><b>{backendReady === null ? "本人確認を準備しています" : "本人確認はまだ利用できません"}</b><small>{backendReady === null ? "安全な接続を確認中です" : "運営側の設定完了後に提出できます"}</small></span></div>;
+  if (authenticated && backendReady !== true) return <div className="age-status pending"><ShieldCheck /><span><b>{backendReady === null ? "年齢確認を準備しています" : "年齢確認はまだ利用できません"}</b><small>{backendReady === null ? "安全な接続を確認中です" : "運営側の設定完了後に提出できます"}</small></span></div>;
 
   return <div className="age-verification-panel">
     <div className="age-warning"><FileWarning /><span><b>{status === "rejected" ? "再提出が必要です" : "20歳以上の確認"}</b><small>氏名・住所・顔写真・証明書番号は必ず隠してください</small></span></div>
