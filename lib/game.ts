@@ -17,12 +17,12 @@ export const INITIAL_GROWTH: GrowthState = {
 export const DAILY_LOGIN_EXP = 20;
 
 export const TOKYO_AREAS: TokyoArea[] = [
-  { id: "kichijoji", name: "吉祥寺", x: 13, y: 48, champion: "MIO", championPoints: 2840, championLevel: 8, isDemo: true },
-  { id: "shinjuku", name: "新宿", x: 35, y: 52, champion: "REN", championPoints: 3920, championLevel: 9, isDemo: true },
-  { id: "shibuya", name: "渋谷", x: 36, y: 72, champion: "AOI", championPoints: 4610, championLevel: 10, isDemo: true },
-  { id: "ikebukuro", name: "池袋", x: 42, y: 30, champion: "SORA", championPoints: 3260, championLevel: 8, isDemo: true },
-  { id: "ueno", name: "上野", x: 69, y: 28, champion: "YUI", championPoints: 2740, championLevel: 7, isDemo: true },
-  { id: "kitasenju", name: "北千住", x: 80, y: 12, champion: "NAGI", championPoints: 3000, championLevel: 8, isDemo: true },
+  { id: "kichijoji", name: "吉祥寺", x: 13, y: 48 },
+  { id: "shinjuku", name: "新宿", x: 35, y: 52 },
+  { id: "shibuya", name: "渋谷", x: 36, y: 72 },
+  { id: "ikebukuro", name: "池袋", x: 42, y: 30 },
+  { id: "ueno", name: "上野", x: 69, y: 28 },
+  { id: "kitasenju", name: "北千住", x: 80, y: 12 },
 ];
 
 export const TAG_SPOTS: TagSpot[] = [

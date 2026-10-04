@@ -1,21 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Ban, Bell, Camera, ChevronRight, Clock3, Crown, Flag, Gift, HeartHandshake, Home, LockKeyhole, LogOut, Map,
-  MapPin, MessageCircle, Minus, OctagonAlert, Plus, Power, ShieldCheck, ShoppingBag,
+  MapPin, MessageCircle, Minus, Plus, Power, ShieldCheck, ShoppingBag,
   Send, Sparkles, Star, Trophy, UserRound, UsersRound, Zap,
 } from "lucide-react";
 import { track } from "@/lib/analytics";
 import { AgeVerificationPanel } from "@/components/age-verification-panel";
-import { sampleCrossings } from "@/lib/demo-profiles";
 import {
-  COSMETICS, DAILY_LOGIN_EXP, drawSpotReward, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_UNLOCKS,
+  COSMETICS, DAILY_LOGIN_EXP, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_UNLOCKS,
   TAG_SPOTS, TOKYO_AREAS,
 } from "@/lib/game";
 import { isInsideTokyo, requestPrivateLocation } from "@/lib/location";
 import { hasSupabase, isLiveCommunityEnabled, supabase } from "@/lib/supabase";
-import type { CrossItem, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, TabId, TagDuration, TagSessionState } from "@/lib/types";
+import type { EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, TabId, TagDuration, TagSessionState } from "@/lib/types";
 
 const INITIAL_SESSION: TagSessionState = {
   active: false,
@@ -24,15 +23,14 @@ const INITIAL_SESSION: TagSessionState = {
   expiresAt: null,
   areaLabel: null,
 };
-const MY_TAGS = ["音楽", "カフェ", "ゲーム", "散歩", "映画", "ラーメン"];
 const ASSET_PREFIX = process.env.NODE_ENV === "production" ? "/tag-tokyo" : "";
 const HANDLE_PATTERN = /^[A-Za-z0-9_]{5,15}$/;
 const TERMS_VERSION = "2026-10-04";
 const PRIVACY_VERSION = "2026-10-04";
 
 function ProfilePhoto({ profile, className = "" }: { profile: EditableProfile; className?: string }) {
-  // eslint-disable-next-line @next/next/no-img-element -- local preview data URL, not a network image.
-  if (profile.avatarDataUrl) return <img className={`profile-photo ${className}`} src={profile.avatarDataUrl} alt="プロフィール写真のプレビュー" />;
+  // eslint-disable-next-line @next/next/no-img-element -- local data URL, not a network image.
+  if (profile.avatarDataUrl) return <img className={`profile-photo ${className}`} src={profile.avatarDataUrl} alt="プロフィール写真" />;
   return <span className={className}>{profile.displayName.slice(0, 1).toUpperCase()}</span>;
 }
 
@@ -58,7 +56,7 @@ function MessageAccessGate({ onClose, onEmail }: { onClose: () => void; onEmail:
       <label className="access-check"><input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/privacy/`} target="_blank" rel="noreferrer">プライバシーポリシー</a>に同意する</span></label>
       {error && <p className="access-error" role="alert">{error}</p>}
       <button className="access-button" onClick={submit}>メール認証へ進む <ChevronRight /></button>
-      <p className="access-note"><ShieldCheck /> {hasSupabase ? "メールアドレスはログイン認証のためSupabase Authへ送信されます。プロフィール画面には公開されません。" : "現在は安全な公開プレビューです。入力したメールアドレスは外部送信・保存しません。"}</p>
+      <p className="access-note"><ShieldCheck /> {hasSupabase ? "メールアドレスはログイン認証のためSupabase Authへ送信されます。プロフィール画面には公開されません。" : "認証サーバーへ接続できないため、入力内容は送信されません。"}</p>
     </section>
   </div>;
 }
@@ -71,23 +69,6 @@ function formatRemaining(expiresAt: number | null, now: number) {
   return hours > 0
     ? `${hours}:${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`
     : `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
-}
-
-function Avatar({ profile, large = false }: { profile: CrossItem; large?: boolean }) {
-  const column = profile.avatarIndex % 2;
-  const row = Math.floor(profile.avatarIndex / 2);
-  return (
-    <div
-      className={`avatar-sprite ${large ? "avatar-large" : ""}`}
-      role="img"
-      aria-label={`${profile.displayName}のサンプル写真`}
-      style={{
-        backgroundImage: `url('${ASSET_PREFIX}/profile-sprite-v1.png')`,
-        backgroundSize: "200% 400%",
-        backgroundPosition: `${column * 100}% ${(row / 3) * 100}%`,
-      }}
-    />
-  );
 }
 
 function BottomNav({ tab, onChange }: { tab: TabId; onChange: (tab: TabId) => void }) {
@@ -173,72 +154,79 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
   const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
   const [stake, setStake] = useState(100);
   const [result, setResult] = useState("");
-  const [rewardDisplay, setRewardDisplay] = useState<null | { tier: "normal" | "rare" | "super"; label: string; demoOnly?: boolean }>(null);
+  const [rewardDisplay, setRewardDisplay] = useState<null | { tier: "normal" | "rare" | "super"; label: string }>(null);
   const area = TOKYO_AREAS.find((item) => item.id === selectedAreaId) ?? TOKYO_AREAS[0];
   const spot = TAG_SPOTS.find((item) => item.id === selectedSpotId) ?? null;
   const myPoints = growth.areaContributions[area.id] ?? 0;
-  const isAreaChampion = myPoints > area.championPoints;
   const today = new Date().toISOString().slice(0, 10);
   const alreadyClaimed = spot ? growth.spotClaims[spot.id] === today : false;
 
   async function contribute() {
+    if (!liveEnabled || !supabase) {
+      setResult("年齢確認とサービス開始後に利用できます");
+      return;
+    }
     if (growth.availableExp < stake) {
       setResult("所持EXPが足りません");
       return;
     }
-    if (liveEnabled && supabase) {
-      setResult("拠点からの距離を確認しています…");
-      try {
-        const location = await requestPrivateLocation();
-        const { error } = await supabase.rpc("contribute_area_exp", {
-          p_area_id: area.id,
-          p_amount: stake,
-          p_latitude: location.latitude,
-          p_longitude: location.longitude,
-        });
-        if (error) throw error;
-      } catch (error) {
-        setResult(error instanceof Error ? error.message : "拠点の1km圏内でのみEXPを投下できます");
-        return;
-      }
+    setResult("拠点からの距離を確認しています…");
+    try {
+      const location = await requestPrivateLocation();
+      const { error } = await supabase.rpc("contribute_area_exp", {
+        p_area_id: area.id,
+        p_amount: stake,
+        p_latitude: location.latitude,
+        p_longitude: location.longitude,
+      });
+      if (error) throw error;
+    } catch (error) {
+      setResult(error instanceof Error ? error.message : "拠点の1km圏内でのみEXPを投下できます");
+      return;
     }
-    const becomesChampion = myPoints <= area.championPoints && myPoints + stake > area.championPoints;
     setGrowth((current) => ({
       ...current,
       availableExp: current.availableExp - stake,
       areaContributions: { ...current.areaContributions, [area.id]: (current.areaContributions[area.id] ?? 0) + stake },
     }));
-    setResult(becomesChampion ? `${area.name} AREAを塗り替えました。あなたが現在1位です。` : `${area.name}へ${stake} EXP投下しました。プロフィールLvは下がりません。`);
+    setResult(`${area.name}へ${stake} EXP投下しました。プロフィールLvは下がりません。`);
     track("tagtokyo_area_exp_contributed", { area_id: area.id, amount: stake });
   }
 
-  function previewDraw() {
+  async function drawSpot() {
     if (!spot || alreadyClaimed) return;
-    const reward = drawSpotReward();
-    const rewardCosmeticId = `spot-${reward.rarity.toLowerCase()}`;
-    const duplicateReward = reward.type === "cosmetic" && growth.ownedCosmetics.includes(rewardCosmeticId);
-    const awardedExp = duplicateReward ? 100 : reward.exp;
-    setGrowth((current) => ({
-      ...current,
-      totalEarnedExp: current.totalEarnedExp + awardedExp,
-      availableExp: current.availableExp + awardedExp,
-      ownedCosmetics: reward.type === "cosmetic" && !duplicateReward
-        ? [...current.ownedCosmetics, rewardCosmeticId]
-        : current.ownedCosmetics,
-      spotClaims: { ...current.spotClaims, [spot.id]: today },
-    }));
-    const tier = reward.rarity === "RARE" ? "rare" : reward.rarity === "SR" || reward.rarity === "SSR" ? "super" : "normal";
-    const label = duplicateReward
-      ? "100 EXP獲得しました"
-      : reward.type === "exp" ? `${reward.exp} EXP獲得しました` : `${reward.label}を獲得しました`;
-    setRewardDisplay({ tier, label });
-    setResult("");
-    track("tagtokyo_spot_draw_preview", { spot_id: spot.id, reward: reward.rarity });
-  }
-
-  function previewReward(tier: "normal" | "rare" | "super") {
-    const label = tier === "normal" ? "50 EXP獲得しました" : tier === "rare" ? "限定プロフィール装飾を獲得しました" : "SUPER BOOSTを獲得しました";
-    setRewardDisplay({ tier, label, demoOnly: true });
+    if (!liveEnabled || !supabase) {
+      setResult("年齢確認とサービス開始後に利用できます");
+      return;
+    }
+    setResult("現在地を確認しています…");
+    try {
+      const location = await requestPrivateLocation();
+      const { data, error } = await supabase.rpc("draw_tag_spot", {
+        p_spot_id: spot.id,
+        p_latitude: location.latitude,
+        p_longitude: location.longitude,
+      });
+      if (error) throw error;
+      const reward = Array.isArray(data) ? data[0] : data;
+      const rewardType = String(reward?.reward_type ?? "exp");
+      const rewardKey = String(reward?.reward_key ?? "");
+      const rewardExp = Number(reward?.reward_exp ?? 0);
+      const tier = rewardKey === "spot-ssr" || rewardKey === "spot-sr" ? "super" : rewardKey === "spot-rare" ? "rare" : "normal";
+      const rewardName = rewardKey === "spot-ssr" ? "SUPER BOOST" : rewardKey === "spot-sr" ? "BOOST" : "限定プロフィール装飾";
+      setGrowth((current) => ({
+        ...current,
+        totalEarnedExp: current.totalEarnedExp + rewardExp,
+        availableExp: current.availableExp + rewardExp,
+        ownedCosmetics: rewardType === "cosmetic" && !current.ownedCosmetics.includes(rewardKey) ? [...current.ownedCosmetics, rewardKey] : current.ownedCosmetics,
+        spotClaims: { ...current.spotClaims, [spot.id]: today },
+      }));
+      setRewardDisplay({ tier, label: rewardType === "exp" ? `${rewardExp} EXP獲得しました` : `${rewardName}を獲得しました` });
+      setResult("");
+      track("tagtokyo_spot_drawn", { spot_id: spot.id, reward_key: rewardKey });
+    } catch (error) {
+      setResult(error instanceof Error ? error.message : "TAG SPOTを利用できませんでした");
+    }
   }
 
   return (
@@ -249,9 +237,8 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
         <div className="map-river" />
         {TOKYO_AREAS.map((item) => {
           const mine = growth.areaContributions[item.id] ?? 0;
-          const isMine = mine > item.championPoints;
           return <button key={item.id} className={`area-pin ${selectedAreaId === item.id ? "selected" : ""}`} style={{ left: `${item.x}%`, top: `${item.y}%` }} onClick={() => { setSelectedAreaId(item.id); setSelectedSpotId(null); setResult(""); }}>
-            <Trophy /><b>{item.name}</b><span>{isMine ? "YOU" : item.champion}</span><small>{isMine ? mine : item.championPoints}pt</small>
+            <Trophy /><b>{item.name}</b><span>{mine > 0 ? "YOU" : "未登録"}</span><small>{mine > 0 ? `${mine}pt` : "--"}</small>
           </button>;
         })}
         {TAG_SPOTS.map((item) => <button key={item.id} className="spot-pin" aria-label={item.name} style={{ left: `${item.x}%`, top: `${item.y}%` }} onClick={() => { setSelectedSpotId(item.id); setSelectedAreaId(item.areaId); setResult(""); }}><Gift /></button>)}
@@ -261,19 +248,17 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
       {spot ? (
         <div className="map-panel spot-panel">
           <div className="panel-title"><span className="panel-icon"><Gift /></span><div><small>FREE DRAW</small><h3>{spot.name}</h3></div></div>
-          <p>正式版では現地にいることを非公開判定して、1日1回無料で抽選できます。完全なハズレはありません。</p>
+          <p>現地にいることを非公開判定して、1日1回無料で抽選できます。完全なハズレはありません。</p>
           <div className="reward-line"><span>通常</span><b>30 / 50 / 100 EXP</b><span>レア</span><b>限定プロフィール装飾</b><span>激レア</span><b>BOOST / SUPER BOOST</b></div>
-          <button className="primary-wide spot-draw" disabled={alreadyClaimed} onClick={previewDraw}>{alreadyClaimed ? "本日のプレビュー済み" : "抽選をプレビュー"}</button>
-          {!hasSupabase && <div className="effect-preview"><small>演出確認</small><div><button onClick={() => previewReward("normal")}>通常</button><button onClick={() => previewReward("rare")}>レア</button><button onClick={() => previewReward("super")}>激レア</button></div><p>確認用のためEXP・景品は加算されません</p></div>}
+          <button className="primary-wide spot-draw" disabled={alreadyClaimed || !liveEnabled} onClick={() => void drawSpot()}>{alreadyClaimed ? "本日は受取済み" : liveEnabled ? "現地で無料抽選" : "サービス開始後に利用可能"}</button>
         </div>
       ) : (
         <div className="map-panel">
-          <div className="area-head"><div><small>AREA BATTLE</small><h3>{area.name}</h3></div><span className="demo-badge inline">DEMO RANKING</span></div>
-          <div className="rank-row"><Trophy /><span><small>現在1位</small><b>{isAreaChampion ? `あなた · Lv.${getLevelProgress(growth.totalEarnedExp).level}` : `${area.champion} · Lv.${area.championLevel}`}</b></span><strong>{(isAreaChampion ? myPoints : area.championPoints).toLocaleString()}pt</strong></div>
-          <div className="rank-row mine"><Star /><span><small>{isAreaChampion ? "次点 DEMO" : "あなた"}</small><b>{isAreaChampion ? `${area.champion} · Lv.${area.championLevel}` : `プロフィール Lv.${getLevelProgress(growth.totalEarnedExp).level}`}</b></span><strong>{(isAreaChampion ? area.championPoints : myPoints).toLocaleString()}pt</strong></div>
-          <div className="area-range-note"><MapPin /><span><b>正式版は拠点の1km圏内限定</b><small>{liveEnabled ? "現在地は距離判定だけに使い、投下履歴には保存しません" : "プレビューでは場所に関係なくデモ投下できます"}</small></span></div>
+          <div className="area-head"><div><small>AREA BATTLE</small><h3>{area.name}</h3></div></div>
+          {myPoints > 0 ? <div className="rank-row mine"><Star /><span><small>あなたの投下</small><b>プロフィール Lv.{getLevelProgress(growth.totalEarnedExp).level}</b></span><strong>{myPoints.toLocaleString()}pt</strong></div> : <div className="area-empty"><Trophy /><span><b>ランキングデータはまだありません</b><small>実際のEXP投下後に表示されます</small></span></div>}
+          <div className="area-range-note"><MapPin /><span><b>拠点の1km圏内限定</b><small>現在地は距離判定だけに使い、投下履歴には保存しません</small></span></div>
           <div className="stake-control"><button aria-label="EXPを減らす" onClick={() => setStake(Math.max(100, stake - 100))}><Minus /></button><b>{stake} EXP</b><button aria-label="EXPを増やす" onClick={() => setStake(Math.min(1000, stake + 100))}><Plus /></button></div>
-          <button className="primary-wide" onClick={contribute}>{liveEnabled ? "現在地を確認して投下" : "EXPをデモ投下"}</button>
+          <button className="primary-wide" disabled={!liveEnabled} onClick={contribute}>{liveEnabled ? "現在地を確認して投下" : "サービス開始後に利用可能"}</button>
         </div>
       )}
       {result && <div className="notice map-result" role="status">{result}</div>}
@@ -283,48 +268,9 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
           <span className="reward-tier">{rewardDisplay.tier === "super" ? "激レア" : rewardDisplay.tier === "rare" ? "レア" : "獲得"}</span>
           <div className="reward-icon"><Gift /></div>
           <h3>{rewardDisplay.label}</h3>
-          {rewardDisplay.demoOnly && <p>演出確認モードです。所持EXP・景品には反映されません。</p>}
           <button onClick={() => setRewardDisplay(null)}>閉じる</button>
         </div>
       </div>}
-    </section>
-  );
-}
-
-function DemoCard({ profile, tagged, onTag }: { profile: CrossItem; tagged: boolean; onTag: (profile: CrossItem) => void }) {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <article className="cross-card">
-      <div className="photo-wrap">
-        <Avatar profile={profile} large />
-        <span className="demo-badge">DEMO</span>
-        <div className="photo-copy">
-          <h3>{profile.displayName}, {profile.age}</h3>
-          <p>{profile.occupation}</p>
-        </div>
-      </div>
-      <div className="cross-body">
-        <div className="cross-when"><MapPin />{profile.crossedLabel}</div>
-        <h4>共通TAG {profile.sharedTags.length}</h4>
-        <div className="tag-list">{profile.sharedTags.map((tag) => <span key={tag}>#{tag}</span>)}</div>
-        {expanded && <p className="bio">{profile.bio}</p>}
-        <div className="card-actions">
-          <button className="detail-button" onClick={() => setExpanded((value) => !value)}>{expanded ? "閉じる" : "プロフィール"}</button>
-          <button className={`tag-button ${tagged ? "is-tagged" : ""}`} disabled={tagged} onClick={() => onTag(profile)}>
-            <Sparkles />{tagged ? "DEMO MATCH成立" : "DEMOでTAGする"}
-          </button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function CrossScreen({ crossings, taggedIds, onTag }: { crossings: CrossItem[]; taggedIds: string[]; onTag: (profile: CrossItem) => void }) {
-  return (
-    <section className="screen">
-      <header className="screen-header"><div><span>CROSS</span><h2>すれ違い</h2></div><button className="icon-button" aria-label="通知"><Bell /></button></header>
-      <div className="demo-note"><OctagonAlert /><span><b>世界観プレビュー</b>表示中の人物はすべて架空のサンプルです。TAGすると端末内だけでデモマッチが成立し、実在ユーザーへの通知・連絡は発生しません。</span></div>
-      <div className="cross-list">{crossings.map((profile) => <DemoCard key={profile.id} profile={profile} tagged={taggedIds.includes(profile.id)} onTag={onTag} />)}</div>
     </section>
   );
 }
@@ -340,40 +286,7 @@ function LiveCrossScreen({ crossings, onTag, error }: { crossings: LiveCrossing[
   </section>;
 }
 
-function MatchScreen({ matches, onClear, messageAccessReady, onRequireEmail }: { matches: CrossItem[]; onClear: () => void; messageAccessReady: boolean; onRequireEmail: () => void }) {
-  const [selectedMessage, setSelectedMessage] = useState("共通のTAGが多くて気になりました。よかったら話しませんか？");
-  const [sent, setSent] = useState(false);
-  const messageOptions = [
-    "共通のTAGが多くて気になりました。よかったら話しませんか？",
-    "最近よく行くカフェ、気になっています。おすすめありますか？",
-    "休日の過ごし方が近そうです。まずは気軽に話せたらうれしいです。",
-  ];
-
-  if (matches.length > 0) {
-    return (
-      <section className="screen">
-        <header className="screen-header"><div><span>MATCH</span><h2>マッチ</h2></div><span className="match-count">{matches.length}</span></header>
-        <div className="demo-note"><OctagonAlert /><span><b>デモマッチ</b>すべて架空のプロフィールとの端末内プレビューです。メッセージは送信されません。</span></div>
-        <div className="demo-match-list">
-          {matches.map((profile) => <article className="demo-match" key={profile.id}>
-            <Avatar profile={profile} />
-            <div><b>{profile.displayName}, {profile.age}</b><small>共通TAG: {profile.sharedTags.join(" / ")}</small></div>
-            <span>DEMO</span>
-          </article>)}
-        </div>
-        <div className="message-preview">
-          <small>FIRST MESSAGE</small>
-          <h3>最初のひとことを選ぶ</h3>
-          <div className="message-options">{messageOptions.map((message) => <button key={message} className={selectedMessage === message ? "selected" : ""} onClick={() => { setSelectedMessage(message); setSent(false); }}>{message}</button>)}</div>
-          <div className="message-bubble">{sent ? selectedMessage : "メッセージを選ぶと、ここでプレビューできます"}</div>
-          <button className="primary-wide" onClick={() => messageAccessReady ? setSent(true) : onRequireEmail()}>{messageAccessReady ? (sent ? "送信プレビュー済み" : "送信をプレビュー") : "メッセージを開く"}</button>
-          {!messageAccessReady && <p className="message-gate-note"><LockKeyhole /> メッセージの確認にはメール認証が必要です</p>}
-        </div>
-        <button className="demo-reset" onClick={onClear}>デモマッチをリセット</button>
-      </section>
-    );
-  }
-
+function MatchScreen() {
   return (
     <section className="screen">
       <header className="screen-header"><div><span>MATCH</span><h2>マッチ</h2></div></header>
@@ -479,22 +392,20 @@ function FeedbackPanel() {
 
   function submit() {
     if (!rating) return;
-    track("tagtokyo_preview_feedback", { rating, topic });
+    track("tagtokyo_feedback", { rating, topic });
     setSent(true);
   }
 
   return <div className="settings-card feedback-card">
-    <div className="section-heading"><div><small>PREVIEW FEEDBACK</small><h3>このデモ、どうだった？</h3></div><Star /></div>
-    <p>個人情報なしで、仮公開の改善に使う評価だけ送れます。</p>
+    <div className="section-heading"><div><small>FEEDBACK</small><h3>使ってみて、どうだった？</h3></div><Star /></div>
+    <p>個人情報なしで、サービス改善に使う評価だけ送れます。</p>
     <div className="rating-row" aria-label="満足度">{[1, 2, 3, 4, 5].map((value) => <button key={value} className={rating && value <= rating ? "selected" : ""} onClick={() => { setRating(value); setSent(false); }} aria-label={`${value}点`}>{value}</button>)}</div>
     <label className="feedback-topic"><span>一番改善してほしいところ</span><select value={topic} onChange={(event) => { setTopic(event.target.value); setSent(false); }}>{topics.map((item) => <option key={item}>{item}</option>)}</select></label>
     <button className="primary-wide" disabled={!rating || sent} onClick={submit}>{sent ? "評価を受け付けました" : "匿名で評価を送る"}</button>
   </div>;
 }
 
-function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagicLink, growth, buyCosmetic, equipCosmetic, profile, setProfile, isOwner, liveEnabled, emailAuthenticated, consentReady, ageVerificationStatus }: {
-  verified: boolean;
-  setVerified: (value: boolean) => void;
+function MeScreen({ email, setEmail, authNotice, sendMagicLink, growth, buyCosmetic, equipCosmetic, profile, setProfile, isOwner, liveEnabled, emailAuthenticated, consentReady, ageVerificationStatus }: {
   email: string;
   setEmail: (value: string) => void;
   authNotice: string;
@@ -560,7 +471,7 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
     const reader = new FileReader();
     reader.onload = () => {
       setProfile({ ...profile, avatarDataUrl: String(reader.result) });
-      setPhotoNotice("この端末だけに写真プレビューを保存しました");
+      setPhotoNotice("この端末に写真を保存しました");
     };
     reader.readAsDataURL(file);
   }
@@ -603,15 +514,11 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
       <div className="settings-card">
         <h3>アカウント</h3>
         <label className="field"><span>メールアドレス</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /></label>
-        <button className="primary-wide" onClick={sendMagicLink}>{hasSupabase ? "ログインリンクを送る" : "プレビューモード"}</button>
+        <button className="primary-wide" onClick={sendMagicLink}>{hasSupabase ? "ログインリンクを送る" : "接続準備中"}</button>
         {authNotice && <p className="field-notice">{authNotice}</p>}
       </div>
       <div className="settings-card">
         <h3>安全と本人確認</h3>
-        <label className="setting-row">
-          <span><b>20歳以上の自己申告（プレビュー）</b><small>実交流の開始時は、別途公的な年齢確認を行います</small></span>
-          <input type="checkbox" checked={verified} onChange={(event) => setVerified(event.target.checked)} />
-        </label>
         <AgeVerificationPanel key={`${ageVerificationStatus}-${consentReady}`} authenticated={emailAuthenticated} consentReady={consentReady} initialStatus={ageVerificationStatus} profile={profile} />
         {isOwner && <a className="moderation-link" href={`${ASSET_PREFIX}/moderation/`}><ShieldCheck /><span><b>運営審査画面</b><small>提出画像の確認・承認・削除</small></span><ChevronRight /></a>}
         <button className="setting-link"><span>ブロックしたユーザー</span><ChevronRight /></button>
@@ -623,7 +530,7 @@ function MeScreen({ verified, setVerified, email, setEmail, authNotice, sendMagi
         <p>すれ違い判定だけに利用し、生の位置情報は数時間から24時間以内に削除します。他ユーザーへ現在地や正確な距離を公開しません。</p>
       </div>
       <div className={`settings-card launch-status ${liveEnabled ? "is-live" : ""}`}>
-        <div className="section-heading"><div><small>COMMUNITY STATUS</small><h3>{liveEnabled ? "限定ベータを運用中" : "安全なプレビューを公開中"}</h3></div><ShieldCheck /></div>
+        <div className="section-heading"><div><small>COMMUNITY STATUS</small><h3>{liveEnabled ? "限定ベータを運用中" : "コミュニティ開始準備中"}</h3></div><ShieldCheck /></div>
         <p>{liveEnabled ? "年齢確認済みの参加者だけが交流機能を利用できます。" : "実在ユーザー同士のTAG・MATCH・メッセージはまだ有効化していません。"}</p>
         <ul><li>現在地・正確な距離は非公開</li><li>ブロック・通報を常時利用可能</li><li>20歳未満は利用不可</li></ul>
       </div>
@@ -653,7 +560,6 @@ export default function TagTokyoApp() {
   const [session, setSession] = useState<TagSessionState>(INITIAL_SESSION);
   const [now, setNow] = useState(0);
   const [notice, setNotice] = useState("");
-  const [verified, setVerified] = useState(false);
   const [email, setEmail] = useState("");
   const [authNotice, setAuthNotice] = useState("");
   const [growth, setGrowth] = useState<GrowthState>(INITIAL_GROWTH);
@@ -671,11 +577,9 @@ export default function TagTokyoApp() {
   const [selectedLiveMatchId, setSelectedLiveMatchId] = useState<string | null>(null);
   const [liveLoading, setLiveLoading] = useState(false);
   const [liveError, setLiveError] = useState("");
-  const [demoMatches, setDemoMatches] = useState<CrossItem[]>([]);
   const [showMessageGate, setShowMessageGate] = useState(false);
   const [growthLoaded, setGrowthLoaded] = useState(false);
   const [dailyBonusNotice, setDailyBonusNotice] = useState("");
-  const crossings = useMemo(() => sampleCrossings(MY_TAGS), []);
   const liveEnabled = isLiveCommunityEnabled && databaseLiveEnabled;
 
   const refreshLiveCommunity = useCallback(async (userId: string) => {
@@ -778,13 +682,16 @@ export default function TagTokyoApp() {
   }, []);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("tagtokyo_growth_preview_v2");
+    window.localStorage.removeItem("tagtokyo_demo_matches_v1");
+    window.localStorage.removeItem("tagtokyo_growth_preview_v2");
+    window.localStorage.removeItem("tagtokyo_profile_preview_v1");
+    const saved = window.localStorage.getItem("tagtokyo_growth_v3");
     const timeout = window.setTimeout(() => {
       if (saved) {
         try {
           const restored = JSON.parse(saved) as GrowthState;
           setGrowth({ ...INITIAL_GROWTH, ...restored });
-        } catch { /* Ignore invalid preview state. */ }
+        } catch { /* Ignore invalid local state. */ }
       }
       setGrowthLoaded(true);
     }, 0);
@@ -792,7 +699,7 @@ export default function TagTokyoApp() {
   }, []);
 
   useEffect(() => {
-    if (growthLoaded) window.localStorage.setItem("tagtokyo_growth_preview_v2", JSON.stringify(growth));
+    if (growthLoaded) window.localStorage.setItem("tagtokyo_growth_v3", JSON.stringify(growth));
   }, [growth, growthLoaded]);
 
   useEffect(() => {
@@ -813,38 +720,24 @@ export default function TagTokyoApp() {
   }, [growth.lastDailyLoginDate, growthLoaded]);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("tagtokyo_profile_preview_v1");
+    const saved = window.localStorage.getItem("tagtokyo_profile_v2");
     if (!saved) return;
     try {
       const restored = JSON.parse(saved) as EditableProfile;
       const timeout = window.setTimeout(() => setProfile({ ...INITIAL_PROFILE, ...restored }), 0);
       return () => window.clearTimeout(timeout);
-    } catch { /* Ignore invalid preview state. */ }
+    } catch { /* Ignore invalid local state. */ }
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem("tagtokyo_profile_preview_v1", JSON.stringify(profile));
+    window.localStorage.setItem("tagtokyo_profile_v2", JSON.stringify(profile));
   }, [profile]);
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem("tagtokyo_demo_matches_v1");
-    if (!saved) return;
-    try {
-      const restored = JSON.parse(saved) as CrossItem[];
-      const timeout = window.setTimeout(() => setDemoMatches(restored), 0);
-      return () => window.clearTimeout(timeout);
-    } catch { /* Ignore invalid preview state. */ }
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem("tagtokyo_demo_matches_v1", JSON.stringify(demoMatches));
-  }, [demoMatches]);
 
   useEffect(() => {
     const client = supabase;
     if (!client) {
-      // Owner preview is useful locally, but a production URL must never grant it.
-      if (process.env.NODE_ENV !== "production" && new URLSearchParams(window.location.search).get("owner-preview") === "1") {
+      // Local owner access must never grant production privileges.
+      if (process.env.NODE_ENV !== "production" && new URLSearchParams(window.location.search).get("owner-check") === "1") {
         const timeout = window.setTimeout(() => setIsOwner(true), 0);
         return () => window.clearTimeout(timeout);
       }
@@ -871,7 +764,7 @@ export default function TagTokyoApp() {
       let { data } = await connectedClient.from("users").select("id,role,status,age_verified,age_verification_status,terms_accepted_at,privacy_accepted_at").eq("auth_user_id", user.id).maybeSingle();
       const pendingConsent = window.sessionStorage.getItem("tagtokyo_pending_message_consent_v1");
       if (data && pendingConsent && (!data.terms_accepted_at || !data.privacy_accepted_at)) {
-        const savedProfile = window.localStorage.getItem("tagtokyo_profile_preview_v1");
+        const savedProfile = window.localStorage.getItem("tagtokyo_profile_v2");
         let onboardingProfile = INITIAL_PROFILE;
         if (savedProfile) {
           try { onboardingProfile = { ...INITIAL_PROFILE, ...JSON.parse(savedProfile) as EditableProfile }; } catch { /* Use defaults. */ }
@@ -940,19 +833,14 @@ export default function TagTokyoApp() {
   }, [session.active, session.expiresAt]);
 
   async function startTag() {
-    if (!verified) {
-      setNotice("MEで20歳以上確認を完了してください");
-      setAuthNotice("TAG ONの前に20歳以上確認が必要です");
-      setTab("me");
+    if (!liveEnabled) {
+      setNotice("実ユーザー機能は現在準備中です");
       return;
     }
-    if (!liveEnabled) {
-      const startedAt = Date.now();
-      const expiresAt = startedAt + session.duration * 60 * 1000;
-      setNow(startedAt);
-      setSession((current) => ({ ...current, active: true, startedAt, expiresAt, areaLabel: "TOKYO DEMO" }));
-      setNotice("端末内プレビューでTAG ONを開始しました。位置情報と実在ユーザーへの通知は発生しません");
-      track("tagtokyo_preview_session_started", { duration_minutes: session.duration });
+    if (!liveMemberReady) {
+      setNotice("MEでメール認証と20歳以上確認を完了してください");
+      setAuthNotice("TAG ONの利用にはメール認証と20歳以上確認が必要です");
+      setTab("me");
       return;
     }
     setNotice("位置情報を確認しています…");
@@ -988,7 +876,7 @@ export default function TagTokyoApp() {
 
   async function sendMagicLink() {
     if (!hasSupabase || !supabase) {
-      setAuthNotice("Supabase接続前のため、現在は安全なUIプレビューです");
+      setAuthNotice("認証サーバーへ接続できません");
       return;
     }
     if (!email.includes("@")) {
@@ -1003,7 +891,7 @@ export default function TagTokyoApp() {
     setEmail(nextEmail);
     setShowMessageGate(false);
     if (!hasSupabase || !supabase) {
-      setAuthNotice("メール認証の本番接続を準備中です。公開プレビューではメッセージ送信はできません。");
+      setAuthNotice("メール認証の接続を準備中です。現在はメッセージを送信できません。");
       setTab("me");
       return;
     }
@@ -1086,7 +974,7 @@ export default function TagTokyoApp() {
       equippedBackground: item.slot === "background" ? id : current.equippedBackground,
       equippedTitle: item.slot === "title" ? id : current.equippedTitle,
     }));
-    track(isOwner ? "tagtokyo_owner_cosmetic_previewed" : "tagtokyo_cosmetic_exchanged", { cosmetic_id: id, exp_cost: isOwner ? 0 : item.cost });
+    track(isOwner ? "tagtokyo_owner_cosmetic_unlocked" : "tagtokyo_cosmetic_exchanged", { cosmetic_id: id, exp_cost: isOwner ? 0 : item.cost });
   }
 
   function equipCosmetic(id: string) {
@@ -1101,24 +989,16 @@ export default function TagTokyoApp() {
     track("tagtokyo_cosmetic_equipped", { cosmetic_id: id });
   }
 
-  function createDemoMatch(profile: CrossItem) {
-    setDemoMatches((current) => current.some((item) => item.id === profile.id) ? current : [profile, ...current]);
-    setNotice(`${profile.displayName}さんとDEMO MATCHが成立しました`);
-    track("tagtokyo_demo_tagged", { profile_id: profile.id });
-  }
-
   return (
     <main className="app-shell">
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>PLAY BETA</small></div>
       {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={startTag} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} />}
-      {tab === "cross" && (liveEnabled && liveMemberReady
-        ? <LiveCrossScreen crossings={liveCrossings} onTag={sendLiveTag} error={liveError} />
-        : <CrossScreen crossings={crossings} taggedIds={demoMatches.map((item) => item.id)} onTag={createDemoMatch} />)}
+      {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} onTag={sendLiveTag} error={liveError} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} />}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={setSelectedLiveMatchId} onSend={sendLiveMessage} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
-        : <MatchScreen matches={demoMatches} onClear={() => setDemoMatches([])} messageAccessReady={isEmailAuthenticated} onRequireEmail={() => setShowMessageGate(true)} />)}
-      {tab === "me" && <MeScreen verified={verified} setVerified={setVerified} email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} isOwner={isOwner} liveEnabled={liveEnabled} emailAuthenticated={isEmailAuthenticated} consentReady={consentReady} ageVerificationStatus={ageVerificationStatus} />}
+        : <MatchScreen />)}
+      {tab === "me" && <MeScreen email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} isOwner={isOwner} liveEnabled={liveEnabled} emailAuthenticated={isEmailAuthenticated} consentReady={consentReady} ageVerificationStatus={ageVerificationStatus} />}
       <BottomNav tab={tab} onChange={(next) => {
         setTab(next);
         window.scrollTo({ top: 0, behavior: "instant" });

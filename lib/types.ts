@@ -1,24 +1,6 @@
 export type TabId = "home" | "cross" | "map" | "match" | "me";
 export type TagDuration = 30 | 60 | 180;
 
-export type DemoProfile = {
-  id: string;
-  displayName: string;
-  age: number;
-  gender: "woman" | "man";
-  occupation: string;
-  bio: string;
-  activityArea: string;
-  tags: string[];
-  avatarIndex: number;
-  isDemo: true;
-};
-
-export type CrossItem = DemoProfile & {
-  crossedLabel: string;
-  sharedTags: string[];
-};
-
 export type LiveMatch = {
   id: string;
   otherUserId: string;
@@ -89,10 +71,6 @@ export type TokyoArea = {
   name: string;
   x: number;
   y: number;
-  champion: string;
-  championPoints: number;
-  championLevel: number;
-  isDemo: true;
 };
 
 export type TagSpot = {

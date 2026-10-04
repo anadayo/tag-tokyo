@@ -1,6 +1,6 @@
 # TAG TOKYO live-beta runbook
 
-This runbook is for a real-user limited beta. It is not a checklist for turning on a demo.
+This runbook is for a real-user limited beta. Fabricated users and rankings are not used.
 
 ## Hard launch gate
 
@@ -9,7 +9,7 @@ All of these must be complete before `NEXT_PUBLIC_TAG_TOKYO_LIVE_ENABLED=true` i
 1. Keep service-role keys out of GitHub Pages. Client moderation actions must use authenticated Supabase RPC and RLS only; scheduled cleanup and alerts must run in Supabase Edge Functions or another server runtime.
 2. The owner has obtained legal advice on whether the planned service falls within the Internet Dating Introduction Business rules, and has completed any required notification.
 3. An operator reviews the masked government-ID image and confirms the required three fields before `users.age_verified` and `age_verification_status` change to verified. The app never accepts a checkbox, birth-date form, or client claim as proof.
-4. Migrations through `014_age_verification_notifications.sql` have been applied in a production Supabase project. RLS, upload, review, decision email, evidence deletion, mutual-TAG messaging, rate limits, block, and report flows have been tested using separate member and moderator accounts.
+4. Migrations through `015_remove_demo_data.sql` have been applied in a production Supabase project. RLS, upload, review, decision email, evidence deletion, mutual-TAG messaging, rate limits, block, and report flows have been tested using separate member and moderator accounts.
 5. One owner and at least one moderator have been assigned. They have rehearsed report review, user pause, restoration, deletion requests, and an urgent service stop.
 6. Terms, privacy policy, contact channel, retention periods, and prohibited conduct are reviewed by the owner and published with version numbers.
 7. The owner records the review in `live_launch_controls`; database control remains `false` until the final go/no-go decision.
@@ -51,7 +51,7 @@ The client environment flag alone does not authorise live interactions. The data
 ## Emergency stop
 
 1. Set `live_launch_controls.live_interactions_enabled` to `false` using an owner-only operator procedure.
-2. Remove the deploy-time `NEXT_PUBLIC_TAG_TOKYO_LIVE_ENABLED` flag and deploy the preview build.
+2. Remove the deploy-time `NEXT_PUBLIC_TAG_TOKYO_LIVE_ENABLED` flag and deploy the inactive build.
 3. Stop scheduled crossing detection.
 4. Record the incident without copying sensitive evidence into Notion.
 5. Restore only after the owner documents the cause and verifies the fix.
