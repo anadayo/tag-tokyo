@@ -17,6 +17,8 @@ type ReviewRequest = {
   evidence_deleted_at: string | null;
 };
 
+type ReviewChecks = { age: boolean; document: boolean; issuer: boolean };
+
 const DOCUMENT_LABELS: Record<string, string> = {
   drivers_license: "運転免許証",
   passport: "パスポート",
@@ -30,6 +32,14 @@ export function ModerationDashboard() {
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [checks, setChecks] = useState<Record<string, ReviewChecks>>({});
+
+  function setCheck(requestId: string, key: keyof ReviewChecks, value: boolean) {
+    setChecks((current) => {
+      const previous = current[requestId] ?? { age: false, document: false, issuer: false };
+      return { ...current, [requestId]: { ...previous, [key]: value } };
+    });
+  }
 
   const load = useCallback(async () => {
     if (!supabase) return setAllowed(false);
@@ -60,8 +70,9 @@ export function ModerationDashboard() {
 
   async function review(item: ReviewRequest, approved: boolean) {
     if (!supabase || item.status !== "pending") return;
-    const note = approved ? "20歳以上を確認" : window.prompt("却下理由を入力してください（個人情報は書かない）", "必要な3項目を確認できません")?.trim();
-    if (!approved && !note) return;
+    const itemChecks = checks[item.id] ?? { age: false, document: false, issuer: false };
+    if (approved && !Object.values(itemChecks).every(Boolean)) return setNotice("承認前に3項目すべてを確認してください");
+    const note = approved ? "20歳以上・証明書名・発行者名を確認" : "必要な3項目を確認できないため再提出";
     setBusy(item.id);
     setNotice("");
     const { data: objectPath, error: reviewError } = await supabase.rpc("review_age_verification", { p_request_id: item.id, p_approved: approved, p_note: note });
@@ -77,8 +88,11 @@ export function ModerationDashboard() {
       return void load();
     }
     const { error: markError } = await supabase.rpc("mark_age_evidence_deleted", { p_request_id: item.id });
+    const { error: emailError } = await supabase.functions.invoke("send-age-verification-notifications");
     setBusy(null);
-    setNotice(markError ? `画像は削除済みですが削除記録の更新に失敗しました: ${markError.message}` : `${approved ? "承認" : "却下"}し、画像原本を削除しました`);
+    if (markError) setNotice(`画像は削除済みですが削除記録の更新に失敗しました: ${markError.message}`);
+    else if (emailError) setNotice(`${approved ? "承認" : "却下"}と画像削除は完了しました。メールは送信待ちです。`);
+    else setNotice(`${approved ? "承認・利用解放" : "却下"}、画像削除、定型メール送信が完了しました`);
     await load();
   }
 
@@ -100,7 +114,14 @@ export function ModerationDashboard() {
             // eslint-disable-next-line @next/next/no-img-element -- short-lived private signed URL.
             ? <img className="evidence-image" src={imageUrls[item.id]} alt="年齢確認の提出画像" />
             : <div className="evidence-deleted"><ShieldAlert />画像を表示できません</div>}
-        {item.status === "pending" && <div className="review-actions"><button disabled={busy === item.id} onClick={() => void review(item, false)}><X />却下</button><button disabled={busy === item.id} onClick={() => void review(item, true)}><Check />20歳以上を承認</button></div>}
+        {item.status === "pending" && <>
+          <div className="review-checklist" aria-label="承認条件">
+            <label><input type="checkbox" checked={checks[item.id]?.age ?? false} onChange={(event) => setCheck(item.id, "age", event.target.checked)} /><span><b>20歳以上</b><small>年齢または生年月日で確認</small></span></label>
+            <label><input type="checkbox" checked={checks[item.id]?.document ?? false} onChange={(event) => setCheck(item.id, "document", event.target.checked)} /><span><b>証明書名</b><small>公的証明書の種類を確認</small></span></label>
+            <label><input type="checkbox" checked={checks[item.id]?.issuer ?? false} onChange={(event) => setCheck(item.id, "issuer", event.target.checked)} /><span><b>発行者名</b><small>公的機関の発行を確認</small></span></label>
+          </div>
+          <div className="review-actions"><button disabled={busy === item.id} onClick={() => void review(item, false)}><X />再提出を依頼</button><button disabled={busy === item.id || !Object.values(checks[item.id] ?? {}).every(Boolean) || Object.keys(checks[item.id] ?? {}).length !== 3} onClick={() => void review(item, true)}><Check />承認して利用解放</button></div>
+        </>}
         {item.status !== "pending" && <p className="review-note">{item.review_note || "審査メモなし"}</p>}
       </article>)}
     </section>

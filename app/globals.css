@@ -368,6 +368,12 @@ button { color: inherit; }
 .evidence-image { display: block; width: 100%; max-height: 560px; object-fit: contain; border-radius: 6px; background: #eee; }
 .evidence-deleted { min-height: 100px; display: grid; place-items: center; align-content: center; gap: 5px; border-radius: 6px; background: #f1eeee; color: var(--muted); font-size: 10px; }
 .evidence-deleted svg { width: 21px; }
+.review-checklist { margin-top: 11px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.review-checklist label { min-height: 58px; padding: 9px; display: flex; align-items: flex-start; gap: 7px; border: 1px solid var(--line); border-radius: 7px; background: #faf8f7; }
+.review-checklist input { width: 17px; height: 17px; margin: 0; flex: 0 0 auto; accent-color: var(--mint); }
+.review-checklist span { display: grid; gap: 2px; }
+.review-checklist b { font-size: 9px; }
+.review-checklist small { color: var(--muted); font-size: 7px; line-height: 1.4; }
 .review-actions { display: grid; grid-template-columns: .8fr 1.2fr; gap: 8px; margin-top: 11px; }
 .review-actions button { height: 42px; display: flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid var(--line); border-radius: 7px; background: white; font-size: 10px; font-weight: 800; }
 .review-actions button:last-child { border-color: var(--ink); background: var(--ink); color: white; }
@@ -473,6 +479,7 @@ button { color: inherit; }
   .tag-orbit { width: 226px; height: 226px; }
   .tag-power { width: 192px; height: 192px; }
   .photo-wrap { height: 300px; }
+  .review-checklist { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tag-orbit.is-on, .tag-orbit.is-on .tag-power, .reward-modal, .celebration-stars svg { animation: none; }

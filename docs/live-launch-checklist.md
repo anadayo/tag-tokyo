@@ -8,7 +8,7 @@ TAG TOKYO is free to use, but live matching must not be enabled until every item
 - Complete the operator manual image review defined in `013_manual_age_verification.sql` before live participation. A self-declaration checkbox or birth-date form is only for preview mode.
 - Publish terms, privacy policy, location-data purpose, retention period, and a contact channel before collecting real profile or location data.
 - Assign an owner for report review, urgent escalation, account suspension, and law-enforcement contact. Test those actions end to end.
-- Apply and test every Supabase migration through `013_manual_age_verification.sql`, RLS policy, messaging RPC, private evidence deletion, scheduled deletion job, private photo bucket, and backup/incident procedure in the production project.
+- Apply and test every Supabase migration through `014_age_verification_notifications.sql`, RLS policy, messaging RPC, decision email, private evidence deletion, scheduled deletion job, private photo bucket, and backup/incident procedure in the production project.
 - Keep both `NEXT_PUBLIC_TAG_TOKYO_LIVE_ENABLED` and `live_launch_controls.live_interactions_enabled` false until all checks are signed off by the owner.
 - Rehearse report review, account pause, deletion request, and the emergency stop with distinct member and moderator accounts.
 

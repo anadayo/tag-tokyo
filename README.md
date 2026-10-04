@@ -38,6 +38,10 @@ Supabase未設定でも、位置情報を外部送信しないプレビューモ
 
 実メッセージは相互TAGで成立したマッチ内だけで利用できます。`010_live_messaging.sql` は、サーバー側の参加資格確認、直接INSERT禁止、重複・連投制限、ブロック、通報、Realtime配信を追加します。`011_profile_onboarding_alignment.sql` は認証後のプロフィール登録条件をUIと揃え、`012_report_write_hardening.sql` は通報を検証済みRPC経由に限定します。`013_manual_age_verification.sql` は、加工済み身分証画像を使う運営確認、非公開Storage、審査RPC、原本削除記録を追加します。
 
+`014_age_verification_notifications.sql` と `send-age-verification-notifications` は、承認・再提出判定を通知キューへ記録し、設定済みの送信元から定型メールを送ります。メール送信に失敗しても審査結果は失われず、安全に再送できます。
+
+審査は [age verification review policy](docs/age-verification-review-policy.md) の客観的な3項目だけで行い、不鮮明・判断不能なケースは推測せずオーナー確認へ回します。
+
 GitHub Pages の静的公開はこの安全デモ専用です。本番の年齢確認結果・管理者操作・通知は秘密鍵を必要とするため、Supabase Edge Functions 等を含むサーバー実行環境へ移行してから扱います。
 
 オーナー確認用URLでは全プロフィール項目と装飾を試着できます。本番のオーナー権限は `users.role = 'owner'` のアカウントだけに付与され、一般ユーザーのEXPやエリアランキング条件は変更しません。
