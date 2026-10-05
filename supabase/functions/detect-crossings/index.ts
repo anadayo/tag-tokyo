@@ -10,7 +10,7 @@ Deno.serve(async (request) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
   const { data, error } = await client.rpc("detect_crossings_private", {
-    p_radius_meters: 500,
+    p_radius_meters: 1000,
     p_overlap_minutes: 3,
   });
   if (error) return Response.json({ error: error.message }, { status: 500 });

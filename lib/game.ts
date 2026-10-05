@@ -1,6 +1,8 @@
 import type { GrowthState, TagSpot, TokyoArea } from "@/lib/types";
 
-export const LEVEL_THRESHOLDS = [0, 100, 300, 600, 1000, 1450, 2000, 2500, 3200, 4100, 5200, 6500];
+export const LEVEL_THRESHOLDS = Array.from({ length: 100 }, (_, index) =>
+  Math.ceil(30000 * Math.pow(index / 99, 1.35)),
+);
 
 export const INITIAL_GROWTH: GrowthState = {
   totalEarnedExp: 0,

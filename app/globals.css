@@ -58,6 +58,11 @@ button { color: inherit; }
 .duration-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; padding: 5px; border: 1px solid var(--line); border-radius: 12px; background: #f8f5f5; }
 .duration-group button { height: 38px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; font-size: 12px; font-weight: 800; }
 .duration-group button.active { color: var(--ink); background: white; box-shadow: 0 3px 10px rgba(40,30,33,.08); }
+.tag-session-rule { min-height: 52px; padding: 10px 12px; display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 8px; background: white; }
+.tag-session-rule > svg { width: 18px; color: var(--mint); }
+.tag-session-rule span { display: grid; gap: 2px; }
+.tag-session-rule b { font-size: 11px; }
+.tag-session-rule small { color: var(--muted); font-size: 8px; line-height: 1.45; }
 .notice { margin-top: 12px; padding: 11px 12px; border-radius: 8px; background: #fff5d8; color: #6b5010; font-size: 12px; font-weight: 700; }
 .privacy-strip { margin-top: 16px; padding: 14px; display: flex; align-items: center; gap: 12px; text-align: left; border-radius: 10px; background: var(--mint-soft); color: #0a704d; }
 .privacy-strip svg { width: 25px; flex: 0 0 auto; }
@@ -140,6 +145,11 @@ button { color: inherit; }
 .compact-tags { margin-top: 8px; }
 .compact-tags span { background: #f2eeee; color: #5f585b; }
 .discovery-copy .common-tag-count { display: block; margin-top: 5px; color: #b43b45; font-size: 8px; font-weight: 900; }
+.activity-status { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; color: var(--muted); font-size: 8px; font-weight: 800; }
+.activity-status i { width: 7px; height: 7px; border-radius: 50%; background: #9d9699; }
+.activity-status.is-recent i { background: #20b978; }
+.activity-status.is-away i { background: #e0a826; }
+.activity-status.is-inactive i { background: #9d9699; }
 .discovery-like { grid-column: 1 / -1; height: 38px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 7px; background: var(--coral); color: white; font-size: 10px; font-weight: 900; }
 .discovery-like svg { width: 15px; fill: currentColor; }
 .discovery-like:disabled { background: #ebe6e7; color: #817a7d; }

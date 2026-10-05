@@ -18,7 +18,7 @@ import type { AreaChampion, DailyMission, DiscoveryProfile, EditableProfile, Gro
 
 const INITIAL_SESSION: TagSessionState = {
   active: false,
-  duration: 60,
+  duration: 30,
   startedAt: null,
   expiresAt: null,
   areaLabel: null,
@@ -155,10 +155,9 @@ function DailyMissionBoard({ missions }: { missions: DailyMission[] }) {
   </section>;
 }
 
-function HomeScreen({ session, now, setDuration, start, stop, notice, growth, dailyBonusNotice, showGuide, dismissGuide, missions, streak }: {
+function HomeScreen({ session, now, start, stop, notice, growth, dailyBonusNotice, showGuide, dismissGuide, missions, streak }: {
   session: TagSessionState;
   now: number;
-  setDuration: (duration: TagDuration) => void;
   start: () => void;
   stop: () => void;
   notice: string;
@@ -193,18 +192,7 @@ function HomeScreen({ session, now, setDuration, start, stop, notice, growth, da
         </button>
       </div>
 
-      <div className="duration-group" aria-label="TAG ON時間">
-        {([30, 60, 180] as TagDuration[]).map((duration) => (
-          <button
-            key={duration}
-            className={session.duration === duration ? "active" : ""}
-            disabled={session.active}
-            onClick={() => setDuration(duration)}
-          >
-            {duration === 180 ? "3時間" : `${duration}分`}
-          </button>
-        ))}
-      </div>
+      <div className="tag-session-rule"><Clock3 /><span><b>1回30分</b><small>位置情報は30分で自動OFF。続ける場合はもう一度TAG ONしてください。</small></span></div>
 
       {notice && <div className="notice" role="status">{notice}</div>}
       {dailyBonusNotice && <div className="daily-bonus" role="status"><Gift /><span><b>{dailyBonusNotice}</b><small>毎日最初のアクセスで受け取れます</small></span></div>}
@@ -396,6 +384,11 @@ function OfficialBadge() {
   return <span className="official-badge" title="TAG TOKYO公認・管理人"><BadgeCheck />公認・管理人</span>;
 }
 
+function ActivityStatus({ status }: { status: "recent" | "away" | "inactive" }) {
+  const label = status === "recent" ? "最近利用" : status === "away" ? "しばらく前に利用" : "90日以上利用なし";
+  return <span className={`activity-status is-${status}`}><i aria-hidden="true" />{label}</span>;
+}
+
 function LiveCrossScreen({ crossings, recommendations, officialProfile, memberReady, liveEnabled, onTag, onLike, onRequireAccount, error, showGuide, onDismissGuide }: {
   crossings: LiveCrossing[];
   recommendations: DiscoveryProfile[];
@@ -417,10 +410,10 @@ function LiveCrossScreen({ crossings, recommendations, officialProfile, memberRe
       <div className="section-heading"><div><small>RECOMMENDED</small><h3 id="discovery-title">おすすめ</h3></div><Heart /></div>
       {!liveEnabled ? <div className="discovery-gate"><LockKeyhole /><span><b>マッチ機能は開始準備中です</b><small>安全設定の完了後、実在ユーザーだけを表示します</small></span></div>
         : !memberReady ? <div className="discovery-gate"><ShieldCheck /><span><b>プロフィールを見るには本人確認が必要です</b><small>メール認証・規約同意・20歳以上確認を完了してください</small></span><button onClick={onRequireAccount}>設定へ</button></div>
-          : recommendations.length === 0 ? <div className="discovery-gate"><UsersRound /><span><b>新しいプロフィールを待っています</b><small>条件を満たす実在ユーザーが登録されると表示されます</small></span></div>
+          : recommendations.length === 0 ? <div className="discovery-gate"><UsersRound /><span><b>新しいプロフィールを待っています</b><small>異性・共通TAG 5個以上の条件を満たす実在ユーザーだけを表示します</small></span></div>
             : <div className="discovery-grid">{recommendations.map((profile) => <article className={`discovery-card ${profile.isOfficial ? "is-official" : ""}`} key={profile.userId}>
               <div className="discovery-avatar">{profile.displayName.slice(0, 1)}</div>
-              <div className="discovery-copy">{profile.isOfficial && <OfficialBadge />}<h3>{profile.displayName}</h3><small>{profile.handle ? `@${profile.handle}` : "TAG TOKYOメンバー"} · {profile.activityStatus === "recent" ? "最近利用" : profile.activityStatus === "away" ? "しばらく前に利用" : "30日以上利用なし"}</small><p>{profile.bio || "プロフィールを見て、気になったらいいねを送れます。"}</p>{profile.tags.length > 0 && <div className="profile-tags compact-tags">{[...profile.primaryTags, ...profile.tags.filter((tag) => !profile.primaryTags.includes(tag))].slice(0, 5).map((tag) => <span key={tag} className={profile.primaryTags.includes(tag) ? "primary" : ""}>#{tag}</span>)}</div>}{profile.commonTagCount > 0 && <small className="common-tag-count">共通タグ {profile.commonTagCount}</small>}</div>
+              <div className="discovery-copy">{profile.isOfficial && <OfficialBadge />}<h3>{profile.displayName}</h3><small>{profile.handle ? `@${profile.handle}` : "TAG TOKYOメンバー"}</small><ActivityStatus status={profile.activityStatus} /><p>{profile.bio || "プロフィールを見て、気になったらいいねを送れます。"}</p>{profile.tags.length > 0 && <div className="profile-tags compact-tags">{[...profile.primaryTags, ...profile.tags.filter((tag) => !profile.primaryTags.includes(tag))].slice(0, 5).map((tag) => <span key={tag} className={profile.primaryTags.includes(tag) ? "primary" : ""}>#{tag}</span>)}</div>}{profile.commonTagCount > 0 && <small className="common-tag-count">共通タグ {profile.commonTagCount}</small>}</div>
               <button className="discovery-like" disabled={profile.liked} onClick={() => void onLike(profile)}><Heart />{profile.liked ? "送信済み" : "いいね"}</button>
             </article>)}</div>}
     </section>
@@ -428,7 +421,7 @@ function LiveCrossScreen({ crossings, recommendations, officialProfile, memberRe
     {showWelcomeOnly && <article className="live-cross-card official-profile-card"><div className="chat-avatar">{officialProfile.displayName.slice(0, 1)}</div><div><OfficialBadge /><h3>{officialProfile.displayName}</h3><p>{officialProfile.handle ? `@${officialProfile.handle} · ${officialProfile.bio || "TAG TOKYOを運営しています"}` : officialProfile.bio || "TAG TOKYOを運営しています"}</p></div><span className="official-profile-label">WELCOME</span></article>}
     <div className="cross-section-title"><Sparkles /><span><b>CROSS</b><small>街で近くにいた人</small></span></div>
     {crossings.length === 0 ? <div className="empty-state"><div className="empty-icon"><Sparkles /></div><h3>新しいCROSSを待っています</h3><p>東京都内でTAG ONにすると、近くにいた年齢確認済みユーザーが後から表示されます。</p></div> : <div className="live-cross-list">
-      {crossings.map((crossing) => <article className={`live-cross-card ${crossing.isOfficial ? "official-profile-card" : ""}`} key={crossing.id}><div className="chat-avatar">{crossing.displayName.slice(0, 1)}</div><div><small>{crossing.areaLabel} · 20歳以上確認済み · 共通タグ {crossing.commonTagCount}</small><h3>{crossing.displayName} {crossing.isOfficial && <OfficialBadge />}</h3><p>{crossing.handle ? `@${crossing.handle}` : crossing.bio || "プロフィールを確認してTAGできます"}</p>{crossing.primaryTags.length > 0 && <div className="profile-tags compact-tags">{crossing.primaryTags.map((tag) => <span className="primary" key={tag}>#{tag}</span>)}</div>}</div><button disabled={crossing.tagged} onClick={() => void onTag(crossing)}><Sparkles />{crossing.tagged ? "TAG済み" : "TAG"}</button></article>)}
+      {crossings.map((crossing) => <article className={`live-cross-card ${crossing.isOfficial ? "official-profile-card" : ""}`} key={crossing.id}><div className="chat-avatar">{crossing.displayName.slice(0, 1)}</div><div><small>{crossing.areaLabel} · 1km以内 · 20歳以上確認済み</small><h3>{crossing.displayName} {crossing.isOfficial && <OfficialBadge />}</h3><ActivityStatus status={crossing.activityStatus} /><p>{crossing.handle ? `@${crossing.handle}` : crossing.bio || "プロフィールを確認してTAGできます"}</p>{crossing.primaryTags.length > 0 && <div className="profile-tags compact-tags">{crossing.primaryTags.map((tag) => <span className="primary" key={tag}>#{tag}</span>)}</div>}<small className="common-tag-count">共通タグ {crossing.commonTagCount}</small></div><button disabled={crossing.tagged} onClick={() => void onTag(crossing)}><Sparkles />{crossing.tagged ? "TAG済み" : "TAG"}</button></article>)}
     </div>}
     {error && <p className="chat-error" role="alert">{error}</p>}
   </section>;
@@ -517,7 +510,7 @@ function LiveMatchScreen({
       {matches.map((match) => <button key={match.id} className={selectedMatch.id === match.id ? "active" : ""} onClick={() => { onSelect(match.id); setShowSafety(false); }}><span>{match.displayName.slice(0, 1)}{match.unreadCount > 0 && <em>{match.unreadCount}</em>}</span><b>{match.displayName}{match.isOfficial && <BadgeCheck aria-label="公式" />}</b></button>)}
     </div>
     <div className="chat-card">
-      <header className="chat-header"><div className="chat-avatar">{selectedMatch.displayName.slice(0, 1)}</div><div><b>{selectedMatch.displayName} {selectedMatch.isOfficial && <OfficialBadge />}</b><small>{selectedMatch.handle ? `@${selectedMatch.handle} · ` : ""}{selectedMatch.activityStatus === "recent" ? "最近利用" : selectedMatch.activityStatus === "away" ? "しばらく前に利用" : "30日以上利用なし"}</small></div><button aria-label="安全メニュー" onClick={() => setShowSafety((value) => !value)}><ShieldCheck /></button></header>
+      <header className="chat-header"><div className="chat-avatar">{selectedMatch.displayName.slice(0, 1)}</div><div><b>{selectedMatch.displayName} {selectedMatch.isOfficial && <OfficialBadge />}</b><small>{selectedMatch.handle ? `@${selectedMatch.handle}` : "相互いいねでマッチ"}</small><ActivityStatus status={selectedMatch.activityStatus} /></div><button aria-label="安全メニュー" onClick={() => setShowSafety((value) => !value)}><ShieldCheck /></button></header>
       {showSafety && <div className="chat-safety-panel">
         <b>安全メニュー</b>
         <label><span>通報理由</span><select value={reportReason} onChange={(event) => setReportReason(event.target.value)}><option value="harassment">迷惑行為・嫌がらせ</option><option value="impersonation">なりすまし</option><option value="solicitation">勧誘・営業</option><option value="unsafe">危険を感じる行為</option><option value="other">その他</option></select></label>
@@ -1773,7 +1766,7 @@ export default function TagTokyoApp() {
   return (
     <main className="app-shell">
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>TOKYO SOCIAL</small></div>
-      {tab === "home" && <HomeScreen session={session} now={now} setDuration={(duration) => setSession((current) => ({ ...current, duration }))} start={requestTagStart} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} />}
+      {tab === "home" && <HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} />}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => setTab("me")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} />}
       {tab === "match" && (liveEnabled
