@@ -771,7 +771,7 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, request
       </div>
       <div className={`settings-card launch-status ${liveEnabled ? "is-live" : ""}`}>
         <div className="section-heading"><div><small>COMMUNITY STATUS</small><h3>{liveEnabled ? "正式サービス運用中" : "正式公開の最終準備中"}</h3></div><ShieldCheck /></div>
-        <p>{liveEnabled ? "年齢確認済みの参加者だけが交流機能を利用できます。" : "実在ユーザー同士のTAG・MATCH・メッセージはまだ有効化していません。"}</p>
+        <p>{liveEnabled ? "年齢確認済みの参加者だけが交流機能を利用できます。" : "プロフィール作成と街歩き機能を公開中です。実在ユーザー同士のTAG・MATCH・メッセージは届出確認後に有効化します。"}</p>
         <ul><li>現在地・正確な距離は非公開</li><li>ブロック・通報を常時利用可能</li><li>20歳未満は利用不可</li></ul>
       </div>
       <FeedbackPanel />

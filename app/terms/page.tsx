@@ -1,4 +1,4 @@
-import { publicOperator, publicOperatorReady } from "@/lib/public-operator";
+import { publicContactReady, publicOperator } from "@/lib/public-operator";
 
 export default function TermsPage() {
   return <main className="policy-page">
@@ -17,8 +17,8 @@ export default function TermsPage() {
     <h2>6. 免責と変更</h2>
     <p>運営は安全対策に努めますが、利用者間のやり取りや対面時の安全を保証するものではありません。重要な変更はサービス上で告知し、必要な場合は改めて同意を取得します。</p>
     <h2>7. 運営窓口</h2>
-    {publicOperatorReady
-      ? <p>運営者: {publicOperator.name}<br />問い合わせ: <a href={`mailto:${publicOperator.contact}`}>{publicOperator.contact}</a><br />インターネット異性紹介事業 届出受理番号: {publicOperator.notificationNumber}</p>
-      : <p>運営者情報、公開問い合わせ窓口、届出受理番号は現在設定中です。これらの掲示が完了するまで実在ユーザー間の交流機能は開始しません。</p>}
+    {publicContactReady
+      ? <p>運営者: {publicOperator.name}<br />問い合わせ: <a href={`mailto:${publicOperator.contact}`}>{publicOperator.contact}</a><br />インターネット異性紹介事業 届出受理番号: {publicOperator.notificationNumber || "確認中（実交流機能は停止中）"}</p>
+      : <p>運営者情報と公開問い合わせ窓口は現在設定中です。掲示が完了するまで実在ユーザー間の交流機能は開始しません。</p>}
   </main>;
 }

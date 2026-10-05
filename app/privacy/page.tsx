@@ -1,4 +1,4 @@
-import { publicOperator, publicOperatorReady } from "@/lib/public-operator";
+import { publicContactReady, publicOperator } from "@/lib/public-operator";
 
 export default function PrivacyPage() {
   return <main className="policy-page">
@@ -15,7 +15,7 @@ export default function PrivacyPage() {
     <h2>5. 開示・訂正・削除</h2>
     <p>利用者はサービス内の退会・削除申請から、保有情報の削除を申請できます。法令上または安全対応上の保存義務がある記録を除き、確認後に処理します。</p>
     <h2>6. 問い合わせ</h2>
-    {publicOperatorReady
+    {publicContactReady
       ? <p>運営者: {publicOperator.name}<br />個人情報に関する問い合わせ: <a href={`mailto:${publicOperator.contact}`}>{publicOperator.contact}</a></p>
       : <p>運営者情報と公開問い合わせ窓口は現在設定中です。掲示が完了するまで実在ユーザー間の交流機能は開始しません。</p>}
   </main>;
