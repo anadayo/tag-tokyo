@@ -235,6 +235,8 @@ button { color: inherit; }
 .avatar-camera { position: absolute; right: -3px; bottom: -3px; width: 21px; height: 21px; display: grid; place-items: center; border: 2px solid white; border-radius: 50%; background: var(--coral); color: white; }
 .avatar-camera svg { width: 11px; }
 .photo-notice { display: block; margin-top: 4px; color: #087d55; font-size: 8px; line-height: 1.4; }
+.profile-area { margin-top: 5px; display: flex; align-items: center; gap: 3px; color: var(--muted); font-size: 8px; font-weight: 800; }
+.profile-area svg { width: 10px; height: 10px; }
 .me-card h3, .me-card p { margin: 0; }
 .me-card p { margin-top: 3px; color: var(--muted); font-size: 10px; }
 .me-card button { border: 0; background: transparent; }
@@ -251,6 +253,8 @@ button { color: inherit; }
 .profile-showcase.equip-background-night button svg { color: white; }
 .me-avatar.equip-frame-mint { box-shadow: 0 0 0 4px white, 0 0 0 7px var(--mint); }
 .me-avatar.equip-frame-coral { box-shadow: 0 0 0 4px white, 0 0 0 7px var(--coral); }
+.me-avatar.equip-frame-level-100 { box-shadow: 0 0 0 4px white, 0 0 0 7px #d6ab31; }
+.profile-showcase.equip-background-level-100 { border-color: #d6ab31; background: #fff4f0; }
 .equipped-title { display: block; margin-bottom: 4px; color: #a16b00; font-size: 8px; font-weight: 900; }
 .profile-showcase.equip-background-night .equipped-title { color: var(--yellow); }
 .settings-card { margin-top: 14px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: white; }

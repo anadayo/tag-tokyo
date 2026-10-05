@@ -616,6 +616,7 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, request
   const profileFields: Array<{ key: keyof EditableProfile; label: string; level: number; placeholder: string; long?: boolean }> = [
     { key: "displayName", label: "表示名", level: 1, placeholder: "表示名" },
     { key: "handle", label: "ユーザーID", level: 1, placeholder: "5〜15文字の英数字または _" },
+    { key: "activityArea", label: "よく行くエリア", level: 1, placeholder: "北千住・綾瀬・上野など" },
     { key: "bio", label: "自己紹介", level: 1, placeholder: "あなたらしさが伝わる自己紹介", long: true },
     { key: "weekend", label: "休日の過ごし方", level: 3, placeholder: "休日は何をしていますか？", long: true },
     { key: "romance", label: "恋愛観", level: 5, placeholder: "どんな関係を築きたいですか？", long: true },
@@ -647,11 +648,12 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, request
     }
     const nextProfile = { ...draft, displayName: draft.displayName.trim().slice(0, 50) || "あなた", handle };
     if (emailAuthenticated && supabase) {
-      let { error } = await supabase.rpc("update_member_profile_v2", {
+      let { error } = await supabase.rpc("update_member_profile_v3", {
         p_display_name: nextProfile.displayName,
         p_handle: nextProfile.handle,
         p_bio: nextProfile.bio,
         p_gender: nextProfile.gender,
+        p_activity_area: nextProfile.activityArea,
         p_weekend: nextProfile.weekend,
         p_romance_view: nextProfile.romance,
         p_contact_frequency: nextProfile.contactFrequency,
@@ -662,14 +664,32 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, request
         p_marriage_view: nextProfile.marriageView,
         p_extra_bio: nextProfile.extraBio,
       });
+      if (error?.message.includes("update_member_profile_v3")) {
+        const v2Fallback = await supabase.rpc("update_member_profile_v2", {
+          p_display_name: nextProfile.displayName,
+          p_handle: nextProfile.handle,
+          p_bio: nextProfile.bio,
+          p_gender: nextProfile.gender,
+          p_weekend: nextProfile.weekend,
+          p_romance_view: nextProfile.romance,
+          p_contact_frequency: nextProfile.contactFrequency,
+          p_values_detail: nextProfile.values,
+          p_lifestyle: nextProfile.lifestyle,
+          p_work_detail: nextProfile.work,
+          p_money_style: nextProfile.moneyStyle,
+          p_marriage_view: nextProfile.marriageView,
+          p_extra_bio: nextProfile.extraBio,
+        });
+        error = v2Fallback.error;
+      }
       if (error?.message.includes("update_member_profile_v2")) {
-        const fallback = await supabase.rpc("update_member_profile", {
+        const legacyFallback = await supabase.rpc("update_member_profile", {
           p_display_name: nextProfile.displayName,
           p_handle: nextProfile.handle,
           p_bio: nextProfile.bio,
           p_gender: nextProfile.gender,
         });
-        error = fallback.error;
+        error = legacyFallback.error;
       }
       if (error) {
         setEditorError(error.message.includes("update_member_profile") ? "プロフィール更新機能のDB設定が必要です" : error.message);
@@ -755,7 +775,7 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, request
       {isOwner && <div className="owner-note"><Crown /><span><b>OWNER MODE</b><small>全プロフィール項目と装飾を自由に確認できます</small></span></div>}
       <div className={`me-card profile-showcase ${growth.equippedBackground ? `equip-${growth.equippedBackground}` : ""}`}>
         <label className={`me-avatar avatar-upload ${growth.equippedFrame ? `equip-${growth.equippedFrame}` : ""}`}><ProfilePhoto profile={profile} /><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void selectPhoto(event)} /><span className="avatar-camera"><Camera /></span></label>
-        <div>{equippedTitle && <small className="equipped-title">{equippedTitle}</small>}<h3>{profile.displayName} {isOwner && <OfficialBadge />} <span className="profile-level">Lv.{progress.level}</span></h3><p>@{profile.handle} · {profile.bio}</p>{profile.tags.length > 0 && <div className="profile-tags">{[...profile.primaryTags, ...profile.tags.filter((tag) => !profile.primaryTags.includes(tag))].slice(0, 5).map((tag) => <span className={profile.primaryTags.includes(tag) ? "primary" : ""} key={tag}>#{tag}</span>)}</div>}{photoNotice && <small className="photo-notice">{photoNotice}</small>}</div>
+        <div>{equippedTitle && <small className="equipped-title">{equippedTitle}</small>}<h3>{profile.displayName} {isOwner && <OfficialBadge />} <span className="profile-level">Lv.{progress.level}</span></h3><p>@{profile.handle} · {profile.bio}</p>{profile.activityArea && <small className="profile-area"><MapPin />{profile.activityArea}</small>}{profile.tags.length > 0 && <div className="profile-tags">{[...profile.primaryTags, ...profile.tags.filter((tag) => !profile.primaryTags.includes(tag))].slice(0, 5).map((tag) => <span className={profile.primaryTags.includes(tag) ? "primary" : ""} key={tag}>#{tag}</span>)}</div>}{photoNotice && <small className="photo-notice">{photoNotice}</small>}</div>
         <button aria-label="プロフィール編集" onClick={openEditor}><ChevronRight /></button>
       </div>
       <div className="settings-card growth-card">
@@ -773,13 +793,13 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, request
         <div className="section-heading"><div><small>DRESS UP</small><h3>装飾アイテム</h3></div><ShoppingBag /></div>
         <p className="cosmetic-intro">見た目を確認して、EXPで交換。取得後はいつでも装備できます。</p>
         <div className="cosmetic-grid">
-          {COSMETICS.map((item) => {
+          {COSMETICS.filter((item) => !item.rewardLevel || progress.level >= item.rewardLevel || growth.ownedCosmetics.includes(item.id)).map((item) => {
             const owned = growth.ownedCosmetics.includes(item.id);
             const equipped = growth.equippedFrame === item.id || growth.equippedBackground === item.id || growth.equippedTitle === item.id;
             return <article key={item.id} className="cosmetic-tile">
               <div className={`cosmetic-visual visual-${item.slot}`} style={{ "--item-color": item.color } as React.CSSProperties}><span>{item.slot === "title" ? "Aa" : "A"}</span></div>
               <div><small>{item.kind}</small><b>{item.name}</b></div>
-              <button disabled={equipped || (!isOwner && !owned && growth.availableExp < item.cost)} onClick={() => owned ? equipCosmetic(item.id) : buyCosmetic(item.id)}>{equipped ? "装備中" : owned ? "装備する" : isOwner ? "自由に試着" : `${item.cost} EXP`}</button>
+              <button disabled={equipped || (!isOwner && !owned && (Boolean(item.rewardLevel) || growth.availableExp < item.cost))} onClick={() => owned ? equipCosmetic(item.id) : buyCosmetic(item.id)}>{equipped ? "装備中" : owned ? "装備する" : isOwner ? "自由に試着" : item.rewardLevel ? `Lv.${item.rewardLevel}で獲得` : `${item.cost} EXP`}</button>
             </article>;
           })}
         </div>
@@ -947,8 +967,9 @@ export default function TagTokyoApp() {
 
   const loadPersistentAccountState = useCallback(async (userId: string) => {
     if (!supabase) return;
+    await supabase.rpc("claim_level_rewards");
     const [profileResult, cosmeticsResult, contributionsResult, drawsResult, loginResult, tagsResult] = await Promise.all([
-      supabase.from("profiles").select("display_name,handle,bio,gender,avatar_url,weekend,romance_view,contact_frequency,values_detail,lifestyle,work_detail,money_style,marriage_view,extra_bio,total_earned_exp,available_exp,equipped_frame,equipped_background,equipped_title").eq("user_id", userId).maybeSingle(),
+      supabase.from("profiles").select("display_name,handle,bio,gender,avatar_url,activity_area,weekend,romance_view,contact_frequency,values_detail,lifestyle,work_detail,money_style,marriage_view,extra_bio,total_earned_exp,available_exp,equipped_frame,equipped_background,equipped_title").eq("user_id", userId).maybeSingle(),
       supabase.from("user_cosmetics").select("cosmetic_id").eq("user_id", userId),
       supabase.from("area_contributions").select("area_id,points").eq("user_id", userId),
       supabase.from("tag_spot_draws").select("spot_id,draw_date").eq("user_id", userId).order("draw_date", { ascending: false }).limit(100),
@@ -981,6 +1002,7 @@ export default function TagTokyoApp() {
       bio: row.bio ?? "",
       gender: (["woman", "man", "nonbinary", "unspecified"] as const).includes(row.gender) ? row.gender : "unspecified",
       avatarDataUrl: avatarUrl || current.avatarDataUrl,
+      activityArea: row.activity_area ?? "",
       weekend: row.weekend ?? "",
       romance: row.romance_view ?? "",
       contactFrequency: row.contact_frequency ?? "",

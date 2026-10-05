@@ -33,13 +33,25 @@ export const TAG_SPOTS: TagSpot[] = [
   { id: "spot-ueno", name: "UENO TAG SPOT", areaId: "ueno", x: 78, y: 38 },
 ];
 
-export const COSMETICS = [
+export const COSMETICS: Array<{
+  id: string;
+  name: string;
+  kind: string;
+  slot: "frame" | "background" | "title";
+  cost: number;
+  color: string;
+  rewardLevel?: number;
+}> = [
   { id: "frame-mint", name: "TOKYO MINT", kind: "フレーム", slot: "frame", cost: 500, color: "#21c78a" },
   { id: "frame-coral", name: "CROSS CORAL", kind: "フレーム", slot: "frame", cost: 800, color: "#ff5f69" },
   { id: "background-night", name: "TOKYO NIGHT", kind: "背景", slot: "background", cost: 800, color: "#25242b" },
   { id: "title-walker", name: "東京ウォーカー", kind: "称号", slot: "title", cost: 1000, color: "#ffd75e" },
   { id: "title-cafe", name: "カフェ開拓中", kind: "称号", slot: "title", cost: 1000, color: "#b88a63" },
   { id: "background-season", name: "SEASON LIGHT", kind: "季節背景", slot: "background", cost: 2000, color: "#92b5c7" },
+  { id: "title-level-50", name: "CITY EXPLORER", kind: "Lv50特典", slot: "title", cost: 0, color: "#087fb7", rewardLevel: 50 },
+  { id: "frame-level-100", name: "TOKYO MASTER", kind: "Lv100特典", slot: "frame", cost: 0, color: "#d6ab31", rewardLevel: 100 },
+  { id: "background-level-100", name: "TOKYO HORIZON", kind: "Lv100特典", slot: "background", cost: 0, color: "#ff6b70", rewardLevel: 100 },
+  { id: "title-level-100", name: "東京を歩ききった人", kind: "Lv100限定", slot: "title", cost: 0, color: "#d6ab31", rewardLevel: 100 },
 ];
 
 export const INITIAL_PROFILE = {
@@ -48,6 +60,7 @@ export const INITIAL_PROFILE = {
   gender: "unspecified" as const,
   avatarDataUrl: "",
   bio: "東京のカフェと散歩が好きです。気軽に話せるとうれしいです。",
+  activityArea: "",
   weekend: "新しいお店を探すか、映画を観ています",
   romance: "まずはゆっくり話したい",
   contactFrequency: "1日数回くらい",
@@ -68,6 +81,8 @@ export const PROFILE_UNLOCKS = [
   { level: 7, label: "価値観・生活スタイル" },
   { level: 9, label: "仕事・お金の使い方" },
   { level: 11, label: "結婚観・自己紹介追加枠" },
+  { level: 50, label: "CITY EXPLORER称号" },
+  { level: 100, label: "限定フレーム・背景・称号" },
 ];
 
 export function getLevel(totalEarnedExp: number) {

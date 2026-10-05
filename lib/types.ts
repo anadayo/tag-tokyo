@@ -138,6 +138,7 @@ export type EditableProfile = {
   gender: "woman" | "man" | "nonbinary" | "unspecified";
   avatarDataUrl: string;
   bio: string;
+  activityArea: string;
   weekend: string;
   romance: string;
   contactFrequency: string;
