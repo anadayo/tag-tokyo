@@ -4,17 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BadgeCheck, Ban, Bell, Camera, ChevronRight, Clock3, Crown, Flag, Gift, Heart, HeartHandshake, Home, LockKeyhole, LogOut, Map,
   MapPin, MessageCircle, Minus, Plus, Power, ShieldCheck, ShoppingBag,
-  Send, Sparkles, Star, Trophy, UserRound, UsersRound, Zap, Footprints, Route,
+  Search, Send, Sparkles, Star, Trophy, UserRound, UsersRound, Zap, Footprints, Route,
 } from "lucide-react";
 import { track } from "@/lib/analytics";
 import { AgeVerificationPanel } from "@/components/age-verification-panel";
 import {
-  COSMETICS, DAILY_LOGIN_EXP, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_TAGS, PROFILE_UNLOCKS,
+  COSMETICS, DAILY_LOGIN_EXP, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_UNLOCKS,
   TAG_SPOTS, TOKYO_AREAS,
 } from "@/lib/game";
 import { isInsideTokyo, requestPrivateLocation, watchPrivateLocation } from "@/lib/location";
 import { hasSupabase, isLiveCommunityEnabled, supabase } from "@/lib/supabase";
-import type { AreaChampion, DailyMission, DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagDuration, TagSessionResult, TagSessionState, TagStreak } from "@/lib/types";
+import type { AreaChampion, DailyMission, DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagCatalogItem, TagDuration, TagSessionResult, TagSessionState, TagStreak } from "@/lib/types";
 
 const INITIAL_SESSION: TagSessionState = {
   active: false,
@@ -420,7 +420,7 @@ function LiveCrossScreen({ crossings, recommendations, officialProfile, memberRe
           : recommendations.length === 0 ? <div className="discovery-gate"><UsersRound /><span><b>新しいプロフィールを待っています</b><small>条件を満たす実在ユーザーが登録されると表示されます</small></span></div>
             : <div className="discovery-grid">{recommendations.map((profile) => <article className={`discovery-card ${profile.isOfficial ? "is-official" : ""}`} key={profile.userId}>
               <div className="discovery-avatar">{profile.displayName.slice(0, 1)}</div>
-              <div className="discovery-copy">{profile.isOfficial && <OfficialBadge />}<h3>{profile.displayName}</h3><small>{profile.handle ? `@${profile.handle}` : "TAG TOKYOメンバー"}</small><p>{profile.bio || "プロフィールを見て、気になったらいいねを送れます。"}</p>{profile.tags.length > 0 && <div className="profile-tags compact-tags">{profile.tags.slice(0, 4).map((tag) => <span key={tag}>#{tag}</span>)}</div>}{profile.commonTagCount > 0 && <small className="common-tag-count">共通タグ {profile.commonTagCount}</small>}</div>
+              <div className="discovery-copy">{profile.isOfficial && <OfficialBadge />}<h3>{profile.displayName}</h3><small>{profile.handle ? `@${profile.handle}` : "TAG TOKYOメンバー"} · {profile.activityStatus === "recent" ? "最近利用" : profile.activityStatus === "away" ? "しばらく前に利用" : "30日以上利用なし"}</small><p>{profile.bio || "プロフィールを見て、気になったらいいねを送れます。"}</p>{profile.tags.length > 0 && <div className="profile-tags compact-tags">{[...profile.primaryTags, ...profile.tags.filter((tag) => !profile.primaryTags.includes(tag))].slice(0, 5).map((tag) => <span key={tag} className={profile.primaryTags.includes(tag) ? "primary" : ""}>#{tag}</span>)}</div>}{profile.commonTagCount > 0 && <small className="common-tag-count">共通タグ {profile.commonTagCount}</small>}</div>
               <button className="discovery-like" disabled={profile.liked} onClick={() => void onLike(profile)}><Heart />{profile.liked ? "送信済み" : "いいね"}</button>
             </article>)}</div>}
     </section>
@@ -428,7 +428,7 @@ function LiveCrossScreen({ crossings, recommendations, officialProfile, memberRe
     {showWelcomeOnly && <article className="live-cross-card official-profile-card"><div className="chat-avatar">{officialProfile.displayName.slice(0, 1)}</div><div><OfficialBadge /><h3>{officialProfile.displayName}</h3><p>{officialProfile.handle ? `@${officialProfile.handle} · ${officialProfile.bio || "TAG TOKYOを運営しています"}` : officialProfile.bio || "TAG TOKYOを運営しています"}</p></div><span className="official-profile-label">WELCOME</span></article>}
     <div className="cross-section-title"><Sparkles /><span><b>CROSS</b><small>街で近くにいた人</small></span></div>
     {crossings.length === 0 ? <div className="empty-state"><div className="empty-icon"><Sparkles /></div><h3>新しいCROSSを待っています</h3><p>東京都内でTAG ONにすると、近くにいた年齢確認済みユーザーが後から表示されます。</p></div> : <div className="live-cross-list">
-      {crossings.map((crossing) => <article className={`live-cross-card ${crossing.isOfficial ? "official-profile-card" : ""}`} key={crossing.id}><div className="chat-avatar">{crossing.displayName.slice(0, 1)}</div><div><small>{crossing.areaLabel}</small><h3>{crossing.displayName} {crossing.isOfficial && <OfficialBadge />}</h3><p>{crossing.handle ? `@${crossing.handle}` : crossing.bio || "プロフィールを確認してTAGできます"}</p></div><button disabled={crossing.tagged} onClick={() => void onTag(crossing)}><Sparkles />{crossing.tagged ? "TAG済み" : "TAG"}</button></article>)}
+      {crossings.map((crossing) => <article className={`live-cross-card ${crossing.isOfficial ? "official-profile-card" : ""}`} key={crossing.id}><div className="chat-avatar">{crossing.displayName.slice(0, 1)}</div><div><small>{crossing.areaLabel} · 20歳以上確認済み · 共通タグ {crossing.commonTagCount}</small><h3>{crossing.displayName} {crossing.isOfficial && <OfficialBadge />}</h3><p>{crossing.handle ? `@${crossing.handle}` : crossing.bio || "プロフィールを確認してTAGできます"}</p>{crossing.primaryTags.length > 0 && <div className="profile-tags compact-tags">{crossing.primaryTags.map((tag) => <span className="primary" key={tag}>#{tag}</span>)}</div>}</div><button disabled={crossing.tagged} onClick={() => void onTag(crossing)}><Sparkles />{crossing.tagged ? "TAG済み" : "TAG"}</button></article>)}
     </div>}
     {error && <p className="chat-error" role="alert">{error}</p>}
   </section>;
@@ -454,7 +454,7 @@ function MatchScreen() {
 
 function LiveMatchScreen({
   matches, messages, currentUserId, selectedMatchId, loading, error, memberReady, messageAccessReady,
-  onSelect, onSend, onBlock, onReport, onRequireEmail,
+  onSelect, onSend, onReact, onUnmatch, onBlock, onReport, onRequireEmail,
 }: {
   matches: LiveMatch[];
   messages: Record<string, LiveMessage[]>;
@@ -466,6 +466,8 @@ function LiveMatchScreen({
   messageAccessReady: boolean;
   onSelect: (matchId: string) => void;
   onSend: (matchId: string, body: string) => Promise<boolean>;
+  onReact: (messageId: number, reaction: "heart" | "smile" | "thanks") => Promise<void>;
+  onUnmatch: (matchId: string) => Promise<void>;
   onBlock: (matchId: string) => Promise<void>;
   onReport: (matchId: string, reason: string, detail: string) => Promise<boolean>;
   onRequireEmail: () => void;
@@ -512,19 +514,23 @@ function LiveMatchScreen({
   return <section className="screen live-match-screen">
     <header className="screen-header"><div><span>MATCH</span><h2>メッセージ</h2></div><span className="match-count">{matches.length}</span></header>
     <div className="live-match-tabs" aria-label="マッチ一覧">
-      {matches.map((match) => <button key={match.id} className={selectedMatch.id === match.id ? "active" : ""} onClick={() => { onSelect(match.id); setShowSafety(false); }}><span>{match.displayName.slice(0, 1)}</span><b>{match.displayName}{match.isOfficial && <BadgeCheck aria-label="公式" />}</b></button>)}
+      {matches.map((match) => <button key={match.id} className={selectedMatch.id === match.id ? "active" : ""} onClick={() => { onSelect(match.id); setShowSafety(false); }}><span>{match.displayName.slice(0, 1)}{match.unreadCount > 0 && <em>{match.unreadCount}</em>}</span><b>{match.displayName}{match.isOfficial && <BadgeCheck aria-label="公式" />}</b></button>)}
     </div>
     <div className="chat-card">
-      <header className="chat-header"><div className="chat-avatar">{selectedMatch.displayName.slice(0, 1)}</div><div><b>{selectedMatch.displayName} {selectedMatch.isOfficial && <OfficialBadge />}</b><small>{selectedMatch.handle ? `@${selectedMatch.handle}` : "相互いいねでマッチ"}</small></div><button aria-label="安全メニュー" onClick={() => setShowSafety((value) => !value)}><ShieldCheck /></button></header>
+      <header className="chat-header"><div className="chat-avatar">{selectedMatch.displayName.slice(0, 1)}</div><div><b>{selectedMatch.displayName} {selectedMatch.isOfficial && <OfficialBadge />}</b><small>{selectedMatch.handle ? `@${selectedMatch.handle} · ` : ""}{selectedMatch.activityStatus === "recent" ? "最近利用" : selectedMatch.activityStatus === "away" ? "しばらく前に利用" : "30日以上利用なし"}</small></div><button aria-label="安全メニュー" onClick={() => setShowSafety((value) => !value)}><ShieldCheck /></button></header>
       {showSafety && <div className="chat-safety-panel">
         <b>安全メニュー</b>
         <label><span>通報理由</span><select value={reportReason} onChange={(event) => setReportReason(event.target.value)}><option value="harassment">迷惑行為・嫌がらせ</option><option value="impersonation">なりすまし</option><option value="solicitation">勧誘・営業</option><option value="unsafe">危険を感じる行為</option><option value="other">その他</option></select></label>
         <textarea value={reportDetail} maxLength={1000} placeholder="状況を入力（任意）" onChange={(event) => setReportDetail(event.target.value)} />
-        <div><button onClick={async () => { if (await onReport(selectedMatch.id, reportReason, reportDetail)) { setReportDetail(""); setShowSafety(false); } }}><Flag />通報する</button><button className="danger" onClick={() => void onBlock(selectedMatch.id)}><Ban />ブロック</button></div>
+        <div><button onClick={async () => { if (await onReport(selectedMatch.id, reportReason, reportDetail)) { setReportDetail(""); setShowSafety(false); } }}><Flag />通報する</button><button onClick={() => void onUnmatch(selectedMatch.id)}><HeartHandshake />解除</button><button className="danger" onClick={() => void onBlock(selectedMatch.id)}><Ban />ブロック</button></div>
       </div>}
       <div className="chat-thread" aria-live="polite">
         {thread.length === 0 && <div className="chat-start"><Sparkles /><b>マッチしました</b><span>まずは共通点から話してみましょう</span></div>}
-        {thread.map((message) => <div key={message.id} className={`chat-message ${message.senderId === currentUserId ? "mine" : "theirs"}`}><p>{message.body}</p><time>{new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(message.createdAt))}</time></div>)}
+        {thread.map((message, index) => {
+          const day = new Intl.DateTimeFormat("ja-JP", { month: "short", day: "numeric" }).format(new Date(message.createdAt));
+          const previousDay = index > 0 ? new Intl.DateTimeFormat("ja-JP", { month: "short", day: "numeric" }).format(new Date(thread[index - 1].createdAt)) : null;
+          return <div key={message.id} className="chat-message-wrap">{day !== previousDay && <div className="chat-date-separator">{day}</div>}<div className={`chat-message ${message.senderId === currentUserId ? "mine" : "theirs"}`}><p>{message.body}</p><div className="message-meta"><time>{new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(message.createdAt))}{message.senderId === currentUserId && message.readAt ? " · 既読" : ""}</time>{message.senderId !== currentUserId && <span className="reaction-actions"><button aria-label="ハート" onClick={() => void onReact(message.id, "heart")}>♥</button><button aria-label="笑顔" onClick={() => void onReact(message.id, "smile")}>☺</button><button aria-label="ありがとう" onClick={() => void onReact(message.id, "thanks")}>感謝</button></span>}</div>{message.reactions.length > 0 && <small className="reaction-summary">{message.reactions.map((reaction) => reaction.reaction === "heart" ? "♥" : reaction.reaction === "smile" ? "☺" : "感謝").join(" ")}</small>}</div></div>;
+        })}
       </div>
       <form className="chat-compose" onSubmit={submitMessage}><textarea aria-label="メッセージ" value={draft} maxLength={1000} rows={2} placeholder="メッセージを入力" onChange={(event) => setDraft(event.target.value)} /><button type="submit" aria-label="送信" disabled={sending || !draft.trim()}><Send /></button></form>
     </div>
@@ -553,7 +559,41 @@ function FeedbackPanel() {
   </div>;
 }
 
-function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, requestAccountDeletion, growth, buyCosmetic, equipCosmetic, profile, setProfile, isOwner, liveEnabled, emailAuthenticated, consentReady, ageVerificationStatus }: {
+function TagCollectionEditor({ catalog, selected, primary, onChange }: {
+  catalog: TagCatalogItem[];
+  selected: string[];
+  primary: string[];
+  onChange: (selected: string[], primary: string[]) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("すべて");
+  const categories = ["すべて", ...new Set(catalog.map((tag) => tag.category))];
+  const normalizedQuery = query.trim().toLowerCase();
+  const filtered = catalog.filter((tag) => (category === "すべて" || tag.category === category)
+    && (!normalizedQuery || [tag.name, ...tag.aliases].some((value) => value.toLowerCase().includes(normalizedQuery))));
+
+  function toggle(name: string) {
+    if (selected.includes(name)) onChange(selected.filter((tag) => tag !== name), primary.filter((tag) => tag !== name));
+    else if (selected.length < 50) onChange([...selected, name], primary);
+  }
+
+  function togglePrimary(name: string) {
+    if (!selected.includes(name)) return;
+    if (primary.includes(name)) onChange(selected, primary.filter((tag) => tag !== name));
+    else if (primary.length < 5) onChange(selected, [...primary, name]);
+  }
+
+  return <fieldset className="tag-selector tag-collection"><legend>TAG COLLECTION <small>{selected.length} / 50</small></legend>
+    <p>5個以上選択。★はプロフィール上部に出すメインタグ（最大5個）です。</p>
+    <label className="tag-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="タグや別名を検索" /></label>
+    <div className="tag-categories">{categories.map((item) => <button type="button" key={item} className={category === item ? "selected" : ""} onClick={() => setCategory(item)}>{item}</button>)}</div>
+    {selected.length > 0 && <div className="selected-tag-list">{selected.map((name) => <span key={name}><button type="button" className="tag-primary" aria-label={`${name}をメインタグにする`} aria-pressed={primary.includes(name)} onClick={() => togglePrimary(name)}><Star /></button><button type="button" onClick={() => toggle(name)}>#{name} ×</button></span>)}</div>}
+    <div className="tag-catalog-list">{filtered.map((tag) => <button type="button" key={tag.id} className={selected.includes(tag.name) ? "selected" : ""} aria-pressed={selected.includes(tag.name)} onClick={() => toggle(tag.name)}>#{tag.name}{tag.recentUses > 0 && <small>NEW</small>}</button>)}</div>
+    {filtered.length === 0 && <p className="tag-empty">該当するタグがありません</p>}
+  </fieldset>;
+}
+
+function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, requestAccountDeletion, growth, buyCosmetic, equipCosmetic, profile, setProfile, tagCatalog, isOwner, liveEnabled, emailAuthenticated, consentReady, ageVerificationStatus }: {
   email: string;
   setEmail: (value: string) => void;
   authNotice: string;
@@ -565,6 +605,7 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, request
   equipCosmetic: (id: string) => void;
   profile: EditableProfile;
   setProfile: (profile: EditableProfile) => void;
+  tagCatalog: TagCatalogItem[];
   isOwner: boolean;
   liveEnabled: boolean;
   emailAuthenticated: boolean;
@@ -607,6 +648,10 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, request
       setEditorError("ユーザーIDは5〜15文字の英数字または _ で入力してください");
       return;
     }
+    if (draft.tags.length < 5 || draft.tags.length > 50) {
+      setEditorError("興味タグは5〜50個選んでください");
+      return;
+    }
     const nextProfile = { ...draft, displayName: draft.displayName.trim().slice(0, 50) || "あなた", handle };
     if (emailAuthenticated && supabase) {
       let { error } = await supabase.rpc("update_member_profile_v2", {
@@ -637,9 +682,13 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, request
         setEditorError(error.message.includes("update_member_profile") ? "プロフィール更新機能のDB設定が必要です" : error.message);
         return;
       }
-      const { error: tagError } = await supabase.rpc("set_my_profile_tags", { p_tag_names: nextProfile.tags });
+      let { error: tagError } = await supabase.rpc("set_my_profile_tags_v2", { p_tag_names: nextProfile.tags, p_primary_names: nextProfile.primaryTags });
+      if (tagError?.message.includes("set_my_profile_tags_v2")) {
+        const fallback = await supabase.rpc("set_my_profile_tags", { p_tag_names: nextProfile.tags.slice(0, 8) });
+        tagError = fallback.error;
+      }
       if (tagError) {
-        setEditorError(tagError.message.includes("set_my_profile_tags") ? "プロフィールタグ機能のDB設定が必要です" : tagError.message);
+        setEditorError(tagError.message.includes("set_my_profile_tags") ? "プロフィールタグ機能のDB更新後に保存できます" : tagError.message);
         return;
       }
     }
@@ -713,7 +762,7 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, request
       {isOwner && <div className="owner-note"><Crown /><span><b>OWNER MODE</b><small>全プロフィール項目と装飾を自由に確認できます</small></span></div>}
       <div className={`me-card profile-showcase ${growth.equippedBackground ? `equip-${growth.equippedBackground}` : ""}`}>
         <label className={`me-avatar avatar-upload ${growth.equippedFrame ? `equip-${growth.equippedFrame}` : ""}`}><ProfilePhoto profile={profile} /><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void selectPhoto(event)} /><span className="avatar-camera"><Camera /></span></label>
-        <div>{equippedTitle && <small className="equipped-title">{equippedTitle}</small>}<h3>{profile.displayName} {isOwner && <OfficialBadge />} <span className="profile-level">Lv.{progress.level}</span></h3><p>@{profile.handle} · {profile.bio}</p>{profile.tags.length > 0 && <div className="profile-tags">{profile.tags.slice(0, 5).map((tag) => <span key={tag}>#{tag}</span>)}</div>}{photoNotice && <small className="photo-notice">{photoNotice}</small>}</div>
+        <div>{equippedTitle && <small className="equipped-title">{equippedTitle}</small>}<h3>{profile.displayName} {isOwner && <OfficialBadge />} <span className="profile-level">Lv.{progress.level}</span></h3><p>@{profile.handle} · {profile.bio}</p>{profile.tags.length > 0 && <div className="profile-tags">{[...profile.primaryTags, ...profile.tags.filter((tag) => !profile.primaryTags.includes(tag))].slice(0, 5).map((tag) => <span className={profile.primaryTags.includes(tag) ? "primary" : ""} key={tag}>#{tag}</span>)}</div>}{photoNotice && <small className="photo-notice">{photoNotice}</small>}</div>
         <button aria-label="プロフィール編集" onClick={openEditor}><ChevronRight /></button>
       </div>
       <div className="settings-card growth-card">
@@ -781,10 +830,7 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, request
           <p className="editor-guide">{isOwner ? "オーナーはすべての項目を編集できます" : `Lv.${progress.level}までの項目を編集できます`}。表示名は50文字まで、ユーザーIDは5〜15文字の英数字または _ です。</p>
           <div className="editor-fields">
             <label><span>性別</span><select value={draft.gender} onChange={(event) => setDraft((current) => ({ ...current, gender: event.target.value as EditableProfile["gender"] }))}><option value="unspecified">回答しない</option><option value="woman">女性</option><option value="man">男性</option><option value="nonbinary">その他</option></select></label>
-            <fieldset className="tag-selector"><legend>興味タグ <small>{draft.tags.length} / 8</small></legend><p>共通点から見つけてもらいやすくなります</p><div>{PROFILE_TAGS.map((tag) => {
-              const selected = draft.tags.includes(tag);
-              return <button type="button" key={tag} className={selected ? "selected" : ""} aria-pressed={selected} onClick={() => setDraft((current) => ({ ...current, tags: selected ? current.tags.filter((item) => item !== tag) : current.tags.length < 8 ? [...current.tags, tag] : current.tags }))}>#{tag}</button>;
-            })}</div></fieldset>
+            <TagCollectionEditor catalog={tagCatalog} selected={draft.tags} primary={draft.primaryTags} onChange={(tags, primaryTags) => setDraft((current) => ({ ...current, tags, primaryTags }))} />
             {profileFields.map((field) => {
               const unlocked = isOwner || progress.level >= field.level;
               return <label key={field.key} className={!unlocked ? "locked-field" : ""}><span>{field.label}{!unlocked && <small><LockKeyhole />Lv.{field.level}で解放</small>}</span>{field.long
@@ -809,6 +855,7 @@ export default function TagTokyoApp() {
   const [authNotice, setAuthNotice] = useState("");
   const [growth, setGrowth] = useState<GrowthState>(INITIAL_GROWTH);
   const [profile, setProfile] = useState<EditableProfile>(INITIAL_PROFILE);
+  const [tagCatalog, setTagCatalog] = useState<TagCatalogItem[]>([]);
   const [isOwner, setIsOwner] = useState(false);
   const [isEmailAuthenticated, setIsEmailAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -913,7 +960,7 @@ export default function TagTokyoApp() {
       supabase.from("area_contributions").select("area_id,points").eq("user_id", userId),
       supabase.from("tag_spot_draws").select("spot_id,draw_date").eq("user_id", userId).order("draw_date", { ascending: false }).limit(100),
       supabase.from("daily_login_claims").select("claim_date").eq("user_id", userId).order("claim_date", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("user_tags").select("tags(name)").eq("user_id", userId),
+      supabase.from("user_tags").select("is_primary,sort_order,tags(name)").eq("user_id", userId).order("sort_order", { ascending: true }),
     ]);
     if (profileResult.error) {
       setAuthNotice(profileResult.error.message);
@@ -927,6 +974,10 @@ export default function TagTokyoApp() {
       avatarUrl = data?.signedUrl ?? "";
     }
     const selectedTags = (tagsResult.data ?? []).flatMap((item) => {
+      const related = item.tags as unknown as { name?: string } | Array<{ name?: string }> | null;
+      return Array.isArray(related) ? related.map((tag) => tag.name).filter(Boolean) : related?.name ? [related.name] : [];
+    }) as string[];
+    const primaryTags = (tagsResult.data ?? []).filter((item) => item.is_primary).flatMap((item) => {
       const related = item.tags as unknown as { name?: string } | Array<{ name?: string }> | null;
       return Array.isArray(related) ? related.map((tag) => tag.name).filter(Boolean) : related?.name ? [related.name] : [];
     }) as string[];
@@ -947,6 +998,7 @@ export default function TagTokyoApp() {
       marriageView: row.marriage_view ?? "",
       extraBio: row.extra_bio ?? "",
       tags: selectedTags,
+      primaryTags,
     }));
     const areaContributions = Object.fromEntries((contributionsResult.data ?? []).map((item) => [item.area_id, Number(item.points)]));
     const spotClaims: Record<string, string> = {};
@@ -968,11 +1020,13 @@ export default function TagTokyoApp() {
     if (!supabase) return;
     setLiveLoading(true);
     setLiveError("");
-    const [{ data: matchRows, error: matchError }, { data: crossingRows, error: crossingError }, { data: likeRows }] = await Promise.all([
-      supabase.from("matches").select("id,user_a,user_b,created_at").order("created_at", { ascending: false }),
-      supabase.from("crossings").select("id,user_a,user_b,area_label,crossed_at").order("crossed_at", { ascending: false }),
+    let matchResult = await supabase.from("matches").select("id,user_a,user_b,created_at").is("ended_at", null).order("created_at", { ascending: false });
+    if (matchResult.error?.message.includes("ended_at")) matchResult = await supabase.from("matches").select("id,user_a,user_b,created_at").order("created_at", { ascending: false });
+    const [{ data: crossingRows, error: crossingError }, { data: likeRows }] = await Promise.all([
+      supabase.from("crossings").select("id,user_a,user_b,area_label,crossed_at").gt("expires_at", new Date().toISOString()).order("crossed_at", { ascending: false }),
       supabase.from("likes").select("sender_id,crossing_id").eq("sender_id", userId),
     ]);
+    const { data: matchRows, error: matchError } = matchResult;
     if (matchError) {
       setLiveError(matchError.message);
       setLiveLoading(false);
@@ -991,7 +1045,7 @@ export default function TagTokyoApp() {
       ...crossingItems.map((crossing) => crossing.user_a === userId ? crossing.user_b : crossing.user_a),
     ])];
     const matchIds = rows.map((match) => match.id);
-    const profileByUser = new globalThis.Map<string, { display_name: string; handle: string | null; bio: string; avatar_url: string | null; is_official: boolean }>();
+    const profileByUser = new globalThis.Map<string, { display_name: string; handle: string | null; bio: string; avatar_url: string | null; is_official: boolean; profile_tags?: string[]; primary_tags?: string[]; common_tag_count?: number; activity_status?: "recent" | "away" | "inactive" }>();
 
     if (otherIds.length > 0) {
       let { data: profileRows, error: profileError } = await supabase.rpc("get_visible_member_profiles", { p_user_ids: otherIds });
@@ -1020,6 +1074,8 @@ export default function TagTokyoApp() {
         avatarUrl: other?.avatar_url ?? null,
         isOfficial: other?.is_official ?? false,
         createdAt: match.created_at,
+        activityStatus: other?.activity_status ?? "inactive",
+        unreadCount: 0,
       } satisfies LiveMatch;
     });
     const taggedCrossings = new Set((likeRows ?? []).map((like) => like.crossing_id));
@@ -1036,26 +1092,41 @@ export default function TagTokyoApp() {
         crossedAt: crossing.crossed_at,
         tagged: taggedCrossings.has(crossing.id),
         isOfficial: other?.is_official ?? false,
+        tags: other?.profile_tags ?? [],
+        primaryTags: other?.primary_tags ?? [],
+        commonTagCount: Number(other?.common_tag_count ?? 0),
+        activityStatus: other?.activity_status ?? "inactive",
       } satisfies LiveCrossing;
     }));
     setLiveMatches(nextMatches);
     setSelectedLiveMatchId((current) => current && matchIds.includes(current) ? current : matchIds[0] ?? null);
 
     if (matchIds.length > 0) {
-      const { data: messageRows, error: messageError } = await supabase
+      let messageResult = await supabase
         .from("messages")
-        .select("id,match_id,sender_id,body,created_at")
+        .select("id,match_id,sender_id,body,created_at,read_at")
         .in("match_id", matchIds)
         .order("created_at", { ascending: true })
         .limit(500);
+      if (messageResult.error?.message.includes("read_at")) {
+        const fallback = await supabase.from("messages").select("id,match_id,sender_id,body,created_at").in("match_id", matchIds).order("created_at", { ascending: true }).limit(500);
+        messageResult = fallback as typeof messageResult;
+      }
+      const { data: messageRows, error: messageError } = messageResult;
       if (messageError) setLiveError(messageError.message);
       else {
+        const messageIds = (messageRows ?? []).map((item) => item.id);
+        const reactionResult = messageIds.length > 0
+          ? await supabase.from("message_reactions").select("message_id,user_id,reaction").in("message_id", messageIds)
+          : { data: [], error: null };
         const grouped: Record<string, LiveMessage[]> = {};
         for (const item of messageRows ?? []) {
-          const message: LiveMessage = { id: item.id, matchId: item.match_id, senderId: item.sender_id, body: item.body, createdAt: item.created_at };
+          const reactions = (reactionResult.data ?? []).filter((reaction) => reaction.message_id === item.id).map((reaction) => ({ userId: reaction.user_id, reaction: reaction.reaction as "heart" | "smile" | "thanks" }));
+          const message: LiveMessage = { id: item.id, matchId: item.match_id, senderId: item.sender_id, body: item.body, createdAt: item.created_at, readAt: "read_at" in item ? item.read_at as string | null : null, reactions };
           grouped[message.matchId] = [...(grouped[message.matchId] ?? []), message];
         }
         setLiveMessages(grouped);
+        setLiveMatches((current) => current.map((match) => ({ ...match, unreadCount: (grouped[match.id] ?? []).filter((message) => message.senderId !== userId && !message.readAt).length })));
       }
     } else setLiveMessages({});
 
@@ -1064,7 +1135,7 @@ export default function TagTokyoApp() {
       setDiscoveryProfiles([]);
       setLiveError((current) => current || (discoveryError.message.includes("get_discovery_profiles") ? "おすすめ機能のDB設定が必要です" : discoveryError.message));
     } else {
-      const discoveryItems = (discoveryRows ?? []) as Array<{ user_id: string; display_name: string; handle: string | null; bio: string | null; avatar_url: string | null; is_official: boolean; liked: boolean; profile_tags?: string[]; common_tag_count?: number }>;
+      const discoveryItems = (discoveryRows ?? []) as Array<{ user_id: string; display_name: string; handle: string | null; bio: string | null; avatar_url: string | null; is_official: boolean; liked: boolean; profile_tags?: string[]; primary_tags?: string[]; common_tag_count?: number; activity_status?: "recent" | "away" | "inactive"; relevance_score?: number }>;
       setDiscoveryProfiles(discoveryItems.map((item) => ({
         userId: item.user_id,
         displayName: item.display_name,
@@ -1074,7 +1145,10 @@ export default function TagTokyoApp() {
         isOfficial: item.is_official,
         liked: item.liked,
         tags: item.profile_tags ?? [],
+        primaryTags: item.primary_tags ?? [],
         commonTagCount: Number(item.common_tag_count ?? 0),
+        activityStatus: item.activity_status ?? "inactive",
+        relevanceScore: Number(item.relevance_score ?? 0),
       })));
     }
     setLiveLoading(false);
@@ -1084,6 +1158,21 @@ export default function TagTokyoApp() {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     if ("serviceWorker" in navigator) navigator.serviceWorker.register(`${ASSET_PREFIX}/sw.js`).catch(() => undefined);
     return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
+    let active = true;
+    void supabase.rpc("get_tag_catalog", { p_query: "", p_category: null, p_limit: 500 }).then(async ({ data, error }) => {
+      if (!active) return;
+      let rows = (data ?? []) as Array<{ tag_id: number; name: string; category: string; aliases: string[]; popularity: number; recent_uses: number }>;
+      if (error) {
+        const fallback = await supabase!.from("tags").select("id,name").order("name", { ascending: true });
+        rows = (fallback.data ?? []).map((tag) => ({ tag_id: tag.id, name: tag.name, category: "その他", aliases: [], popularity: 0, recent_uses: 0 }));
+      }
+      setTagCatalog(rows.map((row) => ({ id: row.tag_id, name: row.name, category: row.category, aliases: row.aliases ?? [], popularity: Number(row.popularity), recentUses: Number(row.recent_uses) })));
+    });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -1257,6 +1346,13 @@ export default function TagTokyoApp() {
   }, [liveEnabled, liveMemberReady]);
 
   useEffect(() => {
+    if (!liveEnabled || !liveMemberReady || !supabase) return;
+    void supabase.rpc("touch_member_activity");
+    const timer = window.setInterval(() => void supabase?.rpc("touch_member_activity"), 5 * 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, [liveEnabled, liveMemberReady]);
+
+  useEffect(() => {
     if (!liveEnabled || !liveMemberReady) return;
     const timer = window.setTimeout(() => void refreshDailyMissions(), 0);
     return () => window.clearTimeout(timer);
@@ -1276,8 +1372,8 @@ export default function TagTokyoApp() {
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "messages" },
       (payload) => {
-        const item = payload.new as { id: number; match_id: string; sender_id: string; body: string; created_at: string };
-        const message: LiveMessage = { id: item.id, matchId: item.match_id, senderId: item.sender_id, body: item.body, createdAt: item.created_at };
+        const item = payload.new as { id: number; match_id: string; sender_id: string; body: string; created_at: string; read_at: string | null };
+        const message: LiveMessage = { id: item.id, matchId: item.match_id, senderId: item.sender_id, body: item.body, createdAt: item.created_at, readAt: item.read_at, reactions: [] };
         setLiveMessages((current) => {
           const thread = current[message.matchId] ?? [];
           if (thread.some((existing) => existing.id === message.id)) return current;
@@ -1353,6 +1449,24 @@ export default function TagTokyoApp() {
       locationRequestPendingRef.current = false;
     }
   }
+
+  useEffect(() => {
+    if (!liveEnabled || !liveMemberReady || !supabase || session.active) return;
+    let active = true;
+    void supabase.rpc("get_active_tag_session").then(({ data, error }) => {
+      if (!active || error) return;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) return;
+      const duration = [30, 60, 180].includes(Number(row.duration_minutes)) ? Number(row.duration_minutes) as TagDuration : 60;
+      setSession((current) => ({ ...current, active: true, duration, startedAt: new Date(row.started_at).getTime(), expiresAt: new Date(row.expires_at).getTime(), areaLabel: "東京都内", serverSessionId: row.session_id, validDistanceMeters: Number(row.valid_distance_m ?? 0), walkExpEarned: Number(row.walk_exp_earned ?? 0), movementStatus: "restored" }));
+      stopLocationWatchRef.current?.();
+      stopLocationWatchRef.current = watchPrivateLocation((sample) => void recordMovement(row.session_id, sample), (message) => setNotice(message));
+      setNotice("進行中のTAG ONを復元しました");
+    });
+    return () => { active = false; };
+    // Restoring runs only when membership becomes ready; movement writes use the current handler.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveEnabled, liveMemberReady]);
 
   function requestTagStart() {
     track("tag_on_tapped", { duration_minutes: session.duration });
@@ -1522,7 +1636,7 @@ export default function TagTokyoApp() {
     }
     const item = Array.isArray(data) ? data[0] : data;
     if (item) {
-      const message: LiveMessage = { id: item.id, matchId: item.match_id, senderId: item.sender_id, body: item.body, createdAt: item.created_at };
+      const message: LiveMessage = { id: item.id, matchId: item.match_id, senderId: item.sender_id, body: item.body, createdAt: item.created_at, readAt: item.read_at ?? null, reactions: [] };
       setLiveMessages((current) => {
         const thread = current[matchId] ?? [];
         return thread.some((existing) => existing.id === message.id) ? current : { ...current, [matchId]: [...thread, message] };
@@ -1530,6 +1644,32 @@ export default function TagTokyoApp() {
     }
     track("tagtokyo_message_sent", { match_id: matchId });
     return true;
+  }
+
+  async function selectLiveMatch(matchId: string) {
+    setSelectedLiveMatchId(matchId);
+    if (!supabase) return;
+    const { error } = await supabase.rpc("mark_match_read", { p_match_id: matchId });
+    if (error) return;
+    setLiveMessages((current) => ({ ...current, [matchId]: (current[matchId] ?? []).map((message) => message.senderId === currentUserId ? message : { ...message, readAt: message.readAt ?? new Date().toISOString() }) }));
+    setLiveMatches((current) => current.map((match) => match.id === matchId ? { ...match, unreadCount: 0 } : match));
+  }
+
+  async function reactToLiveMessage(messageId: number, reaction: "heart" | "smile" | "thanks") {
+    if (!supabase || !currentUserId) return;
+    const { error } = await supabase.rpc("react_to_message", { p_message_id: messageId, p_reaction: reaction });
+    if (error) return setLiveError(error.message);
+    setLiveMessages((current) => Object.fromEntries(Object.entries(current).map(([matchId, thread]) => [matchId, thread.map((message) => message.id === messageId ? { ...message, reactions: [...message.reactions.filter((item) => item.userId !== currentUserId), { userId: currentUserId, reaction }] } : message)])));
+  }
+
+  async function unmatchLiveMember(matchId: string) {
+    if (!supabase) return;
+    if (!window.confirm("このマッチを解除しますか？解除後はメッセージを送れません。")) return;
+    const { error } = await supabase.rpc("unmatch_member", { p_match_id: matchId });
+    if (error) return setLiveError(error.message);
+    setLiveMatches((current) => current.filter((match) => match.id !== matchId));
+    setSelectedLiveMatchId(null);
+    setLiveError("マッチを解除しました");
   }
 
   async function sendLiveTag(crossing: LiveCrossing) {
@@ -1637,9 +1777,9 @@ export default function TagTokyoApp() {
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => setTab("me")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} />}
       {tab === "match" && (liveEnabled
-        ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={setSelectedLiveMatchId} onSend={sendLiveMessage} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
+        ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={(matchId) => void selectLiveMatch(matchId)} onSend={sendLiveMessage} onReact={reactToLiveMessage} onUnmatch={unmatchLiveMember} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen />)}
-      {tab === "me" && <MeScreen email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} signOut={() => void signOut()} requestAccountDeletion={() => void requestAccountDeletion()} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} isOwner={isOwner} liveEnabled={liveEnabled} emailAuthenticated={isEmailAuthenticated} consentReady={consentReady} ageVerificationStatus={ageVerificationStatus} />}
+      {tab === "me" && <MeScreen email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} signOut={() => void signOut()} requestAccountDeletion={() => void requestAccountDeletion()} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} tagCatalog={tagCatalog} isOwner={isOwner} liveEnabled={liveEnabled} emailAuthenticated={isEmailAuthenticated} consentReady={consentReady} ageVerificationStatus={ageVerificationStatus} />}
       <BottomNav tab={tab} onChange={(next) => {
         setTab(next);
         window.scrollTo({ top: 0, behavior: "instant" });

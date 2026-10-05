@@ -10,6 +10,8 @@ export type LiveMatch = {
   avatarUrl: string | null;
   isOfficial: boolean;
   createdAt: string;
+  activityStatus: "recent" | "away" | "inactive";
+  unreadCount: number;
 };
 
 export type LiveCrossing = {
@@ -22,6 +24,10 @@ export type LiveCrossing = {
   crossedAt: string;
   tagged: boolean;
   isOfficial: boolean;
+  tags: string[];
+  primaryTags: string[];
+  commonTagCount: number;
+  activityStatus: "recent" | "away" | "inactive";
 };
 
 export type OfficialProfile = {
@@ -41,7 +47,19 @@ export type DiscoveryProfile = {
   isOfficial: boolean;
   liked: boolean;
   tags: string[];
+  primaryTags: string[];
   commonTagCount: number;
+  activityStatus: "recent" | "away" | "inactive";
+  relevanceScore: number;
+};
+
+export type TagCatalogItem = {
+  id: number;
+  name: string;
+  category: string;
+  aliases: string[];
+  popularity: number;
+  recentUses: number;
 };
 
 export type DailyMission = {
@@ -74,6 +92,8 @@ export type LiveMessage = {
   senderId: string;
   body: string;
   createdAt: string;
+  readAt: string | null;
+  reactions: Array<{ userId: string; reaction: "heart" | "smile" | "thanks" }>;
 };
 
 export type TagSessionState = {
@@ -128,6 +148,7 @@ export type EditableProfile = {
   marriageView: string;
   extraBio: string;
   tags: string[];
+  primaryTags: string[];
 };
 
 export type TokyoArea = {

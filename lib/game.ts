@@ -56,12 +56,8 @@ export const INITIAL_PROFILE = {
   marriageView: "",
   extraBio: "",
   tags: [] as string[],
+  primaryTags: [] as string[],
 };
-
-export const PROFILE_TAGS = [
-  "音楽", "ゲーム", "カードゲーム", "アニメ", "映画", "お笑い", "怪談", "古着", "ファッション",
-  "カフェ", "ラーメン", "お酒", "旅行", "スポーツ", "写真", "クリエイター", "仕事", "恋愛", "友達募集",
-] as const;
 
 export const PROFILE_UNLOCKS = [
   { level: 1, label: "基本プロフィール" },
