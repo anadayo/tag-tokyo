@@ -99,7 +99,7 @@ export type LiveMessage = {
   body: string;
   createdAt: string;
   readAt: string | null;
-  reactions: Array<{ userId: string; reaction: "heart" | "sparkle" | "like" }>;
+  reactions: Array<{ userId: string; reaction: "heart" | "like" | "laugh" | "wow" }>;
 };
 
 export type TodayStats = {
