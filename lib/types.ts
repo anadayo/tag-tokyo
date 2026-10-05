@@ -12,6 +12,11 @@ export type LiveMatch = {
   createdAt: string;
   activityStatus: "recent" | "away" | "inactive";
   unreadCount: number;
+  tags: string[];
+  primaryTags: string[];
+  commonTagCount: number;
+  profileLevel: number;
+  activityArea: string;
 };
 
 export type LiveCrossing = {
@@ -20,6 +25,7 @@ export type LiveCrossing = {
   displayName: string;
   handle: string | null;
   bio: string;
+  avatarUrl: string | null;
   areaLabel: string;
   crossedAt: string;
   tagged: boolean;
@@ -93,7 +99,13 @@ export type LiveMessage = {
   body: string;
   createdAt: string;
   readAt: string | null;
-  reactions: Array<{ userId: string; reaction: "heart" | "smile" | "thanks" }>;
+  reactions: Array<{ userId: string; reaction: "heart" | "sparkle" | "like" }>;
+};
+
+export type TodayStats = {
+  crosses: number;
+  receivedTags: number;
+  newMatches: number;
 };
 
 export type TagSessionState = {

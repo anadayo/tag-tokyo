@@ -14,7 +14,7 @@ import {
 } from "@/lib/game";
 import { isInsideTokyo, requestPrivateLocation, watchPrivateLocation } from "@/lib/location";
 import { hasSupabase, isLiveCommunityEnabled, supabase } from "@/lib/supabase";
-import type { AreaChampion, DailyMission, DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagCatalogItem, TagDuration, TagSessionResult, TagSessionState, TagStreak } from "@/lib/types";
+import type { AreaChampion, DailyMission, DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagCatalogItem, TagDuration, TagSessionResult, TagSessionState, TagStreak, TodayStats } from "@/lib/types";
 
 const INITIAL_SESSION: TagSessionState = {
   active: false,
@@ -38,6 +38,24 @@ const PROFILE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 const PROFILE_PHOTO_MAX_SIDE = 1200;
 const PROFILE_PHOTO_TARGET_BYTES = 1.5 * 1024 * 1024;
 const PROFILE_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const EMPTY_TODAY_STATS: TodayStats = { crosses: 0, receivedTags: 0, newMatches: 0 };
+
+function tokyoDateKey(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(date);
+}
+
+function MemberAvatar({ url, name, className = "" }: { url: string | null; name: string; className?: string }) {
+  // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL from private profile storage.
+  if (url) return <img className={`member-avatar-image ${className}`} src={url} alt={`${name}さんのプロフィール写真`} />;
+  return <span className={className}>{name.slice(0, 1).toUpperCase()}</span>;
+}
+
+async function getSignedProfilePhotoUrls(userIds: string[]) {
+  if (!supabase || userIds.length === 0) return {} as Record<string, string>;
+  const { data, error } = await supabase.functions.invoke("profile-photo-url", { body: { userIds } });
+  if (error || !data || typeof data !== "object") return {} as Record<string, string>;
+  return (data as { urls?: Record<string, string> }).urls ?? {};
+}
 
 function ProfilePhoto({ profile, className = "" }: { profile: EditableProfile; className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element -- local data URL, not a network image.
@@ -65,6 +83,7 @@ function MessageAccessGate({ onClose, onEmail }: { onClose: () => void; onEmail:
       <div className="access-copy"><span>MESSAGE ACCESS</span><h1 id="message-gate-title">メッセージは、<br />メール認証のあと。</h1><p>すれ違い・MAP・プロフィール育成は登録なしで遊べます。メッセージを開く時だけ、メール認証と同意が必要です。</p></div>
       <label className="access-field"><span>メールアドレス</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" /></label>
       <label className="access-field"><span>性別</span><select value={gender} onChange={(event) => setGender(event.target.value as EditableProfile["gender"])}><option value="unspecified">回答しない</option><option value="woman">女性</option><option value="man">男性</option><option value="nonbinary">その他</option></select></label>
+      {(gender === "nonbinary" || gender === "unspecified") && <p className="access-gender-note">現在、マッチング機能は男性・女性登録間のみ対応しています。MAP・育成機能は利用できます。</p>}
       <label className="access-check"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/terms/`} target="_blank" rel="noreferrer">利用規約</a>に同意する</span></label>
       <label className="access-check"><input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/privacy/`} target="_blank" rel="noreferrer">プライバシーポリシー</a>に同意する</span></label>
       {error && <p className="access-error" role="alert">{error}</p>}
@@ -138,6 +157,12 @@ function SessionResult({ result, onClose, onCross }: { result: TagSessionResult;
   </div>;
 }
 
+function MatchCelebration({ displayName, commonTags, onMessage, onClose }: { displayName: string; commonTags: string[]; onMessage: () => void; onClose: () => void }) {
+  return <div className="v04-overlay match-celebration-overlay" role="dialog" aria-modal="true" aria-label="マッチ成立">
+    <section className="v04-modal match-celebration-modal"><Heart className="match-heart" /><small>MUTUAL LIKE</small><h2>MATCH!</h2><p><b>{displayName}さん</b>とマッチしました</p><strong>共通TAG {commonTags.length}個</strong>{commonTags.length > 0 && <div className="profile-tags">{commonTags.slice(0, 5).map((tag) => <span className="primary" key={tag}>#{tag}</span>)}</div>}<div className="modal-actions"><button onClick={onClose}>あとで</button><button onClick={onMessage}><MessageCircle />メッセージを送る</button></div></section>
+  </div>;
+}
+
 function DailyMissionBoard({ missions }: { missions: DailyMission[] }) {
   if (missions.length === 0) return null;
   const labels: Record<DailyMission["key"], string> = {
@@ -155,11 +180,12 @@ function DailyMissionBoard({ missions }: { missions: DailyMission[] }) {
   </section>;
 }
 
-function HomeScreen({ session, now, start, stop, notice, growth, dailyBonusNotice, showGuide, dismissGuide, missions, streak }: {
+function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBonusNotice, showGuide, dismissGuide, missions, streak, todayStats }: {
   session: TagSessionState;
   now: number;
   start: () => void;
   stop: () => void;
+  extend: () => void;
   notice: string;
   growth: GrowthState;
   dailyBonusNotice: string;
@@ -167,10 +193,12 @@ function HomeScreen({ session, now, start, stop, notice, growth, dailyBonusNotic
   dismissGuide: () => void;
   missions: DailyMission[];
   streak: TagStreak | null;
+  todayStats: TodayStats;
 }) {
   const progress = getLevelProgress(growth.totalEarnedExp);
   const nextUnlock = PROFILE_UNLOCKS.find((item) => item.level > progress.level);
   const walkPercent = Math.min(100, (session.dailyWalkExp / Math.max(1, session.dailyWalkExpCap)) * 100);
+  const showEndingSoon = Boolean(session.active && session.expiresAt && session.expiresAt - now <= 5 * 60 * 1000 && session.expiresAt > now);
   return (
     <section className="screen home-screen">
       <div className="eyebrow"><MapPin /> TOKYO ONLY</div>
@@ -193,6 +221,7 @@ function HomeScreen({ session, now, start, stop, notice, growth, dailyBonusNotic
       </div>
 
       <div className="tag-session-rule"><Clock3 /><span><b>1回30分</b><small>位置情報は30分で自動OFF。続ける場合はもう一度TAG ONしてください。</small></span></div>
+      {showEndingSoon && <div className="tag-ending-soon" role="status"><Clock3 /><span><b>TAG ON終了まであと5分</b><small>操作しない場合は自動で終了します</small></span><button onClick={extend}>30分延長</button></div>}
 
       {notice && <div className="notice" role="status">{notice}</div>}
       {dailyBonusNotice && <div className="daily-bonus" role="status"><Gift /><span><b>{dailyBonusNotice}</b><small>毎日最初のアクセスで受け取れます</small></span></div>}
@@ -206,9 +235,9 @@ function HomeScreen({ session, now, start, stop, notice, growth, dailyBonusNotic
       <DailyMissionBoard missions={missions} />
       <div className="privacy-strip"><ShieldCheck /><span><b>現在地は非公開</b><small>正確な距離・時刻・移動方向も相手には表示しません</small></span></div>
       <div className="today-row">
-        <div><small>今日のCROSS</small><strong>0</strong></div>
-        <div><small>TAGされた数</small><strong>0</strong></div>
-        <div><small>新しいMATCH</small><strong>0</strong></div>
+        <div><small>今日のCROSS</small><strong>{todayStats.crosses}</strong></div>
+        <div><small>TAGされた数</small><strong>{todayStats.receivedTags}</strong></div>
+        <div><small>新しいMATCH</small><strong>{todayStats.newMatches}</strong></div>
       </div>
       <div className="growth-summary">
         <div className="level-badge"><span>PROFILE</span><b>Lv.{progress.level}</b></div>
@@ -229,12 +258,14 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
   const [stake, setStake] = useState(100);
   const [result, setResult] = useState("");
   const [rewardDisplay, setRewardDisplay] = useState<null | { tier: "normal" | "rare" | "super"; label: string }>(null);
+  const [confirmContribution, setConfirmContribution] = useState(false);
+  const [championNotice, setChampionNotice] = useState("");
   const [champions, setChampions] = useState<AreaChampion[]>([]);
   const area = TOKYO_AREAS.find((item) => item.id === selectedAreaId) ?? TOKYO_AREAS[0];
   const champion = champions.find((item) => item.areaId === area.id) ?? null;
   const spot = TAG_SPOTS.find((item) => item.id === selectedSpotId) ?? null;
   const myPoints = growth.areaContributions[area.id] ?? 0;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = tokyoDateKey();
   const alreadyClaimed = spot ? growth.spotClaims[spot.id] === today : false;
 
   const loadChampions = useCallback(async () => {
@@ -261,6 +292,14 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
   }, [loadChampions]);
 
   async function contribute() {
+    if (stake >= 500) {
+      setConfirmContribution(true);
+      return;
+    }
+    await performContribution();
+  }
+
+  async function performContribution() {
     if (!liveEnabled || !supabase) {
       setResult("年齢確認とサービス開始後に利用できます");
       return;
@@ -289,8 +328,13 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
       areaContributions: { ...current.areaContributions, [area.id]: (current.areaContributions[area.id] ?? 0) + stake },
     }));
     setResult(`${area.name}へ${stake} EXP投下しました。プロフィールLvは下がりません。`);
-    void loadChampions();
+    await loadChampions();
+    if (!champion?.userId || myPoints + stake > champion.points) {
+      setChampionNotice(`${area.name}のCHAMPIONになりました`);
+      window.setTimeout(() => setChampionNotice(""), 2200);
+    }
     track("area_exp_contributed", { area_id: area.id, amount: stake });
+    track("area_contribution", { area_id: area.id, amount: stake });
     track("tagtokyo_area_exp_contributed", { area_id: area.id, amount: stake });
   }
 
@@ -325,6 +369,7 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
       setRewardDisplay({ tier, label: rewardType === "exp" ? `${rewardExp} EXP獲得しました` : `${rewardName}を獲得しました` });
       setResult("");
       track("spot_reward_received", { spot_id: spot.id, reward_key: rewardKey, earned_exp: rewardExp });
+      track("spot_draw", { spot_id: spot.id, reward_key: rewardKey, earned_exp: rewardExp });
       track("tagtokyo_spot_drawn", { spot_id: spot.id, reward_key: rewardKey });
     } catch (error) {
       setResult(error instanceof Error ? error.message : "TAG SPOTを利用できませんでした");
@@ -344,7 +389,7 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
             <Trophy /><b>{item.name}</b><span>{leader?.displayName ? leader.displayName.slice(0, 7) : mine > 0 ? "YOU" : "未登録"}</span><small>{leader?.points ? `${leader.points.toLocaleString()}pt` : mine > 0 ? `${mine}pt` : "--"}</small>
           </button>;
         })}
-        {TAG_SPOTS.map((item) => <button key={item.id} className="spot-pin" aria-label={item.name} style={{ left: `${item.x}%`, top: `${item.y}%` }} onClick={() => { setSelectedSpotId(item.id); setSelectedAreaId(item.areaId); setResult(""); track("spot_opened", { spot_id: item.id, area_id: item.areaId }); }}><Gift /></button>)}
+        {TAG_SPOTS.map((item) => <button key={item.id} className="spot-pin" aria-label={item.name} style={{ left: `${item.x}%`, top: `${item.y}%` }} onClick={() => { setSelectedSpotId(item.id); setSelectedAreaId(item.areaId); setResult(""); track("spot_open", { spot_id: item.id, area_id: item.areaId }); }}><Gift /></button>)}
         <div className="map-legend"><span><Trophy />AREA BATTLE</span><span><Gift />SPOT DROP</span></div>
       </div>
 
@@ -376,6 +421,8 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
           <button onClick={() => setRewardDisplay(null)}>閉じる</button>
         </div>
       </div>}
+      {confirmContribution && <div className="v04-overlay" role="dialog" aria-modal="true" aria-label="EXP投下の確認"><section className="v04-modal safety-confirm-modal"><span className="v04-modal-icon"><Zap /></span><h2>{area.name}へ{stake} EXP投下しますか？</h2><p>所持EXP：{growth.availableExp.toLocaleString()} → {(growth.availableExp - stake).toLocaleString()}<br />プロフィールLvは下がりません。</p><div className="modal-actions"><button onClick={() => setConfirmContribution(false)}>キャンセル</button><button onClick={() => { setConfirmContribution(false); void performContribution(); }}>投下する</button></div></section></div>}
+      {championNotice && <div className="connected-overlay champion-earned" role="status"><Trophy /><b>AREA CHAMPION!</b><small>{championNotice}</small></div>}
     </section>
   );
 }
@@ -412,7 +459,7 @@ function LiveCrossScreen({ crossings, recommendations, officialProfile, memberRe
         : !memberReady ? <div className="discovery-gate"><ShieldCheck /><span><b>プロフィールを見るには本人確認が必要です</b><small>メール認証・規約同意・20歳以上確認を完了してください</small></span><button onClick={onRequireAccount}>設定へ</button></div>
           : recommendations.length === 0 ? <div className="discovery-gate"><UsersRound /><span><b>新しいプロフィールを待っています</b><small>異性・共通TAG 5個以上の条件を満たす実在ユーザーだけを表示します</small></span></div>
             : <div className="discovery-grid">{recommendations.map((profile) => <article className={`discovery-card ${profile.isOfficial ? "is-official" : ""}`} key={profile.userId}>
-              <div className="discovery-avatar">{profile.displayName.slice(0, 1)}</div>
+              <div className="discovery-avatar"><MemberAvatar url={profile.avatarUrl} name={profile.displayName} /></div>
               <div className="discovery-copy">{profile.isOfficial && <OfficialBadge />}<h3>{profile.displayName}</h3><small>{profile.handle ? `@${profile.handle}` : "TAG TOKYOメンバー"}</small><ActivityStatus status={profile.activityStatus} /><p>{profile.bio || "プロフィールを見て、気になったらいいねを送れます。"}</p>{profile.tags.length > 0 && <div className="profile-tags compact-tags">{[...profile.primaryTags, ...profile.tags.filter((tag) => !profile.primaryTags.includes(tag))].slice(0, 5).map((tag) => <span key={tag} className={profile.primaryTags.includes(tag) ? "primary" : ""}>#{tag}</span>)}</div>}{profile.commonTagCount > 0 && <small className="common-tag-count">共通タグ {profile.commonTagCount}</small>}</div>
               <button className="discovery-like" disabled={profile.liked} onClick={() => void onLike(profile)}><Heart />{profile.liked ? "送信済み" : "いいね"}</button>
             </article>)}</div>}
@@ -421,7 +468,7 @@ function LiveCrossScreen({ crossings, recommendations, officialProfile, memberRe
     {showWelcomeOnly && <article className="live-cross-card official-profile-card"><div className="chat-avatar">{officialProfile.displayName.slice(0, 1)}</div><div><OfficialBadge /><h3>{officialProfile.displayName}</h3><p>{officialProfile.handle ? `@${officialProfile.handle} · ${officialProfile.bio || "TAG TOKYOを運営しています"}` : officialProfile.bio || "TAG TOKYOを運営しています"}</p></div><span className="official-profile-label">WELCOME</span></article>}
     <div className="cross-section-title"><Sparkles /><span><b>CROSS</b><small>街で近くにいた人</small></span></div>
     {crossings.length === 0 ? <div className="empty-state"><div className="empty-icon"><Sparkles /></div><h3>新しいCROSSを待っています</h3><p>東京都内でTAG ONにすると、近くにいた年齢確認済みユーザーが後から表示されます。</p></div> : <div className="live-cross-list">
-      {crossings.map((crossing) => <article className={`live-cross-card ${crossing.isOfficial ? "official-profile-card" : ""}`} key={crossing.id}><div className="chat-avatar">{crossing.displayName.slice(0, 1)}</div><div><small>{crossing.areaLabel} · 1km以内 · 20歳以上確認済み</small><h3>{crossing.displayName} {crossing.isOfficial && <OfficialBadge />}</h3><ActivityStatus status={crossing.activityStatus} /><p>{crossing.handle ? `@${crossing.handle}` : crossing.bio || "プロフィールを確認してTAGできます"}</p>{crossing.primaryTags.length > 0 && <div className="profile-tags compact-tags">{crossing.primaryTags.map((tag) => <span className="primary" key={tag}>#{tag}</span>)}</div>}<small className="common-tag-count">共通タグ {crossing.commonTagCount}</small></div><button disabled={crossing.tagged} onClick={() => void onTag(crossing)}><Sparkles />{crossing.tagged ? "TAG済み" : "TAG"}</button></article>)}
+      {crossings.map((crossing) => <article className={`live-cross-card ${crossing.isOfficial ? "official-profile-card" : ""}`} key={crossing.id}><div className="chat-avatar"><MemberAvatar url={crossing.avatarUrl ?? null} name={crossing.displayName} /></div><div><small>{crossing.areaLabel} · 1km以内 · 20歳以上確認済み</small><h3>{crossing.displayName} {crossing.isOfficial && <OfficialBadge />}</h3><ActivityStatus status={crossing.activityStatus} /><p>{crossing.handle ? `@${crossing.handle}` : crossing.bio || "プロフィールを確認してTAGできます"}</p>{crossing.primaryTags.length > 0 && <div className="profile-tags compact-tags">{crossing.primaryTags.map((tag) => <span className="primary" key={tag}>#{tag}</span>)}</div>}<small className="common-tag-count">共通タグ {crossing.commonTagCount}</small></div><button disabled={crossing.tagged} onClick={() => void onTag(crossing)}><Sparkles />{crossing.tagged ? "TAG済み" : "TAG"}</button></article>)}
     </div>}
     {error && <p className="chat-error" role="alert">{error}</p>}
   </section>;
@@ -447,7 +494,7 @@ function MatchScreen() {
 
 function LiveMatchScreen({
   matches, messages, currentUserId, selectedMatchId, loading, error, memberReady, messageAccessReady,
-  onSelect, onSend, onReact, onUnmatch, onBlock, onReport, onRequireEmail,
+  onSelect, onSend, onReact, onLoadOlder, onUnmatch, onBlock, onReport, onRequireEmail,
 }: {
   matches: LiveMatch[];
   messages: Record<string, LiveMessage[]>;
@@ -459,7 +506,8 @@ function LiveMatchScreen({
   messageAccessReady: boolean;
   onSelect: (matchId: string) => void;
   onSend: (matchId: string, body: string) => Promise<boolean>;
-  onReact: (messageId: number, reaction: "heart" | "smile" | "thanks") => Promise<void>;
+  onReact: (messageId: number, reaction: "heart" | "sparkle" | "like") => Promise<void>;
+  onLoadOlder: (matchId: string, before: string) => Promise<void>;
   onUnmatch: (matchId: string) => Promise<void>;
   onBlock: (matchId: string) => Promise<void>;
   onReport: (matchId: string, reason: string, detail: string) => Promise<boolean>;
@@ -470,8 +518,15 @@ function LiveMatchScreen({
   const [showSafety, setShowSafety] = useState(false);
   const [reportReason, setReportReason] = useState("harassment");
   const [reportDetail, setReportDetail] = useState("");
+  const [showProfile, setShowProfile] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"unmatch" | "block" | "reportBlock" | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const selectedMatch = matches.find((match) => match.id === selectedMatchId) ?? matches[0] ?? null;
   const thread = selectedMatch ? messages[selectedMatch.id] ?? [] : [];
+  const commonTags = selectedMatch?.primaryTags.slice(0, 3) ?? [];
+  const conversationStarters = commonTags.length > 0
+    ? [`${commonTags[0]}好きなんですね！`, "この辺よく来ます？", "共通TAGが多くて気になりました"]
+    : ["この辺よく来ます？", "プロフィールを見て気になりました", "マッチありがとうございます！"];
 
   async function submitMessage(event: React.FormEvent) {
     event.preventDefault();
@@ -507,27 +562,37 @@ function LiveMatchScreen({
   return <section className="screen live-match-screen">
     <header className="screen-header"><div><span>MATCH</span><h2>メッセージ</h2></div><span className="match-count">{matches.length}</span></header>
     <div className="live-match-tabs" aria-label="マッチ一覧">
-      {matches.map((match) => <button key={match.id} className={selectedMatch.id === match.id ? "active" : ""} onClick={() => { onSelect(match.id); setShowSafety(false); }}><span>{match.displayName.slice(0, 1)}{match.unreadCount > 0 && <em>{match.unreadCount}</em>}</span><b>{match.displayName}{match.isOfficial && <BadgeCheck aria-label="公式" />}</b></button>)}
+      {matches.map((match) => {
+        const lastMessage = messages[match.id]?.at(-1);
+        return <button key={match.id} className={selectedMatch.id === match.id ? "active" : ""} onClick={() => { onSelect(match.id); setShowSafety(false); setShowProfile(false); }}>
+          <span className="match-list-avatar"><MemberAvatar url={match.avatarUrl} name={match.displayName} />{match.unreadCount > 0 && <em>{match.unreadCount}</em>}</span>
+          <span className="match-list-copy"><b>{match.displayName}{match.isOfficial && <BadgeCheck aria-label="公式" />}</b><small>{lastMessage?.body ?? "マッチしました"}</small></span>
+          <time>{lastMessage ? new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(lastMessage.createdAt)) : ""}</time>
+        </button>;
+      })}
     </div>
     <div className="chat-card">
-      <header className="chat-header"><div className="chat-avatar">{selectedMatch.displayName.slice(0, 1)}</div><div><b>{selectedMatch.displayName} {selectedMatch.isOfficial && <OfficialBadge />}</b><small>{selectedMatch.handle ? `@${selectedMatch.handle}` : "相互いいねでマッチ"}</small><ActivityStatus status={selectedMatch.activityStatus} /></div><button aria-label="安全メニュー" onClick={() => setShowSafety((value) => !value)}><ShieldCheck /></button></header>
+      <header className="chat-header"><button className="chat-profile-trigger" onClick={() => { setShowProfile(true); track("profile_view", { source: "chat" }); }} aria-label={`${selectedMatch.displayName}さんのプロフィールを開く`}><span className="chat-avatar"><MemberAvatar url={selectedMatch.avatarUrl} name={selectedMatch.displayName} /></span><span><b>{selectedMatch.displayName} {selectedMatch.isOfficial && <OfficialBadge />}</b><small>{selectedMatch.handle ? `@${selectedMatch.handle}` : "相互いいねでマッチ"}</small><ActivityStatus status={selectedMatch.activityStatus} /></span></button><button aria-label="安全メニュー" onClick={() => setShowSafety((value) => !value)}><ShieldCheck /></button></header>
       {showSafety && <div className="chat-safety-panel">
         <b>安全メニュー</b>
         <label><span>通報理由</span><select value={reportReason} onChange={(event) => setReportReason(event.target.value)}><option value="harassment">迷惑行為・嫌がらせ</option><option value="impersonation">なりすまし</option><option value="solicitation">勧誘・営業</option><option value="unsafe">危険を感じる行為</option><option value="other">その他</option></select></label>
         <textarea value={reportDetail} maxLength={1000} placeholder="状況を入力（任意）" onChange={(event) => setReportDetail(event.target.value)} />
-        <div><button onClick={async () => { if (await onReport(selectedMatch.id, reportReason, reportDetail)) { setReportDetail(""); setShowSafety(false); } }}><Flag />通報する</button><button onClick={() => void onUnmatch(selectedMatch.id)}><HeartHandshake />解除</button><button className="danger" onClick={() => void onBlock(selectedMatch.id)}><Ban />ブロック</button></div>
+        <div><button onClick={async () => { if (await onReport(selectedMatch.id, reportReason, reportDetail)) { setReportDetail(""); setShowSafety(false); setConfirmAction("reportBlock"); } }}><Flag />通報する</button><button onClick={() => setConfirmAction("unmatch")}><HeartHandshake />解除</button><button className="danger" onClick={() => setConfirmAction("block")}><Ban />ブロック</button></div>
       </div>}
       <div className="chat-thread" aria-live="polite">
-        {thread.length === 0 && <div className="chat-start"><Sparkles /><b>マッチしました</b><span>まずは共通点から話してみましょう</span></div>}
+        {thread.length >= 50 && <button className="load-older" disabled={loadingOlder} onClick={async () => { setLoadingOlder(true); await onLoadOlder(selectedMatch.id, thread[0].createdAt); setLoadingOlder(false); }}>{loadingOlder ? "読み込み中" : "過去のメッセージを表示"}</button>}
+        {thread.length === 0 && <div className="chat-start"><Sparkles /><b>マッチしました</b><span>まずは共通点から話してみましょう</span>{commonTags.length > 0 && <div className="chat-common-tags">{commonTags.map((tag) => <em key={tag}>#{tag}</em>)}</div>}<div className="starter-list">{conversationStarters.map((starter) => <button key={starter} onClick={() => setDraft(starter)}>{starter}</button>)}</div></div>}
         {thread.map((message, index) => {
           const day = new Intl.DateTimeFormat("ja-JP", { month: "short", day: "numeric" }).format(new Date(message.createdAt));
           const previousDay = index > 0 ? new Intl.DateTimeFormat("ja-JP", { month: "short", day: "numeric" }).format(new Date(thread[index - 1].createdAt)) : null;
-          return <div key={message.id} className="chat-message-wrap">{day !== previousDay && <div className="chat-date-separator">{day}</div>}<div className={`chat-message ${message.senderId === currentUserId ? "mine" : "theirs"}`}><p>{message.body}</p><div className="message-meta"><time>{new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(message.createdAt))}{message.senderId === currentUserId && message.readAt ? " · 既読" : ""}</time>{message.senderId !== currentUserId && <span className="reaction-actions"><button aria-label="ハート" onClick={() => void onReact(message.id, "heart")}>♥</button><button aria-label="笑顔" onClick={() => void onReact(message.id, "smile")}>☺</button><button aria-label="ありがとう" onClick={() => void onReact(message.id, "thanks")}>感謝</button></span>}</div>{message.reactions.length > 0 && <small className="reaction-summary">{message.reactions.map((reaction) => reaction.reaction === "heart" ? "♥" : reaction.reaction === "smile" ? "☺" : "感謝").join(" ")}</small>}</div></div>;
+          return <div key={message.id} className="chat-message-wrap">{day !== previousDay && <div className="chat-date-separator">{day}</div>}<div className={`chat-message ${message.senderId === currentUserId ? "mine" : "theirs"}`}><p>{message.body}</p><div className="message-meta"><time>{new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(message.createdAt))}{message.senderId === currentUserId && message.readAt ? " · 既読" : ""}</time>{message.senderId !== currentUserId && <span className="reaction-actions"><button aria-label="ハート" onClick={() => void onReact(message.id, "heart")}>❤️</button><button aria-label="きらめき" onClick={() => void onReact(message.id, "sparkle")}>✨</button><button aria-label="いいね" onClick={() => void onReact(message.id, "like")}>👍</button></span>}</div>{message.reactions.length > 0 && <small className="reaction-summary">{message.reactions.map((reaction) => reaction.reaction === "heart" ? "❤️" : reaction.reaction === "sparkle" ? "✨" : "👍").join(" ")}</small>}</div></div>;
         })}
       </div>
-      <form className="chat-compose" onSubmit={submitMessage}><textarea aria-label="メッセージ" value={draft} maxLength={1000} rows={2} placeholder="メッセージを入力" onChange={(event) => setDraft(event.target.value)} /><button type="submit" aria-label="送信" disabled={sending || !draft.trim()}><Send /></button></form>
+      <form className="chat-compose" onSubmit={submitMessage}><label><textarea aria-label="メッセージ" value={draft} maxLength={100} rows={2} placeholder="メッセージを入力" onChange={(event) => setDraft(event.target.value)} /><small>{draft.length} / 100</small></label><button type="submit" aria-label="送信" disabled={sending || !draft.trim()}><Send /></button></form>
     </div>
     {error && <p className="chat-error" role="alert">{error}</p>}
+    {showProfile && <div className="v04-overlay" role="dialog" aria-modal="true" aria-label={`${selectedMatch.displayName}さんのプロフィール`}><section className="v04-modal member-profile-modal"><button className="modal-close" aria-label="閉じる" onClick={() => setShowProfile(false)}>×</button><span className="profile-modal-avatar"><MemberAvatar url={selectedMatch.avatarUrl} name={selectedMatch.displayName} /></span><h2>{selectedMatch.displayName} <small>Lv.{selectedMatch.profileLevel}</small></h2>{selectedMatch.activityArea && <p className="profile-modal-area"><MapPin />{selectedMatch.activityArea}</p>}<p>{selectedMatch.bio || "自己紹介はまだありません"}</p>{selectedMatch.primaryTags.length > 0 && <div className="profile-tags">{selectedMatch.primaryTags.map((tag) => <span className="primary" key={tag}>#{tag}</span>)}</div>}<small className="common-tag-count">共通TAG {selectedMatch.commonTagCount}個</small></section></div>}
+    {confirmAction && <div className="v04-overlay" role="dialog" aria-modal="true" aria-label="安全操作の確認"><section className="v04-modal safety-confirm-modal"><span className="v04-modal-icon">{confirmAction === "unmatch" ? <HeartHandshake /> : <Ban />}</span><h2>{confirmAction === "unmatch" ? `${selectedMatch.displayName}さんとのマッチを解除しますか？` : confirmAction === "reportBlock" ? "このユーザーもブロックしますか？" : `${selectedMatch.displayName}さんをブロックしますか？`}</h2><p>{confirmAction === "unmatch" ? "メッセージを停止し、30日間お互いのおすすめに表示しません。30日後は再マッチできます。" : "今後、お互いのCROSS・おすすめ・MATCHに表示されなくなります。"}</p><div className="modal-actions"><button onClick={() => setConfirmAction(null)}>キャンセル</button><button className="danger" onClick={async () => { const action = confirmAction; setConfirmAction(null); if (action === "unmatch") await onUnmatch(selectedMatch.id); else await onBlock(selectedMatch.id); }}>{confirmAction === "unmatch" ? "解除する" : "ブロック"}</button></div></section></div>}
   </section>;
 }
 
@@ -581,7 +646,7 @@ function TagCollectionEditor({ catalog, selected, primary, onChange }: {
     <label className="tag-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="タグや別名を検索" /></label>
     <div className="tag-categories">{categories.map((item) => <button type="button" key={item} className={category === item ? "selected" : ""} onClick={() => setCategory(item)}>{item}</button>)}</div>
     {selected.length > 0 && <div className="selected-tag-list">{selected.map((name) => <span key={name}><button type="button" className="tag-primary" aria-label={`${name}をメインタグにする`} aria-pressed={primary.includes(name)} onClick={() => togglePrimary(name)}><Star /></button><button type="button" onClick={() => toggle(name)}>#{name} ×</button></span>)}</div>}
-    <div className="tag-catalog-list">{filtered.map((tag) => <button type="button" key={tag.id} className={selected.includes(tag.name) ? "selected" : ""} aria-pressed={selected.includes(tag.name)} onClick={() => toggle(tag.name)}>#{tag.name}{tag.recentUses > 0 && <small>NEW</small>}</button>)}</div>
+    <div className="tag-catalog-list">{filtered.map((tag) => <button type="button" key={tag.id} className={selected.includes(tag.name) ? "selected" : ""} aria-pressed={selected.includes(tag.name)} onClick={() => toggle(tag.name)}>#{tag.name}{tag.recentUses > 0 && <small>HOT</small>}</button>)}</div>
     {filtered.length === 0 && <p className="tag-empty">該当するタグがありません</p>}
   </fieldset>;
 }
@@ -843,6 +908,7 @@ function MeScreen({ email, setEmail, authNotice, sendMagicLink, signOut, request
           <p className="editor-guide">{isOwner ? "オーナーはすべての項目を編集できます" : `Lv.${progress.level}までの項目を編集できます`}。表示名は50文字まで、ユーザーIDは5〜15文字の英数字または _ です。</p>
           <div className="editor-fields">
             <label><span>性別</span><select value={draft.gender} onChange={(event) => setDraft((current) => ({ ...current, gender: event.target.value as EditableProfile["gender"] }))}><option value="unspecified">回答しない</option><option value="woman">女性</option><option value="man">男性</option><option value="nonbinary">その他</option></select></label>
+            {(draft.gender === "nonbinary" || draft.gender === "unspecified") && <p className="access-gender-note">現在、マッチング機能は男性・女性登録間のみ対応しています。MAP・育成機能は利用できます。</p>}
             <TagCollectionEditor catalog={tagCatalog} selected={draft.tags} primary={draft.primaryTags} onChange={(tags, primaryTags) => setDraft((current) => ({ ...current, tags, primaryTags }))} />
             {profileFields.map((field) => {
               const unlocked = isOwner || progress.level >= field.level;
@@ -890,6 +956,8 @@ export default function TagTokyoApp() {
   const [dailyBonusNotice, setDailyBonusNotice] = useState("");
   const [dailyMissions, setDailyMissions] = useState<DailyMission[]>([]);
   const [tagStreak, setTagStreak] = useState<TagStreak | null>(null);
+  const [todayStats, setTodayStats] = useState<TodayStats>(EMPTY_TODAY_STATS);
+  const [matchCelebration, setMatchCelebration] = useState<null | { matchId: string | null; userId: string; displayName: string; commonTags: string[] }>(null);
   const [showHomeGuide, setShowHomeGuide] = useState(false);
   const [showCrossGuide, setShowCrossGuide] = useState(false);
   const [showTagIntro, setShowTagIntro] = useState(false);
@@ -944,6 +1012,10 @@ export default function TagTokyoApp() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      if (!window.sessionStorage.getItem("tagtokyo_first_visit_v1")) {
+        window.sessionStorage.setItem("tagtokyo_first_visit_v1", "1");
+        track("first_visit");
+      }
       setShowHomeGuide(window.localStorage.getItem("tagtokyo_home_guide_v04") !== "done");
       setShowCrossGuide(window.localStorage.getItem("tagtokyo_cross_guide_v04") !== "done");
     }, 0);
@@ -1060,10 +1132,15 @@ export default function TagTokyoApp() {
       ...crossingItems.map((crossing) => crossing.user_a === userId ? crossing.user_b : crossing.user_a),
     ])];
     const matchIds = rows.map((match) => match.id);
-    const profileByUser = new globalThis.Map<string, { display_name: string; handle: string | null; bio: string; avatar_url: string | null; is_official: boolean; profile_tags?: string[]; primary_tags?: string[]; common_tag_count?: number; activity_status?: "recent" | "away" | "inactive" }>();
+    const profileByUser = new globalThis.Map<string, { display_name: string; handle: string | null; bio: string; avatar_url: string | null; is_official: boolean; profile_tags?: string[]; primary_tags?: string[]; common_tag_count?: number; activity_status?: "recent" | "away" | "inactive"; profile_level?: number; activity_area?: string }>();
 
     if (otherIds.length > 0) {
-      let { data: profileRows, error: profileError } = await supabase.rpc("get_visible_member_profiles", { p_user_ids: otherIds });
+      let { data: profileRows, error: profileError } = await supabase.rpc("get_visible_member_profiles_v2", { p_user_ids: otherIds });
+      if (profileError?.message.includes("get_visible_member_profiles_v2")) {
+        const legacy = await supabase.rpc("get_visible_member_profiles", { p_user_ids: otherIds });
+        profileRows = legacy.data;
+        profileError = legacy.error;
+      }
       if (profileError) {
         const fallback = await supabase.from("profiles").select("user_id,display_name,handle,bio,avatar_url").in("user_id", otherIds);
         profileRows = (fallback.data ?? []).map((item) => ({ ...item, is_official: false }));
@@ -1074,7 +1151,8 @@ export default function TagTokyoApp() {
         setLiveLoading(false);
         return;
       }
-      for (const item of profileRows ?? []) profileByUser.set(item.user_id, item);
+      const signedPhotoUrls = await getSignedProfilePhotoUrls(otherIds);
+      for (const item of profileRows ?? []) profileByUser.set(item.user_id, { ...item, avatar_url: signedPhotoUrls[item.user_id] ?? null });
     }
 
     const nextMatches = rows.map((match) => {
@@ -1091,6 +1169,11 @@ export default function TagTokyoApp() {
         createdAt: match.created_at,
         activityStatus: other?.activity_status ?? "inactive",
         unreadCount: 0,
+        tags: other?.profile_tags ?? [],
+        primaryTags: other?.primary_tags ?? [],
+        commonTagCount: Number(other?.common_tag_count ?? 0),
+        profileLevel: Number(other?.profile_level ?? 1),
+        activityArea: other?.activity_area ?? "",
       } satisfies LiveMatch;
     });
     const taggedCrossings = new Set((likeRows ?? []).map((like) => like.crossing_id));
@@ -1103,6 +1186,7 @@ export default function TagTokyoApp() {
         displayName: other?.display_name ?? "TAGユーザー",
         handle: other?.handle ?? null,
         bio: other?.bio ?? "",
+        avatarUrl: other?.avatar_url ?? null,
         areaLabel: crossing.area_label,
         crossedAt: crossing.crossed_at,
         tagged: taggedCrossings.has(crossing.id),
@@ -1117,17 +1201,16 @@ export default function TagTokyoApp() {
     setSelectedLiveMatchId((current) => current && matchIds.includes(current) ? current : matchIds[0] ?? null);
 
     if (matchIds.length > 0) {
-      let messageResult = await supabase
-        .from("messages")
-        .select("id,match_id,sender_id,body,created_at,read_at")
-        .in("match_id", matchIds)
-        .order("created_at", { ascending: true })
-        .limit(500);
-      if (messageResult.error?.message.includes("read_at")) {
-        const fallback = await supabase.from("messages").select("id,match_id,sender_id,body,created_at").in("match_id", matchIds).order("created_at", { ascending: true }).limit(500);
-        messageResult = fallback as typeof messageResult;
-      }
-      const { data: messageRows, error: messageError } = messageResult;
+      const messageBatches = await Promise.all(matchIds.map(async (matchId) => {
+        let result = await supabase!.from("messages").select("id,match_id,sender_id,body,created_at,read_at").eq("match_id", matchId).order("created_at", { ascending: false }).limit(50);
+        if (result.error?.message.includes("read_at")) {
+          const fallback = await supabase!.from("messages").select("id,match_id,sender_id,body,created_at").eq("match_id", matchId).order("created_at", { ascending: false }).limit(50);
+          result = fallback as typeof result;
+        }
+        return result;
+      }));
+      const messageError = messageBatches.find((batch) => batch.error)?.error;
+      const messageRows = messageBatches.flatMap((batch) => batch.data ?? []).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       if (messageError) setLiveError(messageError.message);
       else {
         const messageIds = (messageRows ?? []).map((item) => item.id);
@@ -1136,7 +1219,7 @@ export default function TagTokyoApp() {
           : { data: [], error: null };
         const grouped: Record<string, LiveMessage[]> = {};
         for (const item of messageRows ?? []) {
-          const reactions = (reactionResult.data ?? []).filter((reaction) => reaction.message_id === item.id).map((reaction) => ({ userId: reaction.user_id, reaction: reaction.reaction as "heart" | "smile" | "thanks" }));
+          const reactions = (reactionResult.data ?? []).filter((reaction) => reaction.message_id === item.id).map((reaction) => ({ userId: reaction.user_id, reaction: reaction.reaction as "heart" | "sparkle" | "like" }));
           const message: LiveMessage = { id: item.id, matchId: item.match_id, senderId: item.sender_id, body: item.body, createdAt: item.created_at, readAt: "read_at" in item ? item.read_at as string | null : null, reactions };
           grouped[message.matchId] = [...(grouped[message.matchId] ?? []), message];
         }
@@ -1145,18 +1228,25 @@ export default function TagTokyoApp() {
       }
     } else setLiveMessages({});
 
-    const { data: discoveryRows, error: discoveryError } = await supabase.rpc("get_discovery_profiles", { p_limit: 24 });
+    let discoveryResult = await supabase.rpc("get_discovery_profiles_v2", { p_limit: 24 });
+    if (discoveryResult.error?.message.includes("get_discovery_profiles_v2")) discoveryResult = await supabase.rpc("get_discovery_profiles", { p_limit: 24 });
+    const [{ data: discoveryRows, error: discoveryError }, { data: recentEndedRows }] = await Promise.all([
+      Promise.resolve(discoveryResult),
+      supabase.from("matches").select("user_a,user_b").not("ended_at", "is", null).gt("ended_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
+    ]);
     if (discoveryError) {
       setDiscoveryProfiles([]);
       setLiveError((current) => current || (discoveryError.message.includes("get_discovery_profiles") ? "おすすめ機能のDB設定が必要です" : discoveryError.message));
     } else {
-      const discoveryItems = (discoveryRows ?? []) as Array<{ user_id: string; display_name: string; handle: string | null; bio: string | null; avatar_url: string | null; is_official: boolean; liked: boolean; profile_tags?: string[]; primary_tags?: string[]; common_tag_count?: number; activity_status?: "recent" | "away" | "inactive"; relevance_score?: number }>;
+      const cooldownUsers = new Set((recentEndedRows ?? []).map((match) => match.user_a === userId ? match.user_b : match.user_a));
+      const discoveryItems = ((discoveryRows ?? []) as Array<{ user_id: string; display_name: string; handle: string | null; bio: string | null; avatar_url: string | null; is_official: boolean; liked: boolean; profile_tags?: string[]; primary_tags?: string[]; common_tag_count?: number; activity_status?: "recent" | "away" | "inactive"; relevance_score?: number }>).filter((item) => !cooldownUsers.has(item.user_id));
+      const signedPhotoUrls = await getSignedProfilePhotoUrls(discoveryItems.map((item) => item.user_id));
       setDiscoveryProfiles(discoveryItems.map((item) => ({
         userId: item.user_id,
         displayName: item.display_name,
         handle: item.handle,
         bio: item.bio ?? "",
-        avatarUrl: item.avatar_url,
+        avatarUrl: signedPhotoUrls[item.user_id] ?? null,
         isOfficial: item.is_official,
         liked: item.liked,
         tags: item.profile_tags ?? [],
@@ -1166,6 +1256,9 @@ export default function TagTokyoApp() {
         relevanceScore: Number(item.relevance_score ?? 0),
       })));
     }
+    const { data: statRows } = await supabase.rpc("get_today_home_stats");
+    const stats = Array.isArray(statRows) ? statRows[0] : statRows;
+    if (stats) setTodayStats({ crosses: Number(stats.cross_count ?? 0), receivedTags: Number(stats.received_tag_count ?? 0), newMatches: Number(stats.new_match_count ?? 0) });
     setLiveLoading(false);
   }, []);
 
@@ -1532,6 +1625,7 @@ export default function TagTokyoApp() {
       setShowConnected(true);
       window.setTimeout(() => setShowConnected(false), 1500);
       track("tag_on_started", { tag_duration: session.duration });
+      track("tag_on", { tag_duration: session.duration });
       void claimDailyMission("tag_on");
       void refreshTagStreak();
       track("tagtokyo_tag_session_started", { duration_minutes: session.duration, backend: true });
@@ -1567,6 +1661,7 @@ export default function TagTokyoApp() {
     setSessionResult(result);
     setNotice(reason === "expired" ? "TAG ONが自動終了しました" : "TAG ONを終了しました");
     track("tag_on_finished", { reason, tag_duration: result.durationSeconds, valid_distance: result.distanceMeters, earned_exp: result.walkExp, cross_count: result.crossCount });
+    track("tag_on_complete", { reason, duration_seconds: result.durationSeconds, earned_exp: result.walkExp, cross_count: result.crossCount });
     track("tagtokyo_tag_session_ended", { reason });
   }
 
@@ -1643,6 +1738,7 @@ export default function TagTokyoApp() {
 
   async function sendLiveMessage(matchId: string, body: string) {
     if (!supabase || !currentUserId) return false;
+    const existingThread = liveMessages[matchId] ?? [];
     setLiveError("");
     const { data, error } = await supabase.rpc("send_match_message", { p_match_id: matchId, p_body: body });
     if (error) {
@@ -1658,11 +1754,33 @@ export default function TagTokyoApp() {
       });
     }
     track("tagtokyo_message_sent", { match_id: matchId });
+    if (!existingThread.some((message) => message.senderId === currentUserId)) track("first_message_sent", { match_id: matchId });
+    else if (existingThread.some((message) => message.senderId !== currentUserId)) track("message_reply", { match_id: matchId });
     return true;
+  }
+
+  async function loadOlderMessages(matchId: string, before: string) {
+    if (!supabase) return;
+    const { data, error } = await supabase.from("messages").select("id,match_id,sender_id,body,created_at,read_at").eq("match_id", matchId).lt("created_at", before).order("created_at", { ascending: false }).limit(50);
+    if (error) return setLiveError(error.message);
+    const rows = [...(data ?? [])].reverse();
+    const messageIds = rows.map((item) => item.id);
+    const { data: reactionRows } = messageIds.length > 0 ? await supabase.from("message_reactions").select("message_id,user_id,reaction").in("message_id", messageIds) : { data: [] };
+    const older = rows.map((item) => ({
+      id: item.id,
+      matchId: item.match_id,
+      senderId: item.sender_id,
+      body: item.body,
+      createdAt: item.created_at,
+      readAt: item.read_at,
+      reactions: (reactionRows ?? []).filter((reaction) => reaction.message_id === item.id).map((reaction) => ({ userId: reaction.user_id, reaction: reaction.reaction as "heart" | "sparkle" | "like" })),
+    } satisfies LiveMessage));
+    setLiveMessages((current) => ({ ...current, [matchId]: [...older, ...(current[matchId] ?? [])] }));
   }
 
   async function selectLiveMatch(matchId: string) {
     setSelectedLiveMatchId(matchId);
+    track("chat_open", { match_id: matchId });
     if (!supabase) return;
     const { error } = await supabase.rpc("mark_match_read", { p_match_id: matchId });
     if (error) return;
@@ -1670,7 +1788,7 @@ export default function TagTokyoApp() {
     setLiveMatches((current) => current.map((match) => match.id === matchId ? { ...match, unreadCount: 0 } : match));
   }
 
-  async function reactToLiveMessage(messageId: number, reaction: "heart" | "smile" | "thanks") {
+  async function reactToLiveMessage(messageId: number, reaction: "heart" | "sparkle" | "like") {
     if (!supabase || !currentUserId) return;
     const { error } = await supabase.rpc("react_to_message", { p_message_id: messageId, p_reaction: reaction });
     if (error) return setLiveError(error.message);
@@ -1679,7 +1797,6 @@ export default function TagTokyoApp() {
 
   async function unmatchLiveMember(matchId: string) {
     if (!supabase) return;
-    if (!window.confirm("このマッチを解除しますか？解除後はメッセージを送れません。")) return;
     const { error } = await supabase.rpc("unmatch_member", { p_match_id: matchId });
     if (error) return setLiveError(error.message);
     setLiveMatches((current) => current.filter((match) => match.id !== matchId));
@@ -1697,27 +1814,31 @@ export default function TagTokyoApp() {
     track("tag_sent", { crossing_id: crossing.id });
     if (matched) track("match_created", { source: "cross" });
     track("tagtokyo_live_tag_sent", { crossing_id: crossing.id, matched: Boolean(matched) });
-    if (matched) await refreshLiveCommunity(currentUserId);
+    if (matched) {
+      await refreshLiveCommunity(currentUserId);
+      setMatchCelebration({ matchId: null, userId: crossing.otherUserId, displayName: crossing.displayName, commonTags: crossing.tags.filter((tag) => profile.tags.includes(tag)) });
+    }
   }
 
-  async function sendProfileLike(profile: DiscoveryProfile) {
-    if (!supabase || !currentUserId || profile.liked) return;
+  async function sendProfileLike(target: DiscoveryProfile) {
+    if (!supabase || !currentUserId || target.liked) return;
     setLiveError("");
-    const { data: matched, error } = await supabase.rpc("send_profile_like", { p_receiver: profile.userId });
+    const { data: matched, error } = await supabase.rpc("send_profile_like", { p_receiver: target.userId });
     if (error) {
       setLiveError(error.message === "daily like limit reached" ? "本日のいいね上限に達しました" : error.message);
       return;
     }
-    setDiscoveryProfiles((current) => current.map((item) => item.userId === profile.userId ? { ...item, liked: true } : item));
+    setDiscoveryProfiles((current) => current.map((item) => item.userId === target.userId ? { ...item, liked: true } : item));
     track("tag_sent", { source: "discover" });
+    track("like_sent", { source: "discover" });
     track("tagtokyo_profile_like_sent", { matched: Boolean(matched) });
     if (matched) {
       track("match_created", { source: "discover" });
-      setNotice(`${profile.displayName}さんとMATCHしました`);
+      setNotice(`${target.displayName}さんとMATCHしました`);
       await refreshLiveCommunity(currentUserId);
-      setTab("match");
+      setMatchCelebration({ matchId: null, userId: target.userId, displayName: target.displayName, commonTags: target.tags.filter((tag) => profile.tags.includes(tag)) });
     } else {
-      setNotice(`${profile.displayName}さんへいいねを送りました`);
+      setNotice(`${target.displayName}さんへいいねを送りました`);
     }
   }
 
@@ -1788,11 +1909,11 @@ export default function TagTokyoApp() {
   return (
     <main className="app-shell">
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>TOKYO SOCIAL</small></div>
-      {tab === "home" && <HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} />}
+      {tab === "home" && <HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} />}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => setTab("me")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} />}
       {tab === "match" && (liveEnabled
-        ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={(matchId) => void selectLiveMatch(matchId)} onSend={sendLiveMessage} onReact={reactToLiveMessage} onUnmatch={unmatchLiveMember} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
+        ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={(matchId) => void selectLiveMatch(matchId)} onSend={sendLiveMessage} onReact={reactToLiveMessage} onLoadOlder={loadOlderMessages} onUnmatch={unmatchLiveMember} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen />)}
       {tab === "me" && <MeScreen email={email} setEmail={setEmail} authNotice={authNotice} sendMagicLink={sendMagicLink} signOut={() => void signOut()} requestAccountDeletion={() => void requestAccountDeletion()} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} tagCatalog={tagCatalog} isOwner={isOwner} liveEnabled={liveEnabled} emailAuthenticated={isEmailAuthenticated} consentReady={consentReady} ageVerificationStatus={ageVerificationStatus} />}
       <BottomNav tab={tab} onChange={(next) => {
@@ -1807,6 +1928,7 @@ export default function TagTokyoApp() {
       {walkPulse && <div className="walk-exp-pulse" role="status"><Footprints />{walkPulse}</div>}
       {levelUp && <div className="level-up-overlay" role="status"><small>PROFILE LEVEL UP</small><b>Lv.{levelUp}</b><Sparkles /></div>}
       {sessionResult && <SessionResult result={sessionResult} onClose={() => setSessionResult(null)} onCross={() => { setSessionResult(null); setTab("cross"); track("cross_opened", { source: "tag_result" }); }} />}
+      {matchCelebration && <MatchCelebration displayName={matchCelebration.displayName} commonTags={matchCelebration.commonTags} onClose={() => setMatchCelebration(null)} onMessage={() => { const matchId = liveMatches.find((match) => match.otherUserId === matchCelebration.userId)?.id ?? matchCelebration.matchId; if (matchId) setSelectedLiveMatchId(matchId); setMatchCelebration(null); setTab("match"); }} />}
     </main>
   );
 }

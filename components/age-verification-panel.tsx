@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, FileWarning, ShieldCheck, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { track } from "@/lib/analytics";
 import type { EditableProfile } from "@/lib/types";
 
 type VerificationStatus = "not_started" | "pending" | "verified" | "rejected" | "expired";
@@ -40,6 +41,7 @@ export function AgeVerificationPanel({ authenticated, consentReady, initialStatu
     if (!legalAccepted) return setNotice("利用規約とプライバシーポリシーへの同意が必要です");
 
     setSubmitting(true);
+    track("age_verification_start", { document_type: documentType });
     setNotice("");
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -75,6 +77,7 @@ export function AgeVerificationPanel({ authenticated, consentReady, initialStatu
     setFile(null);
     setSubmitting(false);
     setNotice("提出を受け付けました。運営確認後、画像原本を削除します。");
+    track("age_verification_complete", { status: "pending" });
   }
 
   if (status === "verified") return <div className="age-status verified"><CheckCircle2 /><span><b>20歳以上を確認済み</b><small>審査に使った画像原本は確認後に削除します</small></span></div>;
