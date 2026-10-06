@@ -25,7 +25,8 @@ create policy discovery_likes_sender_read on public.discovery_likes for select u
 create index if not exists discovery_likes_sender_created_idx
   on public.discovery_likes (sender_id, created_at desc);
 
-create or replace function public.get_discovery_profiles(p_limit integer default 24)
+drop function if exists public.get_discovery_profiles(integer);
+create function public.get_discovery_profiles(p_limit integer default 24)
 returns table(
   user_id uuid,
   display_name text,

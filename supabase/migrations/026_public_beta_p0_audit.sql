@@ -138,9 +138,9 @@ begin
   )
   select c.id,c.display_name,c.handle,c.bio,null::text,c.role='owner',c.liked,c.tags,c.primaries,c.common_count,
     case when c.last_seen_at>now()-interval '3 days' then 'recent' when c.last_seen_at>now()-interval '90 days' then 'away' else 'inactive' end,
-    round((c.common_count/greatest(1,sqrt(c.tag_count::numeric)))+c.rare_score,3)
+    round(((c.common_count/greatest(1,sqrt(c.tag_count::numeric)))+c.rare_score)::numeric,3) as score
   from candidates c where c.common_count>=5
-  order by(case when c.last_seen_at<=now()-interval '90 days' then 1 else 0 end),relevance_score desc,c.last_seen_at desc
+  order by(case when c.last_seen_at<=now()-interval '90 days' then 1 else 0 end),score desc,c.last_seen_at desc
   limit least(greatest(coalesce(p_limit,24),1),50);
 end $$;
 
