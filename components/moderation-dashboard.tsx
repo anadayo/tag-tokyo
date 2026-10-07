@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, RefreshCw, ShieldAlert, Trash2, X } from "lucide-react";
+import { Activity, Check, Flag, HeartHandshake, RefreshCw, ShieldAlert, Trash2, UsersRound, X } from "lucide-react";
 import { hasSupabase, supabase } from "@/lib/supabase";
 
 type ReviewRequest = {
@@ -18,6 +18,8 @@ type ReviewRequest = {
 };
 
 type ReviewChecks = { age: boolean; document: boolean; issuer: boolean };
+type AdminStats = { registeredUsers: number; confirmedEmails: number; betaTesters: number; remainingSlots: number; dau: number; activeMatches: number; openReports: number };
+type SafetyReport = { id: number; reason: string; detail: string; status: "open" | "in_review" | "actioned" | "closed"; priority: number; created_at: string };
 
 const DOCUMENT_LABELS: Record<string, string> = {
   drivers_license: "運転免許証",
@@ -33,6 +35,8 @@ export function ModerationDashboard() {
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [checks, setChecks] = useState<Record<string, ReviewChecks>>({});
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [reports, setReports] = useState<SafetyReport[]>([]);
 
   function setCheck(requestId: string, key: keyof ReviewChecks, value: boolean) {
     setChecks((current) => {
@@ -49,9 +53,16 @@ export function ModerationDashboard() {
     const { data: account } = await supabase.from("users").select("role,status").eq("auth_user_id", user.id).maybeSingle();
     if (!account || account.status !== "active" || !["owner", "moderator"].includes(account.role)) return setAllowed(false);
     setAllowed(true);
-    const { data, error } = await supabase.from("age_verification_requests").select("id,user_id,object_path,document_type,status,submitted_at,delete_by,reviewed_at,review_note,evidence_deleted_at").order("submitted_at", { ascending: false }).limit(100);
+    const [{ data, error }, statsResult, reportsResult] = await Promise.all([
+      supabase.from("age_verification_requests").select("id,user_id,object_path,document_type,status,submitted_at,delete_by,reviewed_at,review_note,evidence_deleted_at").order("submitted_at", { ascending: false }).limit(100),
+      supabase.rpc("get_beta_admin_stats"),
+      supabase.from("reports").select("id,reason,detail,status,priority,created_at").order("priority", { ascending: false }).order("created_at", { ascending: false }).limit(100),
+    ]);
     if (error) return setNotice(error.message);
     setRequests((data ?? []) as ReviewRequest[]);
+    if (!reportsResult.error) setReports((reportsResult.data ?? []) as SafetyReport[]);
+    const statRow = Array.isArray(statsResult.data) ? statsResult.data[0] : statsResult.data;
+    if (statRow) setStats({ registeredUsers: Number(statRow.registered_users), confirmedEmails: Number(statRow.confirmed_emails), betaTesters: Number(statRow.beta_testers), remainingSlots: Number(statRow.remaining_slots), dau: Number(statRow.dau), activeMatches: Number(statRow.active_matches), openReports: Number(statRow.open_reports) });
 
     const pending = (data ?? []).filter((item) => !item.evidence_deleted_at) as ReviewRequest[];
     const signed = await Promise.all(pending.map(async (item) => {
@@ -96,12 +107,30 @@ export function ModerationDashboard() {
     await load();
   }
 
+  async function updateReport(reportId: number, status: SafetyReport["status"]) {
+    if (!supabase) return;
+    setBusy(`report-${reportId}`);
+    const action = status === "in_review" ? "assigned" : status === "closed" ? "closed" : "warned";
+    const { error } = await supabase.rpc("review_report", { p_report_id: reportId, p_status: status, p_action: action, p_note: "運営画面から更新", p_pause_reported_user: false });
+    setBusy(null);
+    if (error) return setNotice(error.message);
+    setNotice("通報状況を更新しました");
+    await load();
+  }
+
   if (!hasSupabase) return <main className="moderation-page"><h1>年齢確認</h1><p>Supabase設定が必要です。</p></main>;
   if (allowed === null) return <main className="moderation-page"><h1>年齢確認</h1><p>権限を確認しています...</p></main>;
   if (!allowed) return <main className="moderation-page denied"><ShieldAlert /><h1>運営者専用です</h1><p>オーナーまたはモデレーターのアカウントでログインしてください。</p><a href="../">TAG TOKYOへ戻る</a></main>;
 
   return <main className="moderation-page">
     <header><div><small>TAG TOKYO / SAFETY</small><h1>年齢確認キュー</h1></div><button onClick={() => void load()} aria-label="更新"><RefreshCw /></button></header>
+    {stats && <section className="admin-stats" aria-label="運用状況">
+      <div><UsersRound /><span><small>登録 / 認証</small><b>{stats.registeredUsers} / {stats.confirmedEmails}</b></span></div>
+      <div><Check /><span><small>β TESTER</small><b>{stats.betaTesters}<em> 残り{stats.remainingSlots}</em></b></span></div>
+      <div><Activity /><span><small>24h ACTIVE</small><b>{stats.dau}</b></span></div>
+      <div><HeartHandshake /><span><small>MATCH</small><b>{stats.activeMatches}</b></span></div>
+      <div><Flag /><span><small>未対応通報</small><b>{stats.openReports}</b></span></div>
+    </section>}
     <div className="moderation-warning"><ShieldAlert /><p><b>画像は審査以外に利用しないでください。</b><br />確認するのは年齢または生年月日、証明書名、発行者名のみです。判定後は原本を即時削除します。</p></div>
     {notice && <p className="moderation-notice" role="status">{notice}</p>}
     <section className="review-list">
@@ -123,6 +152,13 @@ export function ModerationDashboard() {
           <div className="review-actions"><button disabled={busy === item.id} onClick={() => void review(item, false)}><X />再提出を依頼</button><button disabled={busy === item.id || !Object.values(checks[item.id] ?? {}).every(Boolean) || Object.keys(checks[item.id] ?? {}).length !== 3} onClick={() => void review(item, true)}><Check />承認して利用解放</button></div>
         </>}
         {item.status !== "pending" && <p className="review-note">{item.review_note || "審査メモなし"}</p>}
+      </article>)}
+    </section>
+    <section className="report-queue">
+      <header><Flag /><div><small>SAFETY REPORTS</small><h2>通報状況</h2></div></header>
+      {reports.length === 0 ? <p className="review-empty">通報はありません。</p> : reports.map((report) => <article key={report.id}>
+        <div><span className={`review-state ${report.status}`}>{report.status}</span><b>{report.reason}</b><small>{new Date(report.created_at).toLocaleString("ja-JP")} · 優先度 {report.priority}</small>{report.detail && <p>{report.detail}</p>}</div>
+        <div className="report-actions"><button disabled={busy === `report-${report.id}`} onClick={() => void updateReport(report.id, "in_review")}>確認中</button><button disabled={busy === `report-${report.id}`} onClick={() => void updateReport(report.id, "actioned")}>対応済み</button><button disabled={busy === `report-${report.id}`} onClick={() => void updateReport(report.id, "closed")}>閉じる</button></div>
       </article>)}
     </section>
   </main>;

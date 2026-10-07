@@ -108,6 +108,17 @@ export type TodayStats = {
   newMatches: number;
 };
 
+export type BetaCampaignStatus = {
+  claimedCount: number;
+  remainingCount: number;
+  campaignOpen: boolean;
+  isBetaTester: boolean;
+  betaTesterNumber: number | null;
+  rewardClaimed: boolean;
+  boostQuantity: number;
+  boostActiveUntil: string | null;
+};
+
 export type TagSessionState = {
   active: boolean;
   duration: TagDuration;

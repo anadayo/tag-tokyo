@@ -41,6 +41,7 @@ export const COSMETICS: Array<{
   cost: number;
   color: string;
   rewardLevel?: number;
+  campaignOnly?: boolean;
 }> = [
   { id: "frame-mint", name: "TOKYO MINT", kind: "フレーム", slot: "frame", cost: 500, color: "#21c78a" },
   { id: "frame-coral", name: "CROSS CORAL", kind: "フレーム", slot: "frame", cost: 800, color: "#ff5f69" },
@@ -52,6 +53,7 @@ export const COSMETICS: Array<{
   { id: "frame-level-100", name: "TOKYO MASTER", kind: "Lv100特典", slot: "frame", cost: 0, color: "#d6ab31", rewardLevel: 100 },
   { id: "background-level-100", name: "TOKYO HORIZON", kind: "Lv100特典", slot: "background", cost: 0, color: "#ff6b70", rewardLevel: 100 },
   { id: "title-level-100", name: "東京を歩ききった人", kind: "Lv100限定", slot: "title", cost: 0, color: "#d6ab31", rewardLevel: 100 },
+  { id: "title-beta-tester", name: "β TESTER", kind: "先着300名限定", slot: "title", cost: 0, color: "#ff5f69", campaignOnly: true },
 ];
 
 export const INITIAL_PROFILE = {

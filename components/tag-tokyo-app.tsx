@@ -14,7 +14,7 @@ import {
 } from "@/lib/game";
 import { isInsideTokyo, requestPrivateLocation, watchPrivateLocation } from "@/lib/location";
 import { hasSupabase, isLiveCommunityEnabled, supabase } from "@/lib/supabase";
-import type { AreaChampion, DailyMission, DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagCatalogItem, TagDuration, TagSessionResult, TagSessionState, TagStreak, TodayStats } from "@/lib/types";
+import type { AreaChampion, BetaCampaignStatus, DailyMission, DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagCatalogItem, TagDuration, TagSessionResult, TagSessionState, TagStreak, TodayStats } from "@/lib/types";
 
 const INITIAL_SESSION: TagSessionState = {
   active: false,
@@ -39,6 +39,7 @@ const PROFILE_PHOTO_MAX_SIDE = 1200;
 const PROFILE_PHOTO_TARGET_BYTES = 1.5 * 1024 * 1024;
 const PROFILE_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const EMPTY_TODAY_STATS: TodayStats = { crosses: 0, receivedTags: 0, newMatches: 0 };
+const EMPTY_BETA_STATUS: BetaCampaignStatus = { claimedCount: 0, remainingCount: 300, campaignOpen: true, isBetaTester: false, betaTesterNumber: null, rewardClaimed: false, boostQuantity: 0, boostActiveUntil: null };
 
 function tokyoDateKey(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(date);
@@ -193,7 +194,25 @@ function DailyMissionBoard({ missions }: { missions: DailyMission[] }) {
   </section>;
 }
 
-function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBonusNotice, showGuide, dismissGuide, missions, streak, todayStats }: {
+function BetaCampaignCard({ status, authenticated, liveEnabled, now, onActivate }: { status: BetaCampaignStatus; authenticated: boolean; liveEnabled: boolean; now: number; onActivate: () => void }) {
+  const activeUntil = status.boostActiveUntil ? new Date(status.boostActiveUntil) : null;
+  const active = Boolean(activeUntil && activeUntil.getTime() > now);
+  return <section className={`beta-campaign ${status.isBetaTester ? "is-member" : ""}`}>
+    <div className="beta-campaign-icon"><Crown /></div>
+    <div className="beta-campaign-copy">
+      <small>TAG TOKYO BETA</small>
+      <h2>{status.isBetaTester ? `β TESTER #${status.betaTesterNumber}` : status.campaignOpen ? "先着300名 βテスター募集" : "βテスター募集終了"}</h2>
+      <p>{status.isBetaTester ? "限定称号と通常800円相当のBOOSTを獲得しました。" : status.campaignOpen ? `メール認証完了で限定称号＋BOOST。残り${status.remainingCount}名。` : "通常登録は引き続き利用できます。"}</p>
+      {status.isBetaTester && <div className="beta-rewards"><span><BadgeCheck />β TESTER称号</span><span><Zap />BOOST ×{status.boostQuantity}</span></div>}
+      {status.isBetaTester && (active
+        ? <strong className="boost-active">BOOST発動中 · {activeUntil!.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}まで</strong>
+        : status.boostQuantity > 0 && <button disabled={!authenticated || !liveEnabled} onClick={onActivate}><Zap />{liveEnabled ? "BOOSTを使う" : "交流開始後に使用可能"}</button>)}
+    </div>
+    {!status.isBetaTester && status.campaignOpen && <strong className="beta-counter">{status.claimedCount}<small>/300</small></strong>}
+  </section>;
+}
+
+function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBonusNotice, showGuide, dismissGuide, missions, streak, todayStats, betaStatus, authenticated, liveEnabled, activateBoost }: {
   session: TagSessionState;
   now: number;
   start: () => void;
@@ -207,6 +226,10 @@ function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBo
   missions: DailyMission[];
   streak: TagStreak | null;
   todayStats: TodayStats;
+  betaStatus: BetaCampaignStatus;
+  authenticated: boolean;
+  liveEnabled: boolean;
+  activateBoost: () => void;
 }) {
   const progress = getLevelProgress(growth.totalEarnedExp);
   const nextUnlock = PROFILE_UNLOCKS.find((item) => item.level > progress.level);
@@ -217,6 +240,7 @@ function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBo
       <div className="eyebrow"><MapPin /> TOKYO ONLY</div>
       <h1>東京を歩くほど、<br />出会いと自分が育つ。</h1>
       <p className="lead">現在地は誰にも表示されません。近くにいた事実だけをCROSSへ届け、街での活動をプロフィールの成長につなげます。</p>
+      <BetaCampaignCard status={betaStatus} authenticated={authenticated} liveEnabled={liveEnabled} now={now} onActivate={activateBoost} />
 
       {showGuide && <section className="start-guide">
         <header><span>はじめかた</span><button onClick={dismissGuide}>閉じる</button></header>
@@ -877,7 +901,7 @@ function MeScreen({ email, setEmail, birthDate, setBirthDate, authNotice, sendMa
         <div className="section-heading"><div><small>DRESS UP</small><h3>装飾アイテム</h3></div><ShoppingBag /></div>
         <p className="cosmetic-intro">見た目を確認して、EXPで交換。取得後はいつでも装備できます。</p>
         <div className="cosmetic-grid">
-          {COSMETICS.filter((item) => !item.rewardLevel || progress.level >= item.rewardLevel || growth.ownedCosmetics.includes(item.id)).map((item) => {
+          {COSMETICS.filter((item) => (!item.campaignOnly || isOwner || growth.ownedCosmetics.includes(item.id)) && (!item.rewardLevel || progress.level >= item.rewardLevel || growth.ownedCosmetics.includes(item.id))).map((item) => {
             const owned = growth.ownedCosmetics.includes(item.id);
             const equipped = growth.equippedFrame === item.id || growth.equippedBackground === item.id || growth.equippedTitle === item.id;
             return <article key={item.id} className="cosmetic-tile">
@@ -979,6 +1003,7 @@ export default function TagTokyoApp() {
   const [dailyMissions, setDailyMissions] = useState<DailyMission[]>([]);
   const [tagStreak, setTagStreak] = useState<TagStreak | null>(null);
   const [todayStats, setTodayStats] = useState<TodayStats>(EMPTY_TODAY_STATS);
+  const [betaStatus, setBetaStatus] = useState<BetaCampaignStatus>(EMPTY_BETA_STATUS);
   const [matchCelebration, setMatchCelebration] = useState<null | { matchId: string | null; userId: string; displayName: string; commonTags: string[] }>(null);
   const [showHomeGuide, setShowHomeGuide] = useState(false);
   const [showCrossGuide, setShowCrossGuide] = useState(false);
@@ -993,7 +1018,42 @@ export default function TagTokyoApp() {
   const dailyCapTrackedRef = useRef(false);
   const walkMissionClaimedRef = useRef(false);
   const previousLevelRef = useRef<number | null>(null);
+  const betaTrackedRef = useRef(false);
   const liveEnabled = isLiveCommunityEnabled && databaseLiveEnabled;
+
+  const refreshBetaStatus = useCallback(async () => {
+    if (!supabase) return;
+    const { data, error } = await supabase.rpc("get_beta_campaign_status");
+    if (error) return;
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) return;
+    setBetaStatus({
+      claimedCount: Number(row.claimed_count ?? 0),
+      remainingCount: Number(row.remaining_count ?? 0),
+      campaignOpen: Boolean(row.campaign_open),
+      isBetaTester: Boolean(row.is_beta_tester),
+      betaTesterNumber: row.beta_tester_number === null ? null : Number(row.beta_tester_number),
+      rewardClaimed: Boolean(row.reward_claimed),
+      boostQuantity: Number(row.boost_quantity ?? 0),
+      boostActiveUntil: row.boost_active_until ?? null,
+    });
+    if (row.is_beta_tester && !betaTrackedRef.current) {
+      betaTrackedRef.current = true;
+      track("beta_tester_awarded", { beta_tester_number: Number(row.beta_tester_number) });
+    }
+  }, []);
+
+  const activateBetaBoost = useCallback(async () => {
+    if (!supabase) return;
+    const { error } = await supabase.rpc("activate_beta_boost");
+    if (error) {
+      setNotice(error.message === "live community is not enabled" ? "交流機能の開始後にBOOSTを使用できます" : error.message);
+      return;
+    }
+    setNotice("BOOSTを発動しました。30分間、CROSS探索範囲が1.5倍になります。");
+    track("beta_boost_activated");
+    await refreshBetaStatus();
+  }, [refreshBetaStatus]);
 
   const refreshDailyMissions = useCallback(async () => {
     if (!supabase) return;
@@ -1037,6 +1097,20 @@ export default function TagTokyoApp() {
       if (!window.sessionStorage.getItem("tagtokyo_first_visit_v1")) {
         window.sessionStorage.setItem("tagtokyo_first_visit_v1", "1");
         track("first_visit");
+      }
+      const today = tokyoDateKey();
+      const firstVisitDate = window.localStorage.getItem("tagtokyo_first_visit_date_v1");
+      if (!firstVisitDate) window.localStorage.setItem("tagtokyo_first_visit_date_v1", today);
+      else {
+        const elapsedDays = Math.floor((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${firstVisitDate}T00:00:00Z`)) / 86400000);
+        if (elapsedDays >= 1 && !window.localStorage.getItem("tagtokyo_return_day_1_v1")) {
+          window.localStorage.setItem("tagtokyo_return_day_1_v1", "1");
+          track("return_day_1");
+        }
+        if (elapsedDays >= 7 && !window.localStorage.getItem("tagtokyo_return_day_7_v1")) {
+          window.localStorage.setItem("tagtokyo_return_day_7_v1", "1");
+          track("return_day_7");
+        }
       }
       setShowHomeGuide(window.localStorage.getItem("tagtokyo_home_guide_v04") !== "done");
       setShowCrossGuide(window.localStorage.getItem("tagtokyo_cross_guide_v04") !== "done");
@@ -1293,6 +1367,7 @@ export default function TagTokyoApp() {
   useEffect(() => {
     if (!supabase) return;
     let active = true;
+    const betaTimer = window.setTimeout(() => void refreshBetaStatus(), 0);
     void supabase.rpc("get_tag_catalog", { p_query: "", p_category: null, p_limit: 500 }).then(async ({ data, error }) => {
       if (!active) return;
       let rows = (data ?? []) as Array<{ tag_id: number; name: string; category: string; aliases: string[]; popularity: number; recent_uses: number }>;
@@ -1302,8 +1377,8 @@ export default function TagTokyoApp() {
       }
       setTagCatalog(rows.map((row) => ({ id: row.tag_id, name: row.name, category: row.category, aliases: row.aliases ?? [], popularity: Number(row.popularity), recentUses: Number(row.recent_uses) })));
     });
-    return () => { active = false; };
-  }, []);
+    return () => { active = false; window.clearTimeout(betaTimer); };
+  }, [refreshBetaStatus]);
 
   useEffect(() => {
     window.localStorage.removeItem("tagtokyo_demo_matches_v1");
@@ -1431,12 +1506,14 @@ export default function TagTokyoApp() {
           bio: welcome.bio,
           avatarUrl: welcome.avatar_url,
         } : null);
+        void refreshBetaStatus();
         const returnUrl = new URL(window.location.href);
         if (returnUrl.searchParams.get("onboarding") === "1" && !data?.terms_accepted_at) {
           returnUrl.searchParams.delete("onboarding");
           window.history.replaceState({}, "", `${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}`);
           setTab("me");
           setAuthNotice("メール認証が完了しました。生年月日と規約への同意を確認して「同意して登録を完了」を押してください。");
+          track("email_auth_complete");
         }
       }
     }
@@ -1446,7 +1523,7 @@ export default function TagTokyoApp() {
       active = false;
       subscription.unsubscribe();
     };
-  }, [loadPersistentAccountState]);
+  }, [loadPersistentAccountState, refreshBetaStatus]);
 
   useEffect(() => {
     if (!liveEnabled || !liveMemberReady || !currentUserId || !supabase) return;
@@ -1729,11 +1806,14 @@ export default function TagTokyoApp() {
       window.sessionStorage.removeItem("tagtokyo_pending_message_consent_v1");
       setConsentReady(true);
       setAuthNotice("アカウント登録が完了しました");
+      track("profile_complete");
+      void refreshBetaStatus();
       return;
     }
     const normalizedEmail = email.trim().toLowerCase();
     const redirectUrl = new URL(window.location.href);
     redirectUrl.searchParams.set("onboarding", "1");
+    track("registration_start");
     const { error } = await supabase.auth.signInWithOtp({ email: normalizedEmail, options: { emailRedirectTo: redirectUrl.toString(), data: { birth_date: birthDate } } });
     setAuthNotice(error ? error.message : "認証メールを送りました。メール内のリンクを開いて登録を完了してください");
   }
@@ -1908,7 +1988,7 @@ export default function TagTokyoApp() {
 
   async function buyCosmetic(id: string) {
     const item = COSMETICS.find((candidate) => candidate.id === id);
-    if (!item || (!isOwner && growth.availableExp < item.cost) || growth.ownedCosmetics.includes(id)) return;
+    if (!item || (!isOwner && item.campaignOnly) || (!isOwner && growth.availableExp < item.cost) || growth.ownedCosmetics.includes(id)) return;
     if (supabase) {
       const { error } = isOwner
         ? await supabase.rpc("owner_unlock_cosmetics")
@@ -1950,8 +2030,8 @@ export default function TagTokyoApp() {
 
   return (
     <main className="app-shell">
-      <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>TOKYO SOCIAL</small></div>
-      {tab === "home" && <HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} />}
+      <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>BETA</small></div>
+      {tab === "home" && <HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} betaStatus={betaStatus} authenticated={isEmailAuthenticated} liveEnabled={liveEnabled} activateBoost={() => void activateBetaBoost()} />}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => setTab("me")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} />}
       {tab === "match" && (liveEnabled
@@ -1963,6 +2043,7 @@ export default function TagTokyoApp() {
         window.scrollTo({ top: 0, behavior: "instant" });
         track("tagtokyo_tab_view", { tab: next });
         if (next === "cross") { track("tagtokyo_cross_view"); track("cross_opened"); void claimDailyMission("cross_opened"); }
+        if (next === "map") track("map_opened");
       }} />
       {showMessageGate && <MessageAccessGate onClose={() => setShowMessageGate(false)} onEmail={requestMessageAccess} />}
       {showTagIntro && <TagIntro onClose={() => setShowTagIntro(false)} onStart={() => void startTag()} />}
