@@ -90,7 +90,7 @@ export function AgeVerificationPanel({ authenticated, consentReady, initialStatu
   }
 
   if (status === "verified") return <div className="age-status verified"><CheckCircle2 /><span><b>20歳以上を確認済み</b><small>審査に使った画像原本は確認後に削除します</small></span></div>;
-  if (status === "pending") return <div className="age-status pending"><ShieldCheck /><span><b>運営確認中</b><small>通常は提出順に確認します。再提出は不要です</small></span></div>;
+  if (status === "pending") return <div className="age-status pending verification-wait"><ShieldCheck /><span><b>運営確認中</b><small>確認目安：通常24時間以内（β版のため前後する場合があります）</small><small>再提出は不要です。承認後、TAG・MATCH・メッセージが利用できます</small></span></div>;
   if (!authenticated) return <div className="age-status pending age-registration-gate"><ShieldCheck /><span><b>まずメール認証を完了してください</b><small>認証後、この場所から年齢確認画像を提出できます</small></span>{onStartRegistration && <button type="button" onClick={onStartRegistration}>登録を始める</button>}</div>;
   if (authenticated && backendReady !== true) return <div className="age-status pending"><ShieldCheck /><span><b>{backendReady === null ? "年齢確認を準備しています" : "年齢確認はまだ利用できません"}</b><small>{backendReady === null ? "安全な接続を確認中です" : "運営側の設定完了後に提出できます"}</small></span></div>;
 
