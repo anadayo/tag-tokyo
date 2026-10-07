@@ -289,7 +289,7 @@ function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBo
   );
 }
 
-function MapScreen({ growth, setGrowth, liveEnabled, onInventoryChanged }: { growth: GrowthState; setGrowth: React.Dispatch<React.SetStateAction<GrowthState>>; liveEnabled: boolean; onInventoryChanged: () => void }) {
+function MapScreen({ growth, setGrowth, liveEnabled, memberReady, onRequireAccount, onInventoryChanged }: { growth: GrowthState; setGrowth: React.Dispatch<React.SetStateAction<GrowthState>>; liveEnabled: boolean; memberReady: boolean; onRequireAccount: () => void; onInventoryChanged: () => void }) {
   const [selectedAreaId, setSelectedAreaId] = useState("kitasenju");
   const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
   const [stake, setStake] = useState(100);
@@ -341,6 +341,10 @@ function MapScreen({ growth, setGrowth, liveEnabled, onInventoryChanged }: { gro
       setResult("年齢確認とサービス開始後に利用できます");
       return;
     }
+    if (!memberReady) {
+      onRequireAccount();
+      return;
+    }
     if (growth.availableExp < stake) {
       setResult("所持EXPが足りません");
       return;
@@ -379,6 +383,10 @@ function MapScreen({ growth, setGrowth, liveEnabled, onInventoryChanged }: { gro
     if (!spot || alreadyClaimed) return;
     if (!liveEnabled || !supabase) {
       setResult("年齢確認とサービス開始後に利用できます");
+      return;
+    }
+    if (!memberReady) {
+      onRequireAccount();
       return;
     }
     setResult("現在地を確認しています…");
@@ -437,7 +445,7 @@ function MapScreen({ growth, setGrowth, liveEnabled, onInventoryChanged }: { gro
           <div className="panel-title"><span className="panel-icon"><Gift /></span><div><small>SPOT DROP</small><h3>{spot.name.replace("TAG SPOT", "SPOT")}</h3></div></div>
           <p>現地にいることを非公開判定して、1日1回無料で抽選できます。完全なハズレはありません。</p>
           <div className="reward-line"><span>通常</span><b>30 / 50 / 100 EXP</b><span>レア</span><b>限定プロフィール装飾</b><span>激レア</span><b>BOOST / SUPER BOOST</b></div>
-          <button className="primary-wide spot-draw" disabled={alreadyClaimed || !liveEnabled} onClick={() => void drawSpot()}>{alreadyClaimed ? "本日は受取済み" : liveEnabled ? "現地で無料抽選" : "サービス開始後に利用可能"}</button>
+          <button className="primary-wide spot-draw" disabled={alreadyClaimed || !liveEnabled} onClick={() => void drawSpot()}>{alreadyClaimed ? "本日は受取済み" : !liveEnabled ? "サービス開始後に利用可能" : memberReady ? "現地で無料抽選" : "本人確認して利用"}</button>
         </div>
       ) : (
         <div className="map-panel">
@@ -447,7 +455,7 @@ function MapScreen({ growth, setGrowth, liveEnabled, onInventoryChanged }: { gro
           {champion && champion.pointsToFirst > 0 && <p className="points-to-first">あと <b>{champion.pointsToFirst.toLocaleString()} EXP</b> で1位</p>}
           <div className="area-range-note"><MapPin /><span><b>拠点の1km圏内限定</b><small>現在地は距離判定だけに使い、投下履歴には保存しません</small></span></div>
           <div className="stake-control"><button aria-label="EXPを減らす" onClick={() => setStake(Math.max(100, stake - 100))}><Minus /></button><b>{stake} EXP</b><button aria-label="EXPを増やす" onClick={() => setStake(Math.min(1000, stake + 100))}><Plus /></button></div>
-          <button className="primary-wide" disabled={!liveEnabled} onClick={contribute}>{liveEnabled ? "現在地を確認して投下" : "サービス開始後に利用可能"}</button>
+          <button className="primary-wide" disabled={!liveEnabled} onClick={contribute}>{!liveEnabled ? "サービス開始後に利用可能" : memberReady ? "現在地を確認して投下" : "本人確認して利用"}</button>
         </div>
       )}
       {result && <div className="notice map-result" role="status">{result}</div>}
@@ -2036,7 +2044,7 @@ export default function TagTokyoApp() {
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>BETA</small></div>
       {tab === "home" && <HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} betaStatus={betaStatus} authenticated={isEmailAuthenticated} liveEnabled={liveEnabled} activateBoost={() => void activateBetaBoost()} />}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => setTab("me")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
-      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} onInventoryChanged={() => void refreshBetaStatus()} />}
+      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} onRequireAccount={() => { setNotice("MAPの利用にはメール認証と20歳以上確認が必要です"); setTab("me"); }} onInventoryChanged={() => void refreshBetaStatus()} />}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={(matchId) => void selectLiveMatch(matchId)} onSend={sendLiveMessage} onReact={reactToLiveMessage} onLoadOlder={loadOlderMessages} onUnmatch={unmatchLiveMember} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen />)}
