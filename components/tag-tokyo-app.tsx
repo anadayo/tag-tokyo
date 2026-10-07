@@ -1431,6 +1431,13 @@ export default function TagTokyoApp() {
           bio: welcome.bio,
           avatarUrl: welcome.avatar_url,
         } : null);
+        const returnUrl = new URL(window.location.href);
+        if (returnUrl.searchParams.get("onboarding") === "1" && !data?.terms_accepted_at) {
+          returnUrl.searchParams.delete("onboarding");
+          window.history.replaceState({}, "", `${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}`);
+          setTab("me");
+          setAuthNotice("メール認証が完了しました。生年月日と規約への同意を確認して「同意して登録を完了」を押してください。");
+        }
       }
     }
     void syncOwnerRole();
@@ -1725,7 +1732,9 @@ export default function TagTokyoApp() {
       return;
     }
     const normalizedEmail = email.trim().toLowerCase();
-    const { error } = await supabase.auth.signInWithOtp({ email: normalizedEmail, options: { emailRedirectTo: window.location.href, data: { birth_date: birthDate } } });
+    const redirectUrl = new URL(window.location.href);
+    redirectUrl.searchParams.set("onboarding", "1");
+    const { error } = await supabase.auth.signInWithOtp({ email: normalizedEmail, options: { emailRedirectTo: redirectUrl.toString(), data: { birth_date: birthDate } } });
     setAuthNotice(error ? error.message : "認証メールを送りました。メール内のリンクを開いて登録を完了してください");
   }
 
@@ -1762,7 +1771,9 @@ export default function TagTokyoApp() {
       return;
     }
     window.sessionStorage.setItem("tagtokyo_pending_message_consent_v1", JSON.stringify({ termsVersion: TERMS_VERSION, privacyVersion: PRIVACY_VERSION }));
-    const { error } = await supabase.auth.signInWithOtp({ email: nextEmail, options: { emailRedirectTo: window.location.href, data: { birth_date: nextBirthDate } } });
+    const redirectUrl = new URL(window.location.href);
+    redirectUrl.searchParams.set("onboarding", "1");
+    const { error } = await supabase.auth.signInWithOtp({ email: nextEmail, options: { emailRedirectTo: redirectUrl.toString(), data: { birth_date: nextBirthDate } } });
     setAuthNotice(error ? error.message : "ログインリンクをメールへ送りました。認証後にメッセージを開けます。");
     setTab("me");
   }
