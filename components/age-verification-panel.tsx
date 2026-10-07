@@ -14,7 +14,16 @@ const MIME_EXTENSIONS: Record<string, string> = {
   "image/webp": "webp",
 };
 
-export function AgeVerificationPanel({ authenticated, consentReady, initialStatus, profile }: { authenticated: boolean; consentReady: boolean; initialStatus: VerificationStatus; profile: EditableProfile }) {
+function verificationErrorMessage(message: string) {
+  if (message.includes("verification already pending")) return "すでに確認中です。再提出は不要です";
+  if (message.includes("terms and privacy consent required")) return "利用規約とプライバシーポリシーへの同意を完了してください";
+  if (message.includes("evidence upload not found")) return "画像の送信を確認できませんでした。もう一度選び直してください";
+  if (message.includes("row-level security") || message.includes("Unauthorized")) return "ログイン状態を確認できませんでした。認証メールのリンクから開き直してください";
+  if (message.includes("payload too large") || message.includes("maximum allowed size")) return "画像サイズが大きすぎます。5MB以下にしてください";
+  return "送信できませんでした。通信状態を確認して、もう一度お試しください";
+}
+
+export function AgeVerificationPanel({ authenticated, consentReady, initialStatus, profile, onStartRegistration }: { authenticated: boolean; consentReady: boolean; initialStatus: VerificationStatus; profile: EditableProfile; onStartRegistration?: () => void }) {
   const [status, setStatus] = useState(initialStatus);
   const [documentType, setDocumentType] = useState("drivers_license");
   const [file, setFile] = useState<File | null>(null);
@@ -58,20 +67,20 @@ export function AgeVerificationPanel({ authenticated, consentReady, initialStatu
       });
       if (consentError) {
         setSubmitting(false);
-        return setNotice(consentError.message);
+        return setNotice(verificationErrorMessage(consentError.message));
       }
     }
     const path = `${user.id}/${crypto.randomUUID()}.${MIME_EXTENSIONS[file.type]}`;
     const { error: uploadError } = await supabase.storage.from("age-verification-evidence").upload(path, file, { contentType: file.type, upsert: false });
     if (uploadError) {
       setSubmitting(false);
-      return setNotice(uploadError.message);
+      return setNotice(verificationErrorMessage(uploadError.message));
     }
     const { error: requestError } = await supabase.rpc("submit_age_verification", { p_object_path: path, p_document_type: documentType });
     if (requestError) {
       await supabase.storage.from("age-verification-evidence").remove([path]);
       setSubmitting(false);
-      return setNotice(requestError.message);
+      return setNotice(verificationErrorMessage(requestError.message));
     }
     setStatus("pending");
     setFile(null);
@@ -82,6 +91,7 @@ export function AgeVerificationPanel({ authenticated, consentReady, initialStatu
 
   if (status === "verified") return <div className="age-status verified"><CheckCircle2 /><span><b>20歳以上を確認済み</b><small>審査に使った画像原本は確認後に削除します</small></span></div>;
   if (status === "pending") return <div className="age-status pending"><ShieldCheck /><span><b>運営確認中</b><small>通常は提出順に確認します。再提出は不要です</small></span></div>;
+  if (!authenticated) return <div className="age-status pending age-registration-gate"><ShieldCheck /><span><b>まずメール認証を完了してください</b><small>認証後、この場所から年齢確認画像を提出できます</small></span>{onStartRegistration && <button type="button" onClick={onStartRegistration}>登録を始める</button>}</div>;
   if (authenticated && backendReady !== true) return <div className="age-status pending"><ShieldCheck /><span><b>{backendReady === null ? "年齢確認を準備しています" : "年齢確認はまだ利用できません"}</b><small>{backendReady === null ? "安全な接続を確認中です" : "運営側の設定完了後に提出できます"}</small></span></div>;
 
   return <div className="age-verification-panel">

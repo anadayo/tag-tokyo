@@ -731,6 +731,7 @@ function MeScreen({ email, setEmail, birthDate, setBirthDate, authNotice, sendMa
   const [termsAccepted, setTermsAccepted] = useState(consentReady);
   const [privacyAccepted, setPrivacyAccepted] = useState(consentReady);
   const equippedTitle = COSMETICS.find((item) => item.id === growth.equippedTitle)?.name;
+  const scrollToAccount = () => document.getElementById("account-registration")?.scrollIntoView({ behavior: "smooth", block: "start" });
   const profileFields: Array<{ key: keyof EditableProfile; label: string; level: number; placeholder: string; long?: boolean }> = [
     { key: "displayName", label: "表示名", level: 1, placeholder: "表示名" },
     { key: "handle", label: "ユーザーID", level: 1, placeholder: "5〜15文字の英数字または _" },
@@ -896,6 +897,32 @@ function MeScreen({ email, setEmail, birthDate, setBirthDate, authNotice, sendMa
         <div>{equippedTitle && <small className="equipped-title">{equippedTitle}</small>}<h3>{profile.displayName} {isOwner && <OfficialBadge />} <span className="profile-level">Lv.{progress.level}</span></h3>{ageVerificationStatus === "verified" && <AgeVerifiedBadge />}<p>@{profile.handle} · {profile.bio}</p>{profile.activityArea && <small className="profile-area"><MapPin />{profile.activityArea}</small>}{profile.tags.length > 0 && <div className="profile-tags">{[...profile.primaryTags, ...profile.tags.filter((tag) => !profile.primaryTags.includes(tag))].slice(0, 5).map((tag) => <span className={profile.primaryTags.includes(tag) ? "primary" : ""} key={tag}>#{tag}</span>)}</div>}{photoNotice && <small className="photo-notice">{photoNotice}</small>}</div>
         <button aria-label="プロフィール編集" onClick={openEditor}><ChevronRight /></button>
       </div>
+      <div className="settings-card" id="account-registration">
+        <div className="section-heading"><div><small>ACCOUNT</small><h3>{emailAuthenticated ? "アカウント登録済み" : "TAG ONの利用登録"}</h3></div><ShieldCheck /></div>
+        <div className="registration-progress" aria-label="登録状況">
+          <span className={isAdultBirthDate(birthDate) ? "complete" : ""}><b>1</b>生年月日</span>
+          <span className={emailAuthenticated ? "complete" : ""}><b>2</b>メール認証</span>
+          <span className={consentReady ? "complete" : ""}><b>3</b>規約同意</span>
+          <span className={ageVerificationStatus === "verified" ? "complete" : ""}><b>4</b>年齢確認</span>
+        </div>
+        {!emailAuthenticated && <p className="field-notice registration-guide">生年月日とメールアドレスを入力し、規約に同意して認証メールを受け取ってください。</p>}
+        <label className="field"><span>生年月日（20歳以上）</span><input type="date" value={birthDate} max={adultBirthDateLimit()} onChange={(event) => setBirthDate(event.target.value)} autoComplete="bday" disabled={emailAuthenticated && Boolean(birthDate)} /></label>
+        <label className="field"><span>メールアドレス</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" disabled={emailAuthenticated} /></label>
+        {!consentReady && <>
+          <label className="access-check"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/terms/`} target="_blank" rel="noreferrer">利用規約</a>に同意する</span></label>
+          <label className="access-check"><input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/privacy/`} target="_blank" rel="noreferrer">プライバシーポリシー</a>に同意する</span></label>
+        </>}
+        {!emailAuthenticated || !consentReady
+          ? <button className="primary-wide" disabled={!isAdultBirthDate(birthDate)} onClick={() => sendMagicLink(termsAccepted, privacyAccepted)}>{hasSupabase ? emailAuthenticated ? "同意して登録を完了" : "認証メールを送る" : "接続準備中"}</button>
+          : <button className="secondary-wide" onClick={signOut}>ログアウト</button>}
+        {authNotice && <p className="field-notice" role="status">{authNotice}</p>}
+      </div>
+      <div className="settings-card" id="age-verification">
+        <h3>安全と20歳以上確認</h3>
+        <AgeVerificationPanel key={`${ageVerificationStatus}-${consentReady}`} authenticated={emailAuthenticated} consentReady={consentReady} initialStatus={ageVerificationStatus} profile={profile} onStartRegistration={scrollToAccount} />
+        {isOwner && <a className="moderation-link" href={`${ASSET_PREFIX}/moderation/`}><ShieldCheck /><span><b>運営審査画面</b><small>提出画像の確認・承認・削除</small></span><ChevronRight /></a>}
+        {emailAuthenticated && <button className="setting-link danger" onClick={requestAccountDeletion}><span>退会・データ削除を申請</span><LogOut /></button>}
+      </div>
       <div className="settings-card growth-card">
         <div className="section-heading"><div><small>PROFILE GROWTH</small><h3>自分を育てる</h3></div><strong>{growth.availableExp.toLocaleString()} EXP</strong></div>
         <div className="level-track large"><span style={{ width: `${progress.percent}%` }} /></div>
@@ -921,31 +948,6 @@ function MeScreen({ email, setEmail, birthDate, setBirthDate, authNotice, sendMa
             </article>;
           })}
         </div>
-      </div>
-      <div className="settings-card">
-        <div className="section-heading"><div><small>ACCOUNT</small><h3>{emailAuthenticated ? "アカウント登録済み" : "無料アカウントを作成"}</h3></div><ShieldCheck /></div>
-        <div className="registration-progress" aria-label="登録状況">
-          <span className={isAdultBirthDate(birthDate) ? "complete" : ""}><b>1</b>生年月日</span>
-          <span className={emailAuthenticated ? "complete" : ""}><b>2</b>メール認証</span>
-          <span className={consentReady ? "complete" : ""}><b>3</b>規約同意</span>
-          <span className={ageVerificationStatus === "verified" ? "complete" : ""}><b>4</b>年齢確認</span>
-        </div>
-        <label className="field"><span>生年月日（20歳以上）</span><input type="date" value={birthDate} max={adultBirthDateLimit()} onChange={(event) => setBirthDate(event.target.value)} autoComplete="bday" disabled={emailAuthenticated && Boolean(birthDate)} /></label>
-        <label className="field"><span>メールアドレス</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" disabled={emailAuthenticated} /></label>
-        {!consentReady && <>
-          <label className="access-check"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/terms/`} target="_blank" rel="noreferrer">利用規約</a>に同意する</span></label>
-          <label className="access-check"><input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/privacy/`} target="_blank" rel="noreferrer">プライバシーポリシー</a>に同意する</span></label>
-        </>}
-        {!emailAuthenticated || !consentReady
-          ? <button className="primary-wide" disabled={!isAdultBirthDate(birthDate)} onClick={() => sendMagicLink(termsAccepted, privacyAccepted)}>{hasSupabase ? emailAuthenticated ? "同意して登録を完了" : "認証メールを送る" : "接続準備中"}</button>
-          : <button className="secondary-wide" onClick={signOut}>ログアウト</button>}
-        {authNotice && <p className="field-notice">{authNotice}</p>}
-      </div>
-      <div className="settings-card">
-        <h3>安全と20歳以上確認</h3>
-        <AgeVerificationPanel key={`${ageVerificationStatus}-${consentReady}`} authenticated={emailAuthenticated} consentReady={consentReady} initialStatus={ageVerificationStatus} profile={profile} />
-        {isOwner && <a className="moderation-link" href={`${ASSET_PREFIX}/moderation/`}><ShieldCheck /><span><b>運営審査画面</b><small>提出画像の確認・承認・削除</small></span><ChevronRight /></a>}
-        {emailAuthenticated && <button className="setting-link danger" onClick={requestAccountDeletion}><span>退会・データ削除を申請</span><LogOut /></button>}
       </div>
       <div className="settings-card compact">
         <p><b>位置情報の扱い</b></p>
@@ -1699,6 +1701,13 @@ export default function TagTokyoApp() {
     else setShowTagIntro(true);
   }
 
+  function openRegistration(message: string) {
+    setNotice(message);
+    setAuthNotice(message);
+    setTab("me");
+    window.setTimeout(() => document.getElementById("account-registration")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  }
+
   async function startTag() {
     setShowTagIntro(false);
     window.localStorage.setItem("tagtokyo_tag_intro_v04", "done");
@@ -1707,9 +1716,7 @@ export default function TagTokyoApp() {
       return;
     }
     if (!liveMemberReady) {
-      setNotice("MEでメール認証と20歳以上確認を完了してください");
-      setAuthNotice("TAG ONの利用にはメール認証と20歳以上確認が必要です");
-      setTab("me");
+      openRegistration("TAG ONの利用にはメール認証と20歳以上確認が必要です");
       return;
     }
     setNotice("位置情報を確認しています…");
@@ -2043,8 +2050,8 @@ export default function TagTokyoApp() {
     <main className="app-shell">
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>BETA</small></div>
       {tab === "home" && <HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} betaStatus={betaStatus} authenticated={isEmailAuthenticated} liveEnabled={liveEnabled} activateBoost={() => void activateBetaBoost()} />}
-      {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => setTab("me")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
-      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} onRequireAccount={() => { setNotice("MAPの利用にはメール認証と20歳以上確認が必要です"); setTab("me"); }} onInventoryChanged={() => void refreshBetaStatus()} />}
+      {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => openRegistration("交流機能にはメール認証と20歳以上確認が必要です")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
+      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} onRequireAccount={() => openRegistration("MAPの利用にはメール認証と20歳以上確認が必要です")} onInventoryChanged={() => void refreshBetaStatus()} />}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={(matchId) => void selectLiveMatch(matchId)} onSend={sendLiveMessage} onReact={reactToLiveMessage} onLoadOlder={loadOlderMessages} onUnmatch={unmatchLiveMember} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen />)}

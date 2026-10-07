@@ -438,6 +438,8 @@ button { color: inherit; }
 .age-warning { background: #fff4dc; color: #6b4d00; }
 .age-status { margin-top: 14px; background: var(--mint-soft); color: #08734e; }
 .age-status.pending { background: #fff4dc; color: #6b4d00; }
+.age-registration-gate { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; }
+.age-registration-gate button { min-height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: var(--ink); color: white; font-size: 8px; font-weight: 900; white-space: nowrap; }
 .age-warning svg, .age-status svg { width: 20px; flex: 0 0 auto; }
 .age-warning span, .age-status span { display: grid; gap: 2px; }
 .age-warning b, .age-status b { font-size: 10px; }
