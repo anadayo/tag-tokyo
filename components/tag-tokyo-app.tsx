@@ -203,8 +203,8 @@ function BetaCampaignCard({ status, authenticated, liveEnabled, now, onActivate 
       <small>TAG TOKYO BETA</small>
       <h2>{status.isBetaTester ? `β TESTER #${status.betaTesterNumber}` : status.campaignOpen ? "先着300名 βテスター募集" : "βテスター募集終了"}</h2>
       <p>{status.isBetaTester ? "限定称号と通常800円相当のBOOSTを獲得しました。" : status.campaignOpen ? `メール認証完了で限定称号＋BOOST。残り${status.remainingCount}名。` : "通常登録は引き続き利用できます。"}</p>
-      {status.isBetaTester && <div className="beta-rewards"><span><BadgeCheck />β TESTER称号</span><span><Zap />BOOST ×{status.boostQuantity}</span></div>}
-      {status.isBetaTester && (active
+      {(status.isBetaTester || status.boostQuantity > 0) && <div className="beta-rewards">{status.isBetaTester && <span><BadgeCheck />β TESTER称号</span>}{status.boostQuantity > 0 && <span><Zap />BOOST ×{status.boostQuantity}</span>}</div>}
+      {(status.isBetaTester || status.boostQuantity > 0) && (active
         ? <strong className="boost-active">BOOST発動中 · {activeUntil!.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}まで</strong>
         : status.boostQuantity > 0 && <button disabled={!authenticated || !liveEnabled} onClick={onActivate}><Zap />{liveEnabled ? "BOOSTを使う" : "交流開始後に使用可能"}</button>)}
     </div>
@@ -289,7 +289,7 @@ function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBo
   );
 }
 
-function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; setGrowth: React.Dispatch<React.SetStateAction<GrowthState>>; liveEnabled: boolean }) {
+function MapScreen({ growth, setGrowth, liveEnabled, onInventoryChanged }: { growth: GrowthState; setGrowth: React.Dispatch<React.SetStateAction<GrowthState>>; liveEnabled: boolean; onInventoryChanged: () => void }) {
   const [selectedAreaId, setSelectedAreaId] = useState("kitasenju");
   const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
   const [stake, setStake] = useState(100);
@@ -395,15 +395,17 @@ function MapScreen({ growth, setGrowth, liveEnabled }: { growth: GrowthState; se
       const rewardKey = String(reward?.reward_key ?? "");
       const rewardExp = Number(reward?.reward_exp ?? 0);
       const tier = rewardKey === "spot-ssr" || rewardKey === "spot-sr" ? "super" : rewardKey === "spot-rare" ? "rare" : "normal";
-      const rewardName = rewardKey === "spot-ssr" ? "SUPER BOOST" : rewardKey === "spot-sr" ? "BOOST" : "限定プロフィール装飾";
+      const rewardName = rewardKey === "spot-ssr" ? "SUPER BOOST（BOOST 3回分）" : rewardKey === "spot-sr" ? "BOOST" : "限定プロフィール装飾";
+      const isBoostReward = rewardKey === "spot-ssr" || rewardKey === "spot-sr";
       setGrowth((current) => ({
         ...current,
         totalEarnedExp: current.totalEarnedExp + rewardExp,
         availableExp: current.availableExp + rewardExp,
-        ownedCosmetics: rewardType === "cosmetic" && !current.ownedCosmetics.includes(rewardKey) ? [...current.ownedCosmetics, rewardKey] : current.ownedCosmetics,
+        ownedCosmetics: rewardType === "cosmetic" && !isBoostReward && !current.ownedCosmetics.includes(rewardKey) ? [...current.ownedCosmetics, rewardKey] : current.ownedCosmetics,
         spotClaims: { ...current.spotClaims, [spot.id]: today },
       }));
       setRewardDisplay({ tier, label: rewardType === "exp" ? `${rewardExp} EXP獲得しました` : `${rewardName}を獲得しました` });
+      if (isBoostReward) onInventoryChanged();
       setResult("");
       track("spot_reward_received", { spot_id: spot.id, reward_key: rewardKey, earned_exp: rewardExp });
       track("spot_draw", { spot_id: spot.id, reward_key: rewardKey, earned_exp: rewardExp });
@@ -1715,6 +1717,7 @@ export default function TagTokyoApp() {
         const { data, error } = await supabase.rpc("start_tag_session", {
           p_latitude: location.latitude,
           p_longitude: location.longitude,
+          p_accuracy_m: location.accuracy,
           p_duration_minutes: session.duration,
           p_delete_at: location.deleteAt,
         });
@@ -2033,7 +2036,7 @@ export default function TagTokyoApp() {
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>BETA</small></div>
       {tab === "home" && <HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} betaStatus={betaStatus} authenticated={isEmailAuthenticated} liveEnabled={liveEnabled} activateBoost={() => void activateBetaBoost()} />}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => setTab("me")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
-      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} />}
+      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} onInventoryChanged={() => void refreshBetaStatus()} />}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={(matchId) => void selectLiveMatch(matchId)} onSend={sendLiveMessage} onReact={reactToLiveMessage} onLoadOlder={loadOlderMessages} onUnmatch={unmatchLiveMember} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen />)}
