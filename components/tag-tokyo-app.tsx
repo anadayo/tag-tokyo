@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  BadgeCheck, Ban, Bell, Camera, ChevronRight, Clock3, Crown, Flag, Gift, Heart, HeartHandshake, Home, LockKeyhole, LogOut, Map,
+  BadgeCheck, Ban, Bell, Camera, ChevronRight, Clock3, Crown, Flag, Gift, Heart, HeartHandshake, Home, LockKeyhole, LogIn, LogOut, Map,
   MapPin, MessageCircle, Minus, Plus, Power, ShieldCheck, ShoppingBag,
   Search, Send, Sparkles, Star, Trophy, UserRound, UsersRound, Zap, Footprints, Route,
 } from "lucide-react";
@@ -702,12 +702,13 @@ function TagCollectionEditor({ catalog, selected, primary, onChange }: {
   </fieldset>;
 }
 
-function MeScreen({ email, setEmail, birthDate, setBirthDate, authNotice, sendMagicLink, signOut, requestAccountDeletion, growth, buyCosmetic, equipCosmetic, profile, setProfile, tagCatalog, isOwner, liveEnabled, emailAuthenticated, consentReady, ageVerificationStatus }: {
+function MeScreen({ email, setEmail, birthDate, setBirthDate, authNotice, sendLoginLink, sendMagicLink, signOut, requestAccountDeletion, growth, buyCosmetic, equipCosmetic, profile, setProfile, tagCatalog, isOwner, liveEnabled, emailAuthenticated, consentReady, ageVerificationStatus }: {
   email: string;
   setEmail: (value: string) => void;
   birthDate: string;
   setBirthDate: (value: string) => void;
   authNotice: string;
+  sendLoginLink: () => void;
   sendMagicLink: (termsAccepted: boolean, privacyAccepted: boolean) => void;
   signOut: () => void;
   requestAccountDeletion: () => void;
@@ -730,6 +731,7 @@ function MeScreen({ email, setEmail, birthDate, setBirthDate, authNotice, sendMa
   const [photoNotice, setPhotoNotice] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(consentReady);
   const [privacyAccepted, setPrivacyAccepted] = useState(consentReady);
+  const [accountMode, setAccountMode] = useState<"login" | "register">("login");
   const equippedTitle = COSMETICS.find((item) => item.id === growth.equippedTitle)?.name;
   const scrollToAccount = () => document.getElementById("account-registration")?.scrollIntoView({ behavior: "smooth", block: "start" });
   const profileFields: Array<{ key: keyof EditableProfile; label: string; level: number; placeholder: string; long?: boolean }> = [
@@ -898,22 +900,30 @@ function MeScreen({ email, setEmail, birthDate, setBirthDate, authNotice, sendMa
         <button aria-label="プロフィール編集" onClick={openEditor}><ChevronRight /></button>
       </div>
       <div className="settings-card" id="account-registration">
-        <div className="section-heading"><div><small>ACCOUNT</small><h3>{emailAuthenticated ? "アカウント登録済み" : "TAG ONの利用登録"}</h3></div><ShieldCheck /></div>
-        <div className="registration-progress" aria-label="登録状況">
+        <div className="section-heading"><div><small>ACCOUNT</small><h3>{emailAuthenticated ? "アカウント登録済み" : accountMode === "login" ? "おかえりなさい" : "無料アカウント登録"}</h3></div><ShieldCheck /></div>
+        {!emailAuthenticated && <div className="account-mode-tabs" role="tablist" aria-label="アカウント操作">
+          <button type="button" role="tab" aria-selected={accountMode === "login"} className={accountMode === "login" ? "active" : ""} onClick={() => setAccountMode("login")}><LogIn />ログイン</button>
+          <button type="button" role="tab" aria-selected={accountMode === "register"} className={accountMode === "register" ? "active" : ""} onClick={() => setAccountMode("register")}><UserRound />初めての方</button>
+        </div>}
+        {(emailAuthenticated || accountMode === "register") && <div className="registration-progress" aria-label="登録状況">
           <span className={isAdultBirthDate(birthDate) ? "complete" : ""}><b>1</b>生年月日</span>
           <span className={emailAuthenticated ? "complete" : ""}><b>2</b>メール認証</span>
           <span className={consentReady ? "complete" : ""}><b>3</b>規約同意</span>
           <span className={ageVerificationStatus === "verified" ? "complete" : ""}><b>4</b>年齢確認</span>
-        </div>
-        {!emailAuthenticated && <p className="field-notice registration-guide">生年月日とメールアドレスを入力し、規約に同意して認証メールを受け取ってください。</p>}
-        <label className="field"><span>生年月日（20歳以上）</span><input type="date" value={birthDate} max={adultBirthDateLimit()} onChange={(event) => setBirthDate(event.target.value)} autoComplete="bday" disabled={emailAuthenticated && Boolean(birthDate)} /></label>
+        </div>}
+        {!emailAuthenticated && <p className="field-notice registration-guide">{accountMode === "login" ? "登録済みのメールアドレスへログインリンクを送ります。保存したプロフィールや進行状況を復元できます。" : "生年月日とメールアドレスを入力し、規約に同意して認証メールを受け取ってください。"}</p>}
+        {(emailAuthenticated || accountMode === "register") && <label className="field"><span>生年月日（20歳以上）</span><input type="date" value={birthDate} max={adultBirthDateLimit()} onChange={(event) => setBirthDate(event.target.value)} autoComplete="bday" disabled={emailAuthenticated && Boolean(birthDate)} /></label>}
         <label className="field"><span>メールアドレス</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" disabled={emailAuthenticated} /></label>
-        {!consentReady && <>
+        {accountMode === "register" && !consentReady && <>
           <label className="access-check"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/terms/`} target="_blank" rel="noreferrer">利用規約</a>に同意する</span></label>
           <label className="access-check"><input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} /><span><a href={`${ASSET_PREFIX}/privacy/`} target="_blank" rel="noreferrer">プライバシーポリシー</a>に同意する</span></label>
         </>}
-        {!emailAuthenticated || !consentReady
-          ? <button className="primary-wide" disabled={!isAdultBirthDate(birthDate)} onClick={() => sendMagicLink(termsAccepted, privacyAccepted)}>{hasSupabase ? emailAuthenticated ? "同意して登録を完了" : "認証メールを送る" : "接続準備中"}</button>
+        {!emailAuthenticated
+          ? accountMode === "login"
+            ? <button className="primary-wide" disabled={!email.includes("@")} onClick={sendLoginLink}>{hasSupabase ? "ログインメールを送る" : "接続準備中"}</button>
+            : <button className="primary-wide" disabled={!isAdultBirthDate(birthDate)} onClick={() => sendMagicLink(termsAccepted, privacyAccepted)}>{hasSupabase ? "無料登録メールを送る" : "接続準備中"}</button>
+          : !consentReady
+            ? <button className="primary-wide" disabled={!isAdultBirthDate(birthDate)} onClick={() => sendMagicLink(termsAccepted, privacyAccepted)}>{hasSupabase ? "同意して登録を完了" : "接続準備中"}</button>
           : <button className="secondary-wide" onClick={signOut}>ログアウト</button>}
         {authNotice && <p className="field-notice" role="status">{authNotice}</p>}
       </div>
@@ -1526,6 +1536,12 @@ export default function TagTokyoApp() {
           setTab("me");
           setAuthNotice("メール認証が完了しました。生年月日と規約への同意を確認して「同意して登録を完了」を押してください。");
           track("email_auth_complete");
+        } else if (returnUrl.searchParams.get("login") === "1") {
+          returnUrl.searchParams.delete("login");
+          window.history.replaceState({}, "", `${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}`);
+          setTab("me");
+          setAuthNotice("ログインしました。保存されているアカウント情報を復元しました。");
+          track("email_login_complete");
         }
       }
     }
@@ -1836,6 +1852,28 @@ export default function TagTokyoApp() {
     setAuthNotice(error ? error.message : "認証メールを送りました。メール内のリンクを開いて登録を完了してください");
   }
 
+  async function sendLoginLink() {
+    if (!hasSupabase || !supabase) {
+      setAuthNotice("認証サーバーへ接続できません");
+      return;
+    }
+    if (!email.includes("@")) {
+      setAuthNotice("登録済みのメールアドレスを入力してください");
+      return;
+    }
+    const redirectUrl = new URL(window.location.href);
+    redirectUrl.searchParams.delete("onboarding");
+    redirectUrl.searchParams.set("login", "1");
+    track("email_login_start");
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: { emailRedirectTo: redirectUrl.toString(), shouldCreateUser: false },
+    });
+    setAuthNotice(error
+      ? "このメールアドレスの登録を確認できませんでした。初めての方から無料登録してください"
+      : "ログインメールを送りました。メール内のリンクを開くと保存データを復元できます");
+  }
+
   async function signOut() {
     if (!supabase) return;
     await supabase.auth.signOut();
@@ -2048,14 +2086,14 @@ export default function TagTokyoApp() {
 
   return (
     <main className="app-shell">
-      <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b><small>BETA</small></div>
+      <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b>{!isEmailAuthenticated && <button className="top-login" onClick={() => { setTab("me"); window.setTimeout(() => document.getElementById("account-registration")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }}><LogIn />ログイン</button>}<small>BETA</small></div>
       {tab === "home" && <HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} betaStatus={betaStatus} authenticated={isEmailAuthenticated} liveEnabled={liveEnabled} activateBoost={() => void activateBetaBoost()} />}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => openRegistration("交流機能にはメール認証と20歳以上確認が必要です")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
       {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} onRequireAccount={() => openRegistration("MAPの利用にはメール認証と20歳以上確認が必要です")} onInventoryChanged={() => void refreshBetaStatus()} />}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={(matchId) => void selectLiveMatch(matchId)} onSend={sendLiveMessage} onReact={reactToLiveMessage} onLoadOlder={loadOlderMessages} onUnmatch={unmatchLiveMember} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen />)}
-      {tab === "me" && <MeScreen email={email} setEmail={setEmail} birthDate={birthDate} setBirthDate={setBirthDate} authNotice={authNotice} sendMagicLink={sendMagicLink} signOut={() => void signOut()} requestAccountDeletion={() => void requestAccountDeletion()} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} tagCatalog={tagCatalog} isOwner={isOwner} liveEnabled={liveEnabled} emailAuthenticated={isEmailAuthenticated} consentReady={consentReady} ageVerificationStatus={ageVerificationStatus} />}
+      {tab === "me" && <MeScreen email={email} setEmail={setEmail} birthDate={birthDate} setBirthDate={setBirthDate} authNotice={authNotice} sendLoginLink={() => void sendLoginLink()} sendMagicLink={sendMagicLink} signOut={() => void signOut()} requestAccountDeletion={() => void requestAccountDeletion()} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} tagCatalog={tagCatalog} isOwner={isOwner} liveEnabled={liveEnabled} emailAuthenticated={isEmailAuthenticated} consentReady={consentReady} ageVerificationStatus={ageVerificationStatus} />}
       <BottomNav tab={tab} onChange={(next) => {
         setTab(next);
         window.scrollTo({ top: 0, behavior: "instant" });

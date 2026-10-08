@@ -28,7 +28,9 @@ button { color: inherit; }
 }
 .top-brand { height: 64px; padding: 0 20px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid rgba(233, 228, 229, .8); background: rgba(255,253,251,.92); position: sticky; top: 0; z-index: 20; backdrop-filter: blur(14px); }
 .top-brand b { font-size: 15px; }
-.top-brand small { margin-left: auto; padding: 5px 8px; border-radius: 6px; background: var(--mint-soft); color: #0c865b; font-weight: 800; font-size: 10px; }
+.top-brand small { padding: 5px 8px; border-radius: 6px; background: var(--mint-soft); color: #0c865b; font-weight: 800; font-size: 10px; }
+.top-login { min-height: 36px; margin-left: auto; padding: 0 11px; display: flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 7px; background: white; color: var(--ink); font-size: 10px; font-weight: 900; }
+.top-login svg { width: 15px; }
 .brand-mark { width: 30px; height: 30px; display: grid; place-items: center; color: white; background: var(--ink); border-radius: 8px; }
 .brand-mark svg { width: 17px; }
 .screen { min-height: calc(100dvh - 138px); padding: 22px 18px 110px; }
@@ -407,6 +409,10 @@ button { color: inherit; }
 .registration-progress b { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: #ece8e8; color: #777174; font-size: 9px; }
 .registration-progress .complete { border-color: #b9e8d7; background: var(--mint-soft); color: #08734e; }
 .registration-progress .complete b { background: var(--mint); color: white; }
+.account-mode-tabs { margin: 13px 0; padding: 3px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; border: 1px solid var(--line); border-radius: 8px; background: #f4f1f1; }
+.account-mode-tabs button { min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 900; }
+.account-mode-tabs button.active { background: white; color: var(--ink); box-shadow: 0 1px 4px rgba(31, 27, 29, .08); }
+.account-mode-tabs svg { width: 15px; }
 .secondary-wide { width: 100%; height: 42px; margin-top: 12px; border: 1px solid var(--line); border-radius: 7px; background: white; color: var(--ink); font-size: 10px; font-weight: 800; }
 .message-gate-overlay { position: fixed; z-index: 30; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(26, 23, 24, .58); }
 .message-gate-overlay .access-card { position: relative; max-height: calc(100dvh - 40px); overflow: auto; }
