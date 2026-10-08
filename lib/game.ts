@@ -19,18 +19,18 @@ export const INITIAL_GROWTH: GrowthState = {
 export const DAILY_LOGIN_EXP = 20;
 
 export const TOKYO_AREAS: TokyoArea[] = [
-  { id: "kichijoji", name: "吉祥寺", x: 13, y: 48 },
-  { id: "shinjuku", name: "新宿", x: 35, y: 52 },
-  { id: "shibuya", name: "渋谷", x: 36, y: 72 },
-  { id: "ikebukuro", name: "池袋", x: 42, y: 30 },
-  { id: "ueno", name: "上野", x: 69, y: 28 },
-  { id: "kitasenju", name: "北千住", x: 80, y: 12 },
+  { id: "kichijoji", name: "吉祥寺", x: 13, y: 48, latitude: 35.7033, longitude: 139.5796, radiusMeters: 1000 },
+  { id: "shinjuku", name: "新宿", x: 35, y: 52, latitude: 35.6938, longitude: 139.7034, radiusMeters: 1000 },
+  { id: "shibuya", name: "渋谷", x: 36, y: 72, latitude: 35.6580, longitude: 139.7016, radiusMeters: 1000 },
+  { id: "ikebukuro", name: "池袋", x: 42, y: 30, latitude: 35.7295, longitude: 139.7109, radiusMeters: 1000 },
+  { id: "ueno", name: "上野", x: 69, y: 28, latitude: 35.7141, longitude: 139.7774, radiusMeters: 1000 },
+  { id: "kitasenju", name: "北千住", x: 80, y: 12, latitude: 35.7497, longitude: 139.8050, radiusMeters: 1000 },
 ];
 
 export const TAG_SPOTS: TagSpot[] = [
-  { id: "spot-shibuya", name: "SHIBUYA TAG SPOT", areaId: "shibuya", x: 49, y: 77 },
-  { id: "spot-shinjuku", name: "SHINJUKU TAG SPOT", areaId: "shinjuku", x: 27, y: 40 },
-  { id: "spot-ueno", name: "UENO TAG SPOT", areaId: "ueno", x: 78, y: 38 },
+  { id: "spot-shibuya", name: "SHIBUYA TAG SPOT", areaId: "shibuya", x: 49, y: 77, latitude: 35.6580, longitude: 139.7016, radiusMeters: 150 },
+  { id: "spot-shinjuku", name: "SHINJUKU TAG SPOT", areaId: "shinjuku", x: 27, y: 40, latitude: 35.6900, longitude: 139.7005, radiusMeters: 150 },
+  { id: "spot-ueno", name: "UENO TAG SPOT", areaId: "ueno", x: 78, y: 38, latitude: 35.7141, longitude: 139.7774, radiusMeters: 150 },
 ];
 
 export const COSMETICS: Array<{

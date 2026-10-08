@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BadgeCheck, Ban, Bell, Camera, ChevronRight, Clock3, Crown, Flag, Gift, Heart, HeartHandshake, Home, LockKeyhole, LogIn, LogOut, Map,
-  MapPin, MessageCircle, Minus, Plus, Power, ShieldCheck, ShoppingBag,
+  LocateFixed, MapPin, MessageCircle, Minus, Navigation, Plus, Power, ShieldCheck, ShoppingBag,
   Search, Send, Sparkles, Star, Trophy, UserRound, UsersRound, Zap, Footprints, Route,
 } from "lucide-react";
 import { track } from "@/lib/analytics";
@@ -12,7 +12,8 @@ import {
   COSMETICS, DAILY_LOGIN_EXP, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_UNLOCKS,
   TAG_SPOTS, TOKYO_AREAS,
 } from "@/lib/game";
-import { isInsideTokyo, requestPrivateLocation, watchPrivateLocation } from "@/lib/location";
+import { distanceMeters, isInsideTokyo, requestPrivateLocation, watchPrivateLocation } from "@/lib/location";
+import type { SafeLocation } from "@/lib/location";
 import { hasSupabase, isLiveCommunityEnabled, supabase } from "@/lib/supabase";
 import type { AreaChampion, BetaCampaignStatus, DailyMission, DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagCatalogItem, TagDuration, TagSessionResult, TagSessionState, TagStreak, TodayStats } from "@/lib/types";
 
@@ -53,6 +54,30 @@ function adultBirthDateLimit() {
 
 function isAdultBirthDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && value <= adultBirthDateLimit();
+}
+
+function formatMapDistance(value: number | null) {
+  if (value === null) return "距離を確認する";
+  return value < 1000 ? `${Math.round(value)}m` : `${(value / 1000).toFixed(1)}km`;
+}
+
+function mapPosition(location: Pick<SafeLocation, "latitude" | "longitude">) {
+  const anchor = TOKYO_AREAS.reduce((nearest, item) => distanceMeters(location, item) < distanceMeters(location, nearest) ? item : nearest, TOKYO_AREAS[0]);
+  return {
+    x: Math.max(3, Math.min(97, anchor.x + (location.longitude - anchor.longitude) * 300)),
+    y: Math.max(3, Math.min(97, anchor.y - (location.latitude - anchor.latitude) * 300)),
+  };
+}
+
+function mapActionError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  if (message.includes("active TAG ON")) return "先にHOMEでTAG ONを開始してください";
+  if (message.includes("accuracy")) return "現在地の精度が不足しています。屋外で位置情報を更新してください";
+  if (message.includes("fresh location")) return "現在地が古くなりました。もう一度お試しください";
+  if (message.includes("outside area range")) return "1km圏外です。拠点に近づいてから再試行してください";
+  if (message.includes("outside spot range")) return "スポット圏外です。ピンに近づいてから再試行してください";
+  if (message.includes("insufficient") || message.includes("balance")) return "所持EXPが足りません";
+  return message || "通信に失敗しました。もう一度お試しください";
 }
 
 function MemberAvatar({ url, name, className = "" }: { url: string | null; name: string; className?: string }) {
@@ -163,7 +188,7 @@ function SessionResult({ result, onClose, onCross }: { result: TagSessionResult;
       <div className="result-grid">
         <div><small>時間</small><b>{minutes}分</b></div><div><small>距離</small><b>{(result.distanceMeters / 1000).toFixed(2)}km</b></div>
         <div><small>移動EXP</small><b>+{result.walkExp}</b></div><div><small>CROSS</small><b>{result.crossCount}</b></div>
-        <div><small>SPOT DROP</small><b>{result.spotCount}</b></div><div><small>エリア</small><b>{result.areas.length}</b></div>
+        <div><small>SPOT GACHA</small><b>{result.spotCount}</b></div><div><small>エリア</small><b>{result.areas.length}</b></div>
       </div>
       <button className="primary-wide" onClick={onCross}>CROSSを確認</button>
       <button className="text-action" onClick={onClose}>HOMEに戻る</button>
@@ -289,21 +314,56 @@ function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBo
   );
 }
 
-function MapScreen({ growth, setGrowth, liveEnabled, memberReady, onRequireAccount, onInventoryChanged }: { growth: GrowthState; setGrowth: React.Dispatch<React.SetStateAction<GrowthState>>; liveEnabled: boolean; memberReady: boolean; onRequireAccount: () => void; onInventoryChanged: () => void }) {
+function MapScreen({ growth, setGrowth, liveEnabled, memberReady, boostActive, latestLocation, onRequireAccount, onInventoryChanged, onLevelEarned }: { growth: GrowthState; setGrowth: React.Dispatch<React.SetStateAction<GrowthState>>; liveEnabled: boolean; memberReady: boolean; boostActive: boolean; latestLocation: SafeLocation | null; onRequireAccount: () => void; onInventoryChanged: () => void; onLevelEarned: (previousTotal: number, nextTotal: number) => void }) {
   const [selectedAreaId, setSelectedAreaId] = useState("kitasenju");
   const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
   const [stake, setStake] = useState(100);
   const [result, setResult] = useState("");
-  const [rewardDisplay, setRewardDisplay] = useState<null | { tier: "normal" | "rare" | "super"; label: string }>(null);
+  const [rewardDisplay, setRewardDisplay] = useState<null | { tier: "normal" | "rare" | "super"; label: string; revealed: boolean }>(null);
   const [confirmContribution, setConfirmContribution] = useState(false);
   const [championNotice, setChampionNotice] = useState("");
   const [champions, setChampions] = useState<AreaChampion[]>([]);
+  const [mapLocation, setMapLocation] = useState<SafeLocation | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [actionPending, setActionPending] = useState(false);
+  const [arrivalNotice, setArrivalNotice] = useState("");
+  const actionLockRef = useRef(false);
+  const reachedTargetRef = useRef<string | null>(null);
   const area = TOKYO_AREAS.find((item) => item.id === selectedAreaId) ?? TOKYO_AREAS[0];
   const champion = champions.find((item) => item.areaId === area.id) ?? null;
   const spot = TAG_SPOTS.find((item) => item.id === selectedSpotId) ?? null;
   const myPoints = growth.areaContributions[area.id] ?? 0;
   const today = tokyoDateKey();
   const alreadyClaimed = spot ? growth.spotClaims[spot.id] === today : false;
+  const target = spot ?? area;
+  const effectiveLocation = latestLocation ?? mapLocation;
+  const targetDistance = effectiveLocation ? distanceMeters(effectiveLocation, target) : null;
+  const actionAvailable = targetDistance !== null && targetDistance <= target.radiusMeters && effectiveLocation !== null && effectiveLocation.accuracy <= 75;
+  const currentPosition = effectiveLocation ? mapPosition(effectiveLocation) : null;
+
+  async function refreshMapLocation() {
+    setLocating(true);
+    setResult("現在地を高精度で取得しています…");
+    try {
+      const next = await requestPrivateLocation({ fresh: true });
+      setMapLocation(next);
+      setResult(next.accuracy > 75 ? `現在地の精度が±${Math.round(next.accuracy)}mです。屋外で再取得してください` : "");
+      return next;
+    } catch (error) {
+      setResult(mapActionError(error));
+      return null;
+    } finally {
+      setLocating(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!effectiveLocation || targetDistance === null || targetDistance > target.radiusMeters || reachedTargetRef.current === target.id) return;
+    reachedTargetRef.current = target.id;
+    setArrivalNotice(`${target.name.replace("TAG SPOT", "スポット")}に到着！`);
+    const timer = window.setTimeout(() => setArrivalNotice(""), 2400);
+    return () => window.clearTimeout(timer);
+  }, [effectiveLocation, target.id, target.name, target.radiusMeters, targetDistance]);
 
   const loadChampions = useCallback(async () => {
     if (!supabase) return;
@@ -349,32 +409,44 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, onRequireAccou
       setResult("所持EXPが足りません");
       return;
     }
-    setResult("拠点からの距離を確認しています…");
+    if (actionLockRef.current) return;
+    actionLockRef.current = true;
+    setActionPending(true);
+    setResult("新しい現在地と拠点までの距離を確認しています…");
     try {
-      const location = await requestPrivateLocation();
-      const { error } = await supabase.rpc("contribute_area_exp", {
+      const location = await refreshMapLocation();
+      if (!location) return;
+      const requestId = crypto.randomUUID();
+      const { data, error } = await supabase.rpc("contribute_area_exp_v2", {
+        p_request_id: requestId,
         p_area_id: area.id,
         p_amount: stake,
         p_latitude: location.latitude,
         p_longitude: location.longitude,
+        p_accuracy_m: location.accuracy,
+        p_captured_at: location.capturedAt,
       });
       if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      setGrowth((current) => ({
+        ...current,
+        availableExp: Number(row?.balance_after ?? current.availableExp - stake),
+        areaContributions: { ...current.areaContributions, [area.id]: Number(row?.points_after ?? (current.areaContributions[area.id] ?? 0) + stake) },
+      }));
+      setResult(`${area.name}へ${stake} EXPを追加しました！ プロフィールLvは下がりません。`);
+      track("area_exp_contributed", { area_id: area.id, amount: stake, distance_m: Number(row?.distance_m ?? 0), request_id: requestId });
     } catch (error) {
-      setResult(error instanceof Error ? error.message : "拠点の1km圏内でのみEXPを投下できます");
+      setResult(mapActionError(error));
       return;
+    } finally {
+      actionLockRef.current = false;
+      setActionPending(false);
     }
-    setGrowth((current) => ({
-      ...current,
-      availableExp: current.availableExp - stake,
-      areaContributions: { ...current.areaContributions, [area.id]: (current.areaContributions[area.id] ?? 0) + stake },
-    }));
-    setResult(`${area.name}へ${stake} EXP投下しました。プロフィールLvは下がりません。`);
     await loadChampions();
     if (!champion?.userId || myPoints + stake > champion.points) {
       setChampionNotice(`${area.name}のCHAMPIONになりました`);
       window.setTimeout(() => setChampionNotice(""), 2200);
     }
-    track("area_exp_contributed", { area_id: area.id, amount: stake });
     track("area_contribution", { area_id: area.id, amount: stake });
     track("tagtokyo_area_exp_contributed", { area_id: area.id, amount: stake });
   }
@@ -389,13 +461,21 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, onRequireAccou
       onRequireAccount();
       return;
     }
-    setResult("現在地を確認しています…");
+    if (actionLockRef.current) return;
+    actionLockRef.current = true;
+    setActionPending(true);
+    setResult("新しい現在地を確認しています…");
     try {
-      const location = await requestPrivateLocation();
-      const { data, error } = await supabase.rpc("draw_tag_spot", {
+      const location = await refreshMapLocation();
+      if (!location) return;
+      const requestId = crypto.randomUUID();
+      const { data, error } = await supabase.rpc("draw_tag_spot_v2", {
+        p_request_id: requestId,
         p_spot_id: spot.id,
         p_latitude: location.latitude,
         p_longitude: location.longitude,
+        p_accuracy_m: location.accuracy,
+        p_captured_at: location.capturedAt,
       });
       if (error) throw error;
       const reward = Array.isArray(data) ? data[0] : data;
@@ -412,14 +492,19 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, onRequireAccou
         ownedCosmetics: rewardType === "cosmetic" && !isBoostReward && !current.ownedCosmetics.includes(rewardKey) ? [...current.ownedCosmetics, rewardKey] : current.ownedCosmetics,
         spotClaims: { ...current.spotClaims, [spot.id]: today },
       }));
-      setRewardDisplay({ tier, label: rewardType === "exp" ? `${rewardExp} EXP獲得しました` : `${rewardName}を獲得しました` });
+      if (rewardExp > 0) onLevelEarned(growth.totalEarnedExp, growth.totalEarnedExp + rewardExp);
+      setRewardDisplay({ tier, label: rewardType === "exp" ? `${rewardExp} EXP獲得しました` : `${rewardName}を獲得しました`, revealed: false });
+      window.setTimeout(() => setRewardDisplay((current) => current ? { ...current, revealed: true } : null), 900);
       if (isBoostReward) onInventoryChanged();
       setResult("");
       track("spot_reward_received", { spot_id: spot.id, reward_key: rewardKey, earned_exp: rewardExp });
       track("spot_draw", { spot_id: spot.id, reward_key: rewardKey, earned_exp: rewardExp });
       track("tagtokyo_spot_drawn", { spot_id: spot.id, reward_key: rewardKey });
     } catch (error) {
-      setResult(error instanceof Error ? error.message : "TAG SPOTを利用できませんでした");
+      setResult(mapActionError(error));
+    } finally {
+      actionLockRef.current = false;
+      setActionPending(false);
     }
   }
 
@@ -429,6 +514,7 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, onRequireAccou
       <div className="map-privacy"><ShieldCheck /><span><b>人の現在地は表示しません</b><small>MAPは遊ぶエリアとTAG SPOTを選ぶためのフィールドです</small></span></div>
       <div className="tokyo-map" aria-label="東京エリアマップ">
         <div className="map-river" />
+        <span className={`action-range ${spot ? "is-spot" : ""}`} style={{ left: `${target.x}%`, top: `${target.y}%` }} aria-hidden="true" />
         {TOKYO_AREAS.map((item) => {
           const mine = growth.areaContributions[item.id] ?? 0;
           const leader = champions.find((entry) => entry.areaId === item.id);
@@ -436,40 +522,47 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, onRequireAccou
             <Trophy /><b>{item.name}</b><span>{leader?.displayName ? leader.displayName.slice(0, 7) : mine > 0 ? "YOU" : "未登録"}</span><small>{leader?.points ? `${leader.points.toLocaleString()}pt` : mine > 0 ? `${mine}pt` : "--"}</small>
           </button>;
         })}
-        {TAG_SPOTS.map((item) => <button key={item.id} className="spot-pin" aria-label={item.name} style={{ left: `${item.x}%`, top: `${item.y}%` }} onClick={() => { setSelectedSpotId(item.id); setSelectedAreaId(item.areaId); setResult(""); track("spot_open", { spot_id: item.id, area_id: item.areaId }); }}><Gift /></button>)}
-        <div className="map-legend"><span><Trophy />AREA BATTLE</span><span><Gift />SPOT DROP</span></div>
+        {TAG_SPOTS.map((item) => <button key={item.id} className="spot-pin" aria-label={item.name} style={{ left: `${item.x}%`, top: `${item.y}%` }} onClick={() => { setSelectedSpotId(item.id); setSelectedAreaId(item.areaId); setResult(""); track("spot_open", { spot_id: item.id, area_id: item.areaId }); }}><Gift /><em>{item.name.split(" ")[0]}</em></button>)}
+        {currentPosition && <div className={`current-location ${boostActive ? "is-boosted" : ""}`} style={{ left: `${currentPosition.x}%`, top: `${currentPosition.y}%` }} aria-label={`現在地 精度プラスマイナス${Math.round(effectiveLocation!.accuracy)}メートル`}><i style={{ width: `${Math.min(70, Math.max(22, effectiveLocation!.accuracy / 2))}px`, height: `${Math.min(70, Math.max(22, effectiveLocation!.accuracy / 2))}px` }} /><b /><Navigation /></div>}
+        <button className="recenter-button" disabled={locating} onClick={() => void refreshMapLocation()} aria-label="現在地を更新"><LocateFixed /></button>
+        <div className="map-legend"><span><Trophy />AREA BATTLE</span><span><Gift />SPOT GACHA</span><span><i />現在地</span></div>
       </div>
+
+      <div className={`map-distance ${actionAvailable ? "is-ready" : ""}`}><MapPin /><span><b>{target.name.replace("TAG SPOT", "スポット")}まで {formatMapDistance(targetDistance)}</b><small>{locating ? "現在地を取得中…" : effectiveLocation?.accuracy && effectiveLocation.accuracy > 75 ? `精度 ±${Math.round(effectiveLocation.accuracy)}m · 再取得してください` : actionAvailable ? "利用可能エリア内です" : targetDistance === null ? "現在地を更新すると距離を表示します" : `利用範囲まであと${formatMapDistance(Math.max(0, targetDistance - target.radiusMeters))}`}</small></span><button disabled={locating} onClick={() => void refreshMapLocation()}>{locating ? "取得中" : "更新"}</button></div>
 
       {spot ? (
         <div className="map-panel spot-panel">
-          <div className="panel-title"><span className="panel-icon"><Gift /></span><div><small>SPOT DROP</small><h3>{spot.name.replace("TAG SPOT", "SPOT")}</h3></div></div>
-          <p>現地にいることを非公開判定して、1日1回無料で抽選できます。完全なハズレはありません。</p>
+          <div className="panel-title"><span className="panel-icon"><Gift /></span><div><small>SPOT GACHA</small><h3>{spot.name.replace("TAG SPOT", "スポット")}</h3></div></div>
+          <p>現地にいることを非公開判定して、1日1回無料でガチャを回せます。完全なハズレはありません。</p>
           <div className="reward-line"><span>通常</span><b>30 / 50 / 100 EXP</b><span>レア</span><b>限定プロフィール装飾</b><span>激レア</span><b>BOOST / SUPER BOOST</b></div>
-          <button className="primary-wide spot-draw" disabled={alreadyClaimed || !liveEnabled} onClick={() => void drawSpot()}>{alreadyClaimed ? "本日は受取済み" : !liveEnabled ? "サービス開始後に利用可能" : memberReady ? "現地で無料抽選" : "本人確認して利用"}</button>
+          <button className="primary-wide spot-draw" disabled={alreadyClaimed || !liveEnabled || actionPending} onClick={() => void drawSpot()}>{alreadyClaimed ? "本日は受取済み" : actionPending ? "現在地を確認中…" : !liveEnabled ? "サービス開始後に利用可能" : memberReady ? "無料でガチャを回す" : "本人確認して利用"}</button>
         </div>
       ) : (
         <div className="map-panel">
           <div className="area-head"><div><small>AREA BATTLE</small><h3>{area.name}</h3></div></div>
-          {champion?.userId ? <div className="champion-row"><Crown /><span><small>AREA CHAMPION</small><b>{champion.displayName}{champion.isOfficial ? " · 公認" : ""}</b>{champion.handle && <em>@{champion.handle}</em>}</span><strong>{champion.points.toLocaleString()}pt</strong></div> : <div className="area-empty"><Trophy /><span><b>最初のCHAMPIONを募集中</b><small>実際にEXPが投下されると表示されます</small></span></div>}
-          {myPoints > 0 && <div className="rank-row mine"><Star /><span><small>あなたの投下</small><b>プロフィール Lv.{getLevelProgress(growth.totalEarnedExp).level}</b></span><strong>{myPoints.toLocaleString()}pt</strong></div>}
+          {champion?.userId ? <div className="champion-row"><Crown /><span><small>AREA CHAMPION</small><b>{champion.displayName}{champion.isOfficial ? " · 公認" : ""}</b>{champion.handle && <em>@{champion.handle}</em>}</span><strong>{champion.points.toLocaleString()}pt</strong></div> : <div className="area-empty"><Trophy /><span><b>最初のCHAMPIONを募集中</b><small>実際にEXPが追加されると表示されます</small></span></div>}
+          {myPoints > 0 && <div className="rank-row mine"><Star /><span><small>あなたのEXP追加</small><b>プロフィール Lv.{getLevelProgress(growth.totalEarnedExp).level}</b></span><strong>{myPoints.toLocaleString()}pt</strong></div>}
           {champion && champion.pointsToFirst > 0 && <p className="points-to-first">あと <b>{champion.pointsToFirst.toLocaleString()} EXP</b> で1位</p>}
-          <div className="area-range-note"><MapPin /><span><b>拠点の1km圏内限定</b><small>現在地は距離判定だけに使い、投下履歴には保存しません</small></span></div>
+          <div className="area-range-note"><MapPin /><span><b>拠点の1km圏内限定</b><small>新しい高精度の現在地を、追加可否の判定だけに使用します</small></span></div>
           <div className="stake-control"><button aria-label="EXPを減らす" onClick={() => setStake(Math.max(100, stake - 100))}><Minus /></button><b>{stake} EXP</b><button aria-label="EXPを増やす" onClick={() => setStake(Math.min(1000, stake + 100))}><Plus /></button></div>
-          <button className="primary-wide" disabled={!liveEnabled} onClick={contribute}>{!liveEnabled ? "サービス開始後に利用可能" : memberReady ? "現在地を確認して投下" : "本人確認して利用"}</button>
+          <button className="primary-wide" disabled={!liveEnabled || actionPending} onClick={contribute}>{actionPending ? "現在地を確認中…" : !liveEnabled ? "サービス開始後に利用可能" : memberReady ? "EXPを追加する" : "本人確認して利用"}</button>
         </div>
       )}
       {result && <div className="notice map-result" role="status">{result}</div>}
-      {rewardDisplay && <div className="reward-overlay" role="dialog" aria-modal="true" aria-label="抽選結果">
-        <div className={`reward-modal is-${rewardDisplay.tier}`}>
-          {rewardDisplay.tier !== "normal" && <div className="celebration-stars" aria-hidden="true"><Sparkles /><Star /><Sparkles /></div>}
-          <span className="reward-tier">{rewardDisplay.tier === "super" ? "激レア" : rewardDisplay.tier === "rare" ? "レア" : "獲得"}</span>
-          <div className="reward-icon"><Gift /></div>
-          <h3>{rewardDisplay.label}</h3>
-          <button onClick={() => setRewardDisplay(null)}>閉じる</button>
+      {rewardDisplay && <div className="reward-overlay" role="dialog" aria-modal="true" aria-label="ガチャ結果">
+        <div className={`reward-modal is-${rewardDisplay.tier} ${rewardDisplay.revealed ? "is-revealed" : "is-drawing"}`}>
+          {!rewardDisplay.revealed ? <><div className="gacha-capsule"><Gift /></div><h3>ガチャ抽選中</h3><button onClick={() => setRewardDisplay({ ...rewardDisplay, revealed: true })}>演出をスキップ</button></> : <>
+            {rewardDisplay.tier !== "normal" && <div className="celebration-stars" aria-hidden="true"><Sparkles /><Star /><Sparkles /></div>}
+            <span className="reward-tier">{rewardDisplay.tier === "super" ? "激レア" : rewardDisplay.tier === "rare" ? "レア" : "獲得"}</span>
+            <div className="reward-icon"><Gift /></div>
+            <h3>{rewardDisplay.label}</h3>
+            <button onClick={() => setRewardDisplay(null)}>閉じる</button>
+          </>}
         </div>
       </div>}
-      {confirmContribution && <div className="v04-overlay" role="dialog" aria-modal="true" aria-label="EXP投下の確認"><section className="v04-modal safety-confirm-modal"><span className="v04-modal-icon"><Zap /></span><h2>{area.name}へ{stake} EXP投下しますか？</h2><p>所持EXP：{growth.availableExp.toLocaleString()} → {(growth.availableExp - stake).toLocaleString()}<br />プロフィールLvは下がりません。</p><div className="modal-actions"><button onClick={() => setConfirmContribution(false)}>キャンセル</button><button onClick={() => { setConfirmContribution(false); void performContribution(); }}>投下する</button></div></section></div>}
+      {confirmContribution && <div className="v04-overlay" role="dialog" aria-modal="true" aria-label="EXP追加の確認"><section className="v04-modal safety-confirm-modal"><span className="v04-modal-icon"><Zap /></span><h2>{area.name}へ{stake} EXPを追加しますか？</h2><p>所持EXP：{growth.availableExp.toLocaleString()} → {(growth.availableExp - stake).toLocaleString()}<br />プロフィールLvは下がりません。</p><div className="modal-actions"><button onClick={() => setConfirmContribution(false)}>キャンセル</button><button onClick={() => { setConfirmContribution(false); void performContribution(); }}>追加する</button></div></section></div>}
       {championNotice && <div className="connected-overlay champion-earned" role="status"><Trophy /><b>AREA CHAMPION!</b><small>{championNotice}</small></div>}
+      {arrivalNotice && <div className="spot-arrival" role="status"><MapPin /><b>{arrivalNotice}</b></div>}
     </section>
   );
 }
@@ -1007,6 +1100,7 @@ export default function TagTokyoApp() {
   const [isEmailAuthenticated, setIsEmailAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [databaseLiveEnabled, setDatabaseLiveEnabled] = useState(false);
+  const [latestPrivateLocation, setLatestPrivateLocation] = useState<SafeLocation | null>(null);
   const [liveMemberReady, setLiveMemberReady] = useState(false);
   const [ageVerificationStatus, setAgeVerificationStatus] = useState<"not_started" | "pending" | "verified" | "rejected" | "expired">("not_started");
   const [consentReady, setConsentReady] = useState(false);
@@ -1033,15 +1127,31 @@ export default function TagTokyoApp() {
   const [showConnected, setShowConnected] = useState(false);
   const [walkPulse, setWalkPulse] = useState("");
   const [sessionResult, setSessionResult] = useState<TagSessionResult | null>(null);
-  const [levelUp, setLevelUp] = useState<number | null>(null);
+  const [levelUp, setLevelUp] = useState<null | { from: number; to: number }>(null);
+  const [boostCelebration, setBoostCelebration] = useState(false);
+  const [crossCelebration, setCrossCelebration] = useState<string | null>(null);
   const stopLocationWatchRef = useRef<null | (() => void)>(null);
   const locationRequestPendingRef = useRef(false);
   const lastMilestoneRef = useRef(0);
   const dailyCapTrackedRef = useRef(false);
   const walkMissionClaimedRef = useRef(false);
-  const previousLevelRef = useRef<number | null>(null);
   const betaTrackedRef = useRef(false);
+  const crossSyncReadyRef = useRef(false);
   const liveEnabled = isLiveCommunityEnabled && databaseLiveEnabled;
+
+  const announceLevelGain = useCallback((previousTotal: number, nextTotal: number) => {
+    const from = getLevelProgress(previousTotal).level;
+    const to = getLevelProgress(nextTotal).level;
+    if (to <= from) return;
+    setLevelUp({ from, to });
+    track("profile_level_up", { previous_level: from, profile_level: to });
+  }, []);
+
+  useEffect(() => {
+    if (!levelUp) return;
+    const timer = window.setTimeout(() => setLevelUp(null), 2800);
+    return () => window.clearTimeout(timer);
+  }, [levelUp]);
 
   const refreshBetaStatus = useCallback(async () => {
     if (!supabase) return;
@@ -1073,6 +1183,8 @@ export default function TagTokyoApp() {
       return;
     }
     setNotice("BOOSTを発動しました。30分間、CROSS探索範囲が1.5倍になります。");
+    setBoostCelebration(true);
+    window.setTimeout(() => setBoostCelebration(false), 2400);
     track("beta_boost_activated");
     await refreshBetaStatus();
   }, [refreshBetaStatus]);
@@ -1097,13 +1209,16 @@ export default function TagTokyoApp() {
     if (error) return;
     const awarded = Number(data ?? 0);
     if (awarded > 0) {
-      setGrowth((current) => ({ ...current, totalEarnedExp: current.totalEarnedExp + awarded, availableExp: current.availableExp + awarded }));
+      setGrowth((current) => {
+        announceLevelGain(current.totalEarnedExp, current.totalEarnedExp + awarded);
+        return { ...current, totalEarnedExp: current.totalEarnedExp + awarded, availableExp: current.availableExp + awarded };
+      });
       setWalkPulse(`MISSION +${awarded} EXP`);
       window.setTimeout(() => setWalkPulse(""), 2200);
       track("daily_mission_completed", { mission_key: key, earned_exp: awarded });
     }
     await refreshDailyMissions();
-  }, [refreshDailyMissions]);
+  }, [announceLevelGain, refreshDailyMissions]);
 
   const refreshTagStreak = useCallback(async () => {
     if (!supabase) return;
@@ -1142,18 +1257,6 @@ export default function TagTokyoApp() {
       stopLocationWatchRef.current?.();
     };
   }, []);
-
-  useEffect(() => {
-    const level = getLevelProgress(growth.totalEarnedExp).level;
-    const previous = previousLevelRef.current;
-    previousLevelRef.current = level;
-    if (previous !== null && level > previous) {
-      setLevelUp(level);
-      track("profile_level_up", { profile_level: level });
-      const timer = window.setTimeout(() => setLevelUp(null), 2800);
-      return () => window.clearTimeout(timer);
-    }
-  }, [growth.totalEarnedExp]);
 
   const loadPersistentAccountState = useCallback(async (userId: string) => {
     if (!supabase) return;
@@ -1245,6 +1348,15 @@ export default function TagTokyoApp() {
 
     const rows = (matchRows ?? []) as Array<{ id: string; user_a: string; user_b: string; created_at: string }>;
     const crossingItems = (crossingRows ?? []) as Array<{ id: string; user_a: string; user_b: string; area_label: string; crossed_at: string }>;
+    const seenCrossings = new Set(JSON.parse(window.localStorage.getItem("tagtokyo_seen_crossings_v1") ?? "[]") as string[]);
+    const unseenCrossing = crossSyncReadyRef.current ? crossingItems.find((item) => !seenCrossings.has(item.id)) : undefined;
+    crossingItems.forEach((item) => seenCrossings.add(item.id));
+    window.localStorage.setItem("tagtokyo_seen_crossings_v1", JSON.stringify([...seenCrossings].slice(-100)));
+    crossSyncReadyRef.current = true;
+    if (unseenCrossing) {
+      setCrossCelebration(unseenCrossing.id);
+      window.setTimeout(() => setCrossCelebration(null), 2600);
+    }
     const otherIds = [...new Set([
       ...rows.map((match) => match.user_a === userId ? match.user_b : match.user_a),
       ...crossingItems.map((crossing) => crossing.user_a === userId ? crossing.user_b : crossing.user_a),
@@ -1639,6 +1751,7 @@ export default function TagTokyoApp() {
   }, [session.active, session.expiresAt]);
 
   async function recordMovement(serverSessionId: string, location: Awaited<ReturnType<typeof requestPrivateLocation>>) {
+    setLatestPrivateLocation(location);
     if (!supabase || locationRequestPendingRef.current) return;
     locationRequestPendingRef.current = true;
     try {
@@ -1666,7 +1779,10 @@ export default function TagTokyoApp() {
         movementStatus: status,
       }));
       if (awarded > 0) {
-        setGrowth((current) => ({ ...current, totalEarnedExp: current.totalEarnedExp + awarded, availableExp: current.availableExp + awarded }));
+        setGrowth((current) => {
+          announceLevelGain(current.totalEarnedExp, current.totalEarnedExp + awarded);
+          return { ...current, totalEarnedExp: current.totalEarnedExp + awarded, availableExp: current.availableExp + awarded };
+        });
         setWalkPulse(`+${awarded} EXP`);
         window.setTimeout(() => setWalkPulse(""), 1800);
         track("walk_exp_earned", { exp: awarded, distance_m: sessionDistance });
@@ -1738,6 +1854,7 @@ export default function TagTokyoApp() {
     setNotice("位置情報を確認しています…");
     try {
       const location = await requestPrivateLocation();
+      setLatestPrivateLocation(location);
       track("tag_location_permission_granted");
       if (!isInsideTokyo(location)) throw new Error("TAG ONは東京都内でのみ利用できます");
       const startedAt = Date.now();
@@ -1778,6 +1895,7 @@ export default function TagTokyoApp() {
   async function finishTagSession(reason: "manual" | "expired") {
     stopLocationWatchRef.current?.();
     stopLocationWatchRef.current = null;
+    setLatestPrivateLocation(null);
     let result: TagSessionResult = {
       durationSeconds: session.startedAt ? Math.max(0, Math.round((Date.now() - session.startedAt) / 1000)) : 0,
       distanceMeters: session.validDistanceMeters,
@@ -2089,7 +2207,7 @@ export default function TagTokyoApp() {
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b>{!isEmailAuthenticated && <button className="top-login" onClick={() => { setTab("me"); window.setTimeout(() => document.getElementById("account-registration")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }}><LogIn />ログイン</button>}<small>BETA</small></div>
       {tab === "home" && <HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} betaStatus={betaStatus} authenticated={isEmailAuthenticated} liveEnabled={liveEnabled} activateBoost={() => void activateBetaBoost()} />}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => openRegistration("交流機能にはメール認証と20歳以上確認が必要です")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
-      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} onRequireAccount={() => openRegistration("MAPの利用にはメール認証と20歳以上確認が必要です")} onInventoryChanged={() => void refreshBetaStatus()} />}
+      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} boostActive={Boolean(betaStatus.boostActiveUntil && new Date(betaStatus.boostActiveUntil).getTime() > now)} latestLocation={latestPrivateLocation} onRequireAccount={() => openRegistration("MAPの利用にはメール認証と20歳以上確認が必要です")} onInventoryChanged={() => void refreshBetaStatus()} onLevelEarned={announceLevelGain} />}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={(matchId) => void selectLiveMatch(matchId)} onSend={sendLiveMessage} onReact={reactToLiveMessage} onLoadOlder={loadOlderMessages} onUnmatch={unmatchLiveMember} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen />)}
@@ -2105,7 +2223,9 @@ export default function TagTokyoApp() {
       {showTagIntro && <TagIntro onClose={() => setShowTagIntro(false)} onStart={() => void startTag()} />}
       {showConnected && <div className="connected-overlay" role="status"><Sparkles /><b>TOKYO CONNECTED</b><small>移動EXPの計測を開始しました</small></div>}
       {walkPulse && <div className="walk-exp-pulse" role="status"><Footprints />{walkPulse}</div>}
-      {levelUp && <div className="level-up-overlay" role="status"><small>PROFILE LEVEL UP</small><b>Lv.{levelUp}</b><Sparkles /></div>}
+      {levelUp && <div className="level-up-overlay" role="status"><small>LEVEL UP!</small><b>Lv.{levelUp.from} → Lv.{levelUp.to}</b><span>{PROFILE_UNLOCKS.filter((item) => item.level > levelUp.from && item.level <= levelUp.to).map((item) => item.label).join("・") || "プロフィールが成長しました"}</span><button onClick={() => setLevelUp(null)}>スキップ</button><Sparkles /></div>}
+      {crossCelebration && <div className="cross-celebration" role="status"><i /><i /><Sparkles /><b>CROSS!</b><small>新しいすれ違いが成立しました</small><button onClick={() => setCrossCelebration(null)}>スキップ</button></div>}
+      {boostCelebration && <div className="boost-celebration" role="status"><i /><Zap /><b>BOOST ACTIVE!</b><small>探索範囲を30分間拡張します</small></div>}
       {sessionResult && <SessionResult result={sessionResult} onClose={() => setSessionResult(null)} onCross={() => { setSessionResult(null); setTab("cross"); track("cross_opened", { source: "tag_result" }); }} />}
       {matchCelebration && <MatchCelebration displayName={matchCelebration.displayName} commonTags={matchCelebration.commonTags} onClose={() => setMatchCelebration(null)} onMessage={() => { const matchId = liveMatches.find((match) => match.otherUserId === matchCelebration.userId)?.id ?? matchCelebration.matchId; if (matchId) setSelectedLiveMatchId(matchId); setMatchCelebration(null); setTab("match"); }} />}
     </main>

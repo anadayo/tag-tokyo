@@ -14,8 +14,8 @@ do $$
 declare
   v_a uuid;v_b uuid;v_session_a uuid;v_session_b uuid;v_crossing uuid;
   v_match uuid;v_reward record;v_move record;v_finish record;
-  v_before_balance bigint;v_after_balance bigint;v_before_boost integer;v_after_boost integer;
-  v_duplicate_rejected boolean:=false;v_far_area_rejected boolean:=false;v_matched boolean;
+  v_before_balance bigint;v_after_balance bigint;v_before_boost integer;v_after_boost integer;v_first_points bigint;v_retry_points bigint;
+  v_duplicate_rejected boolean:=false;v_far_area_rejected boolean:=false;v_boundary_rejected boolean:=false;v_stale_rejected boolean:=false;v_matched boolean;
 begin
   select id into v_a from public.users where auth_user_id='e2e00000-0000-4000-8000-000000000003';
   select id into v_b from public.users where auth_user_id='e2e00000-0000-4000-8000-000000000004';
@@ -64,6 +64,24 @@ begin
   begin perform public.contribute_area_exp('kitasenju',100,35.6580,139.7027);
   exception when others then v_far_area_rejected:=true;end;
   if not v_far_area_rejected then raise exception 'far-area contribution was accepted';end if;
+
+  select available_exp into v_before_balance from public.profiles where user_id=v_a;
+  select points_after into v_first_points from public.contribute_area_exp_v2(
+    '34000000-0000-4000-8000-000000000001','kitasenju',100,35.7497+(500.0/111195.0),139.8050,10,now());
+  select points_after into v_retry_points from public.contribute_area_exp_v2(
+    '34000000-0000-4000-8000-000000000001','kitasenju',100,35.7497+(500.0/111195.0),139.8050,10,now());
+  select available_exp into v_after_balance from public.profiles where user_id=v_a;
+  if v_first_points<>v_retry_points or v_after_balance<>v_before_balance-100 then raise exception 'idempotent EXP addition failed';end if;
+  perform public.contribute_area_exp_v2(
+    '34000000-0000-4000-8000-000000000002','kitasenju',100,35.7497+(999.0/111195.0),139.8050,10,now());
+  begin perform public.contribute_area_exp_v2(
+    '34000000-0000-4000-8000-000000000003','kitasenju',100,35.7497+(1001.0/111195.0),139.8050,10,now());
+  exception when others then v_boundary_rejected:=true;end;
+  if not v_boundary_rejected then raise exception '1001m EXP addition was accepted';end if;
+  begin perform public.contribute_area_exp_v2(
+    '34000000-0000-4000-8000-000000000004','kitasenju',100,35.7497,139.8050,10,now()-interval '31 seconds');
+  exception when others then v_stale_rejected:=true;end;
+  if not v_stale_rejected then raise exception 'stale GPS EXP addition was accepted';end if;
 
   perform set_config('request.jwt.claim.sub','e2e00000-0000-4000-8000-000000000004',true);
   select public.start_tag_session(35.6580,139.7027,10,30,now()+interval '24 hours') into v_session_b;

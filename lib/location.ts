@@ -18,7 +18,7 @@ function toSafeLocation(position: GeolocationPosition): SafeLocation {
   };
 }
 
-export function requestPrivateLocation(): Promise<SafeLocation> {
+export function requestPrivateLocation(options: { fresh?: boolean } = {}): Promise<SafeLocation> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error("この端末では位置情報を利用できません"));
@@ -26,8 +26,8 @@ export function requestPrivateLocation(): Promise<SafeLocation> {
     }
     navigator.geolocation.getCurrentPosition(
       (position) => resolve(toSafeLocation(position)),
-      () => reject(new Error("位置情報を許可するとTAG ONできます")),
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+      () => reject(new Error("位置情報を取得できません。端末とブラウザの位置情報を許可して再試行してください")),
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: options.fresh ? 0 : 15000 },
     );
   });
 }
@@ -50,4 +50,14 @@ export function watchPrivateLocation(
 
 export function isInsideTokyo({ latitude, longitude }: SafeLocation) {
   return latitude >= 35.49 && latitude <= 35.90 && longitude >= 138.94 && longitude <= 139.93;
+}
+
+export function distanceMeters(a: Pick<SafeLocation, "latitude" | "longitude">, b: { latitude: number; longitude: number }) {
+  const earthRadius = 6371000;
+  const toRadians = (value: number) => value * Math.PI / 180;
+  const latDelta = toRadians(b.latitude - a.latitude);
+  const lonDelta = toRadians(b.longitude - a.longitude);
+  const value = Math.sin(latDelta / 2) ** 2
+    + Math.cos(toRadians(a.latitude)) * Math.cos(toRadians(b.latitude)) * Math.sin(lonDelta / 2) ** 2;
+  return earthRadius * 2 * Math.asin(Math.sqrt(value));
 }

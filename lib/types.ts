@@ -180,6 +180,9 @@ export type TokyoArea = {
   name: string;
   x: number;
   y: number;
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
 };
 
 export type TagSpot = {
@@ -188,4 +191,7 @@ export type TagSpot = {
   areaId: string;
   x: number;
   y: number;
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
 };
