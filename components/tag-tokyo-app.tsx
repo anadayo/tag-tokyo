@@ -326,7 +326,11 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, tagActive, boo
   const reachedTargetRef = useRef<string | null>(null);
   const area = TOKYO_AREAS.find((item) => item.id === selectedAreaId) ?? TOKYO_AREAS[0];
   const champion = champions.find((item) => item.areaId === area.id) ?? null;
-  const selectedAreaStats = areaStats[area.id] ?? { totalExp: 0, participants: 0, myRank: 0 };
+  const selectedAreaStats = areaStats[area.id] ?? {
+    totalExp: champion?.points ?? 0,
+    participants: champion?.userId ? 1 : 0,
+    myRank: champion?.myPoints && champion.myPoints === champion.points ? 1 : 0,
+  };
   const spot = TAG_SPOTS.find((item) => item.id === selectedSpotId) ?? null;
   const myPoints = growth.areaContributions[area.id] ?? 0;
   const today = tokyoDateKey();
