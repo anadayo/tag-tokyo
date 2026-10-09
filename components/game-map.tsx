@@ -17,6 +17,8 @@ type GameMapProps = {
   boostActiveUntil: string | null;
   level: number;
   availableExp: number;
+  playerAvatarUrl: string;
+  playerDisplayName: string;
   claimedSpotIds: string[];
   locating: boolean;
   onSelectArea: (areaId: string) => void;
@@ -87,25 +89,41 @@ function makeSpotMarker(spot: TagSpot, state: "ready" | "claimed" | "far", selec
   return button;
 }
 
-function makePlayerMarker(location: SafeLocation) {
+function updatePlayerAvatar(marker: HTMLElement, avatarUrl: string, displayName: string) {
+  const avatar = marker.querySelector<HTMLElement>(".game-player-avatar");
+  if (!avatar) return;
+  avatar.replaceChildren();
+  avatar.classList.toggle("has-photo", Boolean(avatarUrl));
+  if (avatarUrl) {
+    const image = document.createElement("img");
+    image.src = avatarUrl;
+    image.alt = "";
+    image.setAttribute("aria-hidden", "true");
+    avatar.append(image);
+    return;
+  }
+  avatar.textContent = displayName.trim().slice(0, 1).toUpperCase() || "・";
+}
+
+function makePlayerMarker(location: SafeLocation, avatarUrl: string, displayName: string) {
   const marker = document.createElement("div");
   marker.className = "game-player-marker";
-  marker.setAttribute("aria-label", `現在地 精度プラスマイナス${Math.round(location.accuracy)}メートル`);
+  marker.setAttribute("aria-label", `${displayName}さんの現在地 精度プラスマイナス${Math.round(location.accuracy)}メートル`);
   const halo = document.createElement("span");
   halo.className = "game-player-halo";
   const avatar = document.createElement("b");
   avatar.className = "game-player-avatar";
-  avatar.textContent = "YOU";
   const heading = document.createElement("i");
   heading.className = "game-player-heading";
   heading.style.transform = `translateX(-50%) rotate(${location.heading ?? 0}deg)`;
   marker.append(halo, heading, avatar);
+  updatePlayerAvatar(marker, avatarUrl, displayName);
   return marker;
 }
 
 export function GameMap({
   areas, spots, champions, selectedAreaId, selectedSpotId, location, tagActive, boostActiveUntil,
-  claimedSpotIds, locating, onSelectArea, onSelectSpot, onLocate, level, availableExp,
+  claimedSpotIds, locating, onSelectArea, onSelectSpot, onLocate, level, availableExp, playerAvatarUrl, playerDisplayName,
 }: GameMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -299,19 +317,20 @@ export function GameMap({
     void import("maplibre-gl").then(({ Marker }) => {
       if (disposed) return;
       if (!playerMarkerRef.current) {
-        playerMarkerRef.current = new Marker({ element: makePlayerMarker(location), anchor: "center" })
+        playerMarkerRef.current = new Marker({ element: makePlayerMarker(location, playerAvatarUrl, playerDisplayName), anchor: "center" })
           .setLngLat([location.longitude, location.latitude])
           .addTo(map);
       } else {
         playerMarkerRef.current.setLngLat([location.longitude, location.latitude]);
+        updatePlayerAvatar(playerMarkerRef.current.getElement(), playerAvatarUrl, playerDisplayName);
         const heading = playerMarkerRef.current.getElement().querySelector<HTMLElement>(".game-player-heading");
         if (heading) heading.style.transform = `translateX(-50%) rotate(${location.heading ?? 0}deg)`;
-        playerMarkerRef.current.getElement().setAttribute("aria-label", `現在地 精度プラスマイナス${Math.round(location.accuracy)}メートル`);
+        playerMarkerRef.current.getElement().setAttribute("aria-label", `${playerDisplayName}さんの現在地 精度プラスマイナス${Math.round(location.accuracy)}メートル`);
       }
       if (followRef.current) map.easeTo({ center: [location.longitude, location.latitude], duration: mapMode === "lite" ? 0 : 700 });
     });
     return () => { disposed = true; };
-  }, [location, mapMode, mapReady]);
+  }, [location, mapMode, mapReady, playerAvatarUrl, playerDisplayName]);
 
   function recenter() {
     followRef.current = true;

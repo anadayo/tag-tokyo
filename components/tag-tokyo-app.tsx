@@ -307,7 +307,7 @@ function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBo
   );
 }
 
-function MapScreen({ growth, setGrowth, liveEnabled, memberReady, tagActive, boostActiveUntil, latestLocation, onRequireAccount, onInventoryChanged, onLevelEarned }: { growth: GrowthState; setGrowth: React.Dispatch<React.SetStateAction<GrowthState>>; liveEnabled: boolean; memberReady: boolean; tagActive: boolean; boostActiveUntil: string | null; latestLocation: SafeLocation | null; onRequireAccount: () => void; onInventoryChanged: () => void; onLevelEarned: (previousTotal: number, nextTotal: number) => void }) {
+function MapScreen({ growth, setGrowth, liveEnabled, memberReady, tagActive, boostActiveUntil, latestLocation, playerAvatarUrl, playerDisplayName, onRequireAccount, onInventoryChanged, onLevelEarned }: { growth: GrowthState; setGrowth: React.Dispatch<React.SetStateAction<GrowthState>>; liveEnabled: boolean; memberReady: boolean; tagActive: boolean; boostActiveUntil: string | null; latestLocation: SafeLocation | null; playerAvatarUrl: string; playerDisplayName: string; onRequireAccount: () => void; onInventoryChanged: () => void; onLevelEarned: (previousTotal: number, nextTotal: number) => void }) {
   const [selectedAreaId, setSelectedAreaId] = useState("kitasenju");
   const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
   const [stake, setStake] = useState(100);
@@ -554,6 +554,8 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, tagActive, boo
           boostActiveUntil={boostActiveUntil}
           level={progress.level}
           availableExp={growth.availableExp}
+          playerAvatarUrl={playerAvatarUrl}
+          playerDisplayName={playerDisplayName}
           claimedSpotIds={claimedSpotIds}
           locating={locating}
           onSelectArea={selectArea}
@@ -2251,7 +2253,7 @@ export default function TagTokyoApp() {
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b>{!isEmailAuthenticated && <button className="top-login" onClick={() => { setTab("me"); window.setTimeout(() => document.getElementById("account-registration")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }}><LogIn />ログイン</button>}<small>BETA</small></div>
       {tab === "home" && <HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} betaStatus={betaStatus} authenticated={isEmailAuthenticated} liveEnabled={liveEnabled} activateBoost={() => void activateBetaBoost()} />}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => openRegistration("交流機能にはメール認証と20歳以上確認が必要です")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
-      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} tagActive={session.active} boostActiveUntil={betaStatus.boostActiveUntil} latestLocation={latestPrivateLocation} onRequireAccount={() => openRegistration("MAPの利用にはメール認証と20歳以上確認が必要です")} onInventoryChanged={() => void refreshBetaStatus()} onLevelEarned={announceLevelGain} />}
+      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} tagActive={session.active} boostActiveUntil={betaStatus.boostActiveUntil} latestLocation={latestPrivateLocation} playerAvatarUrl={profile.avatarDataUrl} playerDisplayName={profile.displayName} onRequireAccount={() => openRegistration("MAPの利用にはメール認証と20歳以上確認が必要です")} onInventoryChanged={() => void refreshBetaStatus()} onLevelEarned={announceLevelGain} />}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={(matchId) => void selectLiveMatch(matchId)} onSend={sendLiveMessage} onReact={reactToLiveMessage} onLoadOlder={loadOlderMessages} onUnmatch={unmatchLiveMember} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen />)}
