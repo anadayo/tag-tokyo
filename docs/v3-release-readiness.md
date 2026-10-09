@@ -4,9 +4,9 @@ Updated: 2026-10-09
 
 ## Current decision
 
-**Formal live release: HOLD**
+**Public preview: READY / Live user interaction: HOLD**
 
-The application build is healthy, but formal release must wait for the production database migrations and transactional E2E tests below. Live user-to-user interaction must also remain subject to the applicable operator notification and statutory age-confirmation requirements.
+The application build is healthy and may be published as a non-interactive public preview. Live user-to-user interaction must wait for the production database migrations and transactional E2E tests below, and remains automatically gated until the public operator notification number is configured.
 
 ## Implemented
 
@@ -39,4 +39,3 @@ git diff --check PASS
 ## Test claims
 
 No production DB, physical-device, multi-device realtime or 30-station field test is marked PASS in this document until it has actually been run.
-
