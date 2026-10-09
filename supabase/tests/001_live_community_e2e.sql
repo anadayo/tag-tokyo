@@ -22,6 +22,9 @@ declare
   v_matched boolean;
   v_read integer;
   v_blocked_send boolean:=false;
+  v_invalid_length_rejected boolean:=false;
+  v_preference_rejected boolean:=false;
+  v_message_count integer;
 begin
   select id into v_a from public.users where auth_user_id='e2e00000-0000-4000-8000-000000000001';
   select id into v_b from public.users where auth_user_id='e2e00000-0000-4000-8000-000000000002';
@@ -43,6 +46,11 @@ begin
   cross join lateral(select id from public.tags where status='active' order by id limit 5)t;
 
   perform set_config('request.jwt.claim.sub','e2e00000-0000-4000-8000-000000000001',true);
+  update public.profiles set gender='unspecified' where user_id=v_b;
+  begin perform public.send_profile_like(v_b);
+  exception when others then v_preference_rejected:=true;end;
+  if not v_preference_rejected then raise exception 'preference mismatch was accepted';end if;
+  update public.profiles set gender='woman' where user_id=v_b;
   select public.send_profile_like(v_b) into v_matched;
   if v_matched then raise exception 'one-way LIKE created a match';end if;
 
@@ -55,11 +63,25 @@ begin
   perform set_config('request.jwt.claim.sub','e2e00000-0000-4000-8000-000000000001',true);
   select id into v_message from public.send_match_message(v_match,'E2E hello');
   if v_message is null then raise exception 'message was not created';end if;
+  perform public.send_match_message(v_match,repeat('a',100));
+  begin perform public.send_match_message(v_match,repeat('b',101));
+  exception when others then v_invalid_length_rejected:=true;end;
+  if not v_invalid_length_rejected then raise exception '101-character message was accepted';end if;
 
   perform set_config('request.jwt.claim.sub','e2e00000-0000-4000-8000-000000000002',true);
   select public.mark_match_read(v_match) into v_read;
-  if v_read<>1 then raise exception 'read receipt was not recorded';end if;
+  if v_read<>2 then raise exception 'read receipts were not recorded';end if;
   perform public.react_to_message(v_message,'heart');
+
+  insert into public.messages(match_id,sender_id,body,created_at)
+  select v_match,v_b,'retention-'||series,now()-interval '2 minutes'+series*interval '1 millisecond'
+  from generate_series(1,120) series;
+  perform set_config('request.jwt.claim.sub','e2e00000-0000-4000-8000-000000000001',true);
+  perform public.send_match_message(v_match,'retention edge');
+  select count(*) into v_message_count from public.messages where match_id=v_match;
+  if v_message_count<>120 then raise exception 'message retention expected 120, got %',v_message_count;end if;
+
+  perform set_config('request.jwt.claim.sub','e2e00000-0000-4000-8000-000000000002',true);
   select public.report_match_member(v_match,'unsafe','transactional E2E') into v_report;
   if v_report is null then raise exception 'report was not created';end if;
   perform public.block_match_member(v_match);

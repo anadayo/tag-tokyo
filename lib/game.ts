@@ -18,19 +18,63 @@ export const INITIAL_GROWTH: GrowthState = {
 
 export const DAILY_LOGIN_EXP = 20;
 
-export const TOKYO_AREAS: TokyoArea[] = [
+const BASE_AREAS: TokyoArea[] = [
   { id: "kichijoji", name: "吉祥寺", x: 13, y: 48, latitude: 35.7033, longitude: 139.5796, radiusMeters: 1000 },
-  { id: "shinjuku", name: "新宿", x: 35, y: 52, latitude: 35.6938, longitude: 139.7034, radiusMeters: 1000 },
-  { id: "shibuya", name: "渋谷", x: 36, y: 72, latitude: 35.6580, longitude: 139.7016, radiusMeters: 1000 },
-  { id: "ikebukuro", name: "池袋", x: 42, y: 30, latitude: 35.7295, longitude: 139.7109, radiusMeters: 1000 },
-  { id: "ueno", name: "上野", x: 69, y: 28, latitude: 35.7141, longitude: 139.7774, radiusMeters: 1000 },
+  { id: "asakusa", name: "浅草", x: 79, y: 30, latitude: 35.7119, longitude: 139.7983, radiusMeters: 1000 },
   { id: "kitasenju", name: "北千住", x: 80, y: 12, latitude: 35.7497, longitude: 139.8050, radiusMeters: 1000 },
 ];
 
+const YAMANOTE_STATIONS = [
+  ["tokyo", "東京", "TOKYO", 35.681236, 139.767125],
+  ["kanda", "神田", "KANDA", 35.69169, 139.770883],
+  ["akihabara", "秋葉原", "AKIHABARA", 35.698353, 139.773114],
+  ["okachimachi", "御徒町", "OKACHIMACHI", 35.707438, 139.774632],
+  ["ueno", "上野", "UENO", 35.713768, 139.777254],
+  ["uguisudani", "鶯谷", "UGUISUDANI", 35.720495, 139.778837],
+  ["nippori", "日暮里", "NIPPORI", 35.727772, 139.770987],
+  ["nishi-nippori", "西日暮里", "NISHI-NIPPORI", 35.732135, 139.766787],
+  ["tabata", "田端", "TABATA", 35.738062, 139.76086],
+  ["komagome", "駒込", "KOMAGOME", 35.736489, 139.746875],
+  ["sugamo", "巣鴨", "SUGAMO", 35.733445, 139.73929],
+  ["otsuka", "大塚", "OTSUKA", 35.731401, 139.728662],
+  ["ikebukuro", "池袋", "IKEBUKURO", 35.728926, 139.71038],
+  ["mejiro", "目白", "MEJIRO", 35.721204, 139.706587],
+  ["takadanobaba", "高田馬場", "TAKADANOBABA", 35.712677, 139.703715],
+  ["shin-okubo", "新大久保", "SHIN-OKUBO", 35.701306, 139.700044],
+  ["shinjuku", "新宿", "SHINJUKU", 35.689592, 139.700413],
+  ["yoyogi", "代々木", "YOYOGI", 35.683061, 139.702042],
+  ["harajuku", "原宿", "HARAJUKU", 35.670168, 139.702689],
+  ["shibuya", "渋谷", "SHIBUYA", 35.658034, 139.701636],
+  ["ebisu", "恵比寿", "EBISU", 35.64669, 139.710106],
+  ["meguro", "目黒", "MEGURO", 35.633998, 139.715828],
+  ["gotanda", "五反田", "GOTANDA", 35.626446, 139.723444],
+  ["osaki", "大崎", "OSAKI", 35.6197, 139.728553],
+  ["shinagawa", "品川", "SHINAGAWA", 35.628471, 139.73876],
+  ["takanawa-gateway", "高輪ゲートウェイ", "TAKANAWA GATEWAY", 35.6355, 139.7407],
+  ["tamachi", "田町", "TAMACHI", 35.645736, 139.747575],
+  ["hamamatsucho", "浜松町", "HAMAMATSUCHO", 35.655646, 139.756749],
+  ["shimbashi", "新橋", "SHIMBASHI", 35.666195, 139.758587],
+  ["yurakucho", "有楽町", "YURAKUCHO", 35.675069, 139.763328],
+] as const;
+
+const mapX = (longitude: number) => Math.max(0, Math.min(100, Math.round((longitude - 139.57) / 0.25 * 100)));
+const mapY = (latitude: number) => Math.max(0, Math.min(100, Math.round((35.76 - latitude) / 0.16 * 100)));
+
+const YAMANOTE_AREAS: TokyoArea[] = YAMANOTE_STATIONS.map(([id, name, , latitude, longitude]) => ({
+  id, name, latitude, longitude, x: mapX(longitude), y: mapY(latitude), radiusMeters: 1000,
+}));
+
+export const TOKYO_AREAS: TokyoArea[] = [...BASE_AREAS, ...YAMANOTE_AREAS];
+
+const YAMANOTE_SPOTS: TagSpot[] = YAMANOTE_STATIONS.map(([id, , romanized, latitude, longitude]) => ({
+  id: `spot-${id}`, name: `${romanized} TAG SPOT`, areaId: id, latitude, longitude,
+  x: mapX(longitude), y: mapY(latitude), radiusMeters: 150,
+}));
+
 export const TAG_SPOTS: TagSpot[] = [
-  { id: "spot-shibuya", name: "SHIBUYA TAG SPOT", areaId: "shibuya", x: 49, y: 77, latitude: 35.6580, longitude: 139.7016, radiusMeters: 150 },
-  { id: "spot-shinjuku", name: "SHINJUKU TAG SPOT", areaId: "shinjuku", x: 27, y: 40, latitude: 35.6900, longitude: 139.7005, radiusMeters: 150 },
-  { id: "spot-ueno", name: "UENO TAG SPOT", areaId: "ueno", x: 78, y: 38, latitude: 35.7141, longitude: 139.7774, radiusMeters: 150 },
+  ...YAMANOTE_SPOTS,
+  { id: "spot-asakusa", name: "ASAKUSA TAG SPOT", areaId: "asakusa", x: 80, y: 32, latitude: 35.7128, longitude: 139.7983, radiusMeters: 150 },
+  { id: "spot-kitasenju", name: "KITASENJU TAG SPOT", areaId: "kitasenju", x: 80, y: 12, latitude: 35.7508, longitude: 139.8050, radiusMeters: 150 },
 ];
 
 export const COSMETICS: Array<{

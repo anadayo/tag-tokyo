@@ -3,6 +3,7 @@ export type SafeLocation = {
   longitude: number;
   accuracy: number;
   speed: number | null;
+  heading: number | null;
   capturedAt: string;
   deleteAt: string;
 };
@@ -13,6 +14,7 @@ function toSafeLocation(position: GeolocationPosition): SafeLocation {
     longitude: position.coords.longitude,
     accuracy: position.coords.accuracy,
     speed: position.coords.speed,
+    heading: position.coords.heading,
     capturedAt: new Date(position.timestamp).toISOString(),
     deleteAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   };

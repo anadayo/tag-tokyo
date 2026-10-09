@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 
 const siteUrl = "https://anadayo.github.io/tag-tokyo/";

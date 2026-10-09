@@ -16,6 +16,7 @@ declare
   v_match uuid;v_reward record;v_move record;v_finish record;
   v_before_balance bigint;v_after_balance bigint;v_before_boost integer;v_after_boost integer;v_first_points bigint;v_retry_points bigint;
   v_duplicate_rejected boolean:=false;v_far_area_rejected boolean:=false;v_boundary_rejected boolean:=false;v_stale_rejected boolean:=false;v_matched boolean;
+  v_cross_count integer;v_station_count integer;v_station_unique integer;
 begin
   select id into v_a from public.users where auth_user_id='e2e00000-0000-4000-8000-000000000003';
   select id into v_b from public.users where auth_user_id='e2e00000-0000-4000-8000-000000000004';
@@ -33,6 +34,12 @@ begin
   select member.id,t.id,true,row_number() over(order by t.id)::smallint
   from(values(v_a),(v_b)) member(id)
   cross join lateral(select id from public.tags where status='active' order by id limit 5)t;
+
+  select count(*),count(distinct station_code) into v_station_count,v_station_unique
+  from public.tag_spots where network='yamanote' and active;
+  if v_station_count<>30 or v_station_unique<>30 then
+    raise exception 'Yamanote station network expected 30 unique spots, got %/%',v_station_count,v_station_unique;
+  end if;
 
   perform set_config('request.jwt.claim.sub','e2e00000-0000-4000-8000-000000000003',true);
   select public.start_tag_session(35.6580,139.7016,10,30,now()+interval '24 hours') into v_session_a;
@@ -83,8 +90,19 @@ begin
   exception when others then v_stale_rejected:=true;end;
   if not v_stale_rejected then raise exception 'stale GPS EXP addition was accepted';end if;
 
+  select * into v_reward from public.draw_tag_spot_v2(
+    '34000000-0000-4000-8000-000000000005','spot-kitasenju',35.7508,139.8050,10,now());
+  if v_reward.reward_key is null then raise exception 'Kitasenju TAG SPOT returned no reward';end if;
+
   perform set_config('request.jwt.claim.sub','e2e00000-0000-4000-8000-000000000004',true);
-  select public.start_tag_session(35.6580,139.7027,10,30,now()+interval '24 hours') into v_session_b;
+  select public.start_tag_session(35.6800,139.7027,10,30,now()+interval '24 hours') into v_session_b;
+  select public.detect_crossings_private(1000,3) into v_cross_count;
+  if v_cross_count<>0 then raise exception 'off-range users crossed';end if;
+  update public.tag_sessions set status='paused' where id=v_session_b;
+  update public.location_samples set latitude=35.6580,longitude=139.7027,captured_at=now() where session_id=v_session_b;
+  select public.detect_crossings_private(1000,3) into v_cross_count;
+  if v_cross_count<>0 then raise exception 'TAG OFF user crossed';end if;
+  update public.tag_sessions set status='active' where id=v_session_b;
   perform public.detect_crossings_private(1000,3);
   select id into v_crossing from public.crossings where user_a=least(v_a,v_b) and user_b=greatest(v_a,v_b) and expires_at>now();
   if v_crossing is null then raise exception 'CROSS was not detected';end if;
@@ -100,7 +118,7 @@ begin
 
   perform set_config('request.jwt.claim.sub','e2e00000-0000-4000-8000-000000000003',true);
   select * into v_finish from public.finish_tag_session();
-  if v_finish.spot_count<>1 or v_finish.cross_count<>1 then raise exception 'TAG result summary is incorrect';end if;
+  if v_finish.spot_count<>2 or v_finish.cross_count<>1 then raise exception 'TAG result summary is incorrect';end if;
   perform set_config('request.jwt.claim.sub','e2e00000-0000-4000-8000-000000000004',true);
   perform public.finish_tag_session();
 end $$;

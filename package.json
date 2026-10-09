@@ -12,6 +12,7 @@
   "dependencies": {
     "@supabase/supabase-js": "latest",
     "lucide-react": "latest",
+    "maplibre-gl": "^6.13.0",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest"

@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BadgeCheck, Ban, Bell, Camera, ChevronRight, Clock3, Crown, Flag, Gift, Heart, HeartHandshake, Home, LockKeyhole, LogIn, LogOut, Map,
-  LocateFixed, MapPin, MessageCircle, Minus, Navigation, Plus, Power, ShieldCheck, ShoppingBag,
+  MapPin, MessageCircle, Minus, Plus, Power, ShieldCheck, ShoppingBag,
   Search, Send, Sparkles, Star, Trophy, UserRound, UsersRound, Zap, Footprints, Route,
 } from "lucide-react";
 import { track } from "@/lib/analytics";
 import { AgeVerificationPanel } from "@/components/age-verification-panel";
+import { GameMap } from "@/components/game-map";
 import {
   COSMETICS, DAILY_LOGIN_EXP, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_UNLOCKS,
   TAG_SPOTS, TOKYO_AREAS,
@@ -59,14 +60,6 @@ function isAdultBirthDate(value: string) {
 function formatMapDistance(value: number | null) {
   if (value === null) return "距離を確認する";
   return value < 1000 ? `${Math.round(value)}m` : `${(value / 1000).toFixed(1)}km`;
-}
-
-function mapPosition(location: Pick<SafeLocation, "latitude" | "longitude">) {
-  const anchor = TOKYO_AREAS.reduce((nearest, item) => distanceMeters(location, item) < distanceMeters(location, nearest) ? item : nearest, TOKYO_AREAS[0]);
-  return {
-    x: Math.max(3, Math.min(97, anchor.x + (location.longitude - anchor.longitude) * 300)),
-    y: Math.max(3, Math.min(97, anchor.y - (location.latitude - anchor.latitude) * 300)),
-  };
 }
 
 function mapActionError(error: unknown) {
@@ -314,7 +307,7 @@ function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBo
   );
 }
 
-function MapScreen({ growth, setGrowth, liveEnabled, memberReady, boostActive, latestLocation, onRequireAccount, onInventoryChanged, onLevelEarned }: { growth: GrowthState; setGrowth: React.Dispatch<React.SetStateAction<GrowthState>>; liveEnabled: boolean; memberReady: boolean; boostActive: boolean; latestLocation: SafeLocation | null; onRequireAccount: () => void; onInventoryChanged: () => void; onLevelEarned: (previousTotal: number, nextTotal: number) => void }) {
+function MapScreen({ growth, setGrowth, liveEnabled, memberReady, tagActive, boostActiveUntil, latestLocation, onRequireAccount, onInventoryChanged, onLevelEarned }: { growth: GrowthState; setGrowth: React.Dispatch<React.SetStateAction<GrowthState>>; liveEnabled: boolean; memberReady: boolean; tagActive: boolean; boostActiveUntil: string | null; latestLocation: SafeLocation | null; onRequireAccount: () => void; onInventoryChanged: () => void; onLevelEarned: (previousTotal: number, nextTotal: number) => void }) {
   const [selectedAreaId, setSelectedAreaId] = useState("kitasenju");
   const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
   const [stake, setStake] = useState(100);
@@ -323,14 +316,17 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, boostActive, l
   const [confirmContribution, setConfirmContribution] = useState(false);
   const [championNotice, setChampionNotice] = useState("");
   const [champions, setChampions] = useState<AreaChampion[]>([]);
+  const [areaStats, setAreaStats] = useState<Record<string, { totalExp: number; participants: number; myRank: number }>>({});
   const [mapLocation, setMapLocation] = useState<SafeLocation | null>(null);
   const [locating, setLocating] = useState(false);
   const [actionPending, setActionPending] = useState(false);
   const [arrivalNotice, setArrivalNotice] = useState("");
   const actionLockRef = useRef(false);
+  const initialLocationRequestedRef = useRef(false);
   const reachedTargetRef = useRef<string | null>(null);
   const area = TOKYO_AREAS.find((item) => item.id === selectedAreaId) ?? TOKYO_AREAS[0];
   const champion = champions.find((item) => item.areaId === area.id) ?? null;
+  const selectedAreaStats = areaStats[area.id] ?? { totalExp: 0, participants: 0, myRank: 0 };
   const spot = TAG_SPOTS.find((item) => item.id === selectedSpotId) ?? null;
   const myPoints = growth.areaContributions[area.id] ?? 0;
   const today = tokyoDateKey();
@@ -339,7 +335,21 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, boostActive, l
   const effectiveLocation = latestLocation ?? mapLocation;
   const targetDistance = effectiveLocation ? distanceMeters(effectiveLocation, target) : null;
   const actionAvailable = targetDistance !== null && targetDistance <= target.radiusMeters && effectiveLocation !== null && effectiveLocation.accuracy <= 75;
-  const currentPosition = effectiveLocation ? mapPosition(effectiveLocation) : null;
+  const progress = getLevelProgress(growth.totalEarnedExp);
+  const claimedSpotIds = TAG_SPOTS.filter((item) => growth.spotClaims[item.id] === today).map((item) => item.id);
+
+  const selectArea = useCallback((areaId: string) => {
+    setSelectedAreaId(areaId);
+    setSelectedSpotId(null);
+    setResult("");
+  }, []);
+
+  const selectSpot = useCallback((spotId: string, areaId: string) => {
+    setSelectedSpotId(spotId);
+    setSelectedAreaId(areaId);
+    setResult("");
+    track("spot_open", { spot_id: spotId, area_id: areaId });
+  }, []);
 
   async function refreshMapLocation() {
     setLocating(true);
@@ -358,6 +368,13 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, boostActive, l
   }
 
   useEffect(() => {
+    if (latestLocation || initialLocationRequestedRef.current) return;
+    initialLocationRequestedRef.current = true;
+    const timer = window.setTimeout(() => void refreshMapLocation(), 250);
+    return () => window.clearTimeout(timer);
+  }, [latestLocation]);
+
+  useEffect(() => {
     if (!effectiveLocation || targetDistance === null || targetDistance > target.radiusMeters || reachedTargetRef.current === target.id) return;
     reachedTargetRef.current = target.id;
     setArrivalNotice(`${target.name.replace("TAG SPOT", "スポット")}に到着！`);
@@ -367,7 +384,10 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, boostActive, l
 
   const loadChampions = useCallback(async () => {
     if (!supabase) return;
-    const { data, error } = await supabase.rpc("get_area_champions");
+    const [{ data, error }, statsResult] = await Promise.all([
+      supabase.rpc("get_area_champions"),
+      supabase.rpc("get_area_activity_stats"),
+    ]);
     if (error) return;
     const rows = (data ?? []) as Array<{ area_id: string; area_name: string; champion_user_id: string | null; champion_display_name: string | null; champion_handle: string | null; champion_points: number; champion_is_official: boolean; my_points: number; points_to_first: number }>;
     setChampions(rows.map((item) => ({
@@ -381,6 +401,13 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, boostActive, l
       myPoints: Number(item.my_points ?? 0),
       pointsToFirst: Number(item.points_to_first ?? 0),
     })));
+    if (!statsResult.error) {
+      const nextStats: Record<string, { totalExp: number; participants: number; myRank: number }> = {};
+      for (const row of (statsResult.data ?? []) as Array<{ area_id: string; total_exp: number; participant_count: number; my_rank: number }>) {
+        nextStats[row.area_id] = { totalExp: Number(row.total_exp ?? 0), participants: Number(row.participant_count ?? 0), myRank: Number(row.my_rank ?? 0) };
+      }
+      setAreaStats(nextStats);
+    }
   }, []);
 
   useEffect(() => {
@@ -511,21 +538,28 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, boostActive, l
   return (
     <section className="screen map-screen">
       <header className="screen-header"><div><span>PLAY TOKYO</span><h2>MAP</h2></div><div className="wallet"><Zap />{growth.availableExp.toLocaleString()}</div></header>
-      <div className="map-privacy"><ShieldCheck /><span><b>人の現在地は表示しません</b><small>MAPは遊ぶエリアとTAG SPOTを選ぶためのフィールドです</small></span></div>
-      <div className="tokyo-map" aria-label="東京エリアマップ">
-        <div className="map-river" />
-        <span className={`action-range ${spot ? "is-spot" : ""}`} style={{ left: `${target.x}%`, top: `${target.y}%` }} aria-hidden="true" />
-        {TOKYO_AREAS.map((item) => {
-          const mine = growth.areaContributions[item.id] ?? 0;
-          const leader = champions.find((entry) => entry.areaId === item.id);
-          return <button key={item.id} className={`area-pin ${selectedAreaId === item.id ? "selected" : ""}`} style={{ left: `${item.x}%`, top: `${item.y}%` }} onClick={() => { setSelectedAreaId(item.id); setSelectedSpotId(null); setResult(""); }}>
-            <Trophy /><b>{item.name}</b><span>{leader?.displayName ? leader.displayName.slice(0, 7) : mine > 0 ? "YOU" : "未登録"}</span><small>{leader?.points ? `${leader.points.toLocaleString()}pt` : mine > 0 ? `${mine}pt` : "--"}</small>
-          </button>;
-        })}
-        {TAG_SPOTS.map((item) => <button key={item.id} className="spot-pin" aria-label={item.name} style={{ left: `${item.x}%`, top: `${item.y}%` }} onClick={() => { setSelectedSpotId(item.id); setSelectedAreaId(item.areaId); setResult(""); track("spot_open", { spot_id: item.id, area_id: item.areaId }); }}><Gift /><em>{item.name.split(" ")[0]}</em></button>)}
-        {currentPosition && <div className={`current-location ${boostActive ? "is-boosted" : ""}`} style={{ left: `${currentPosition.x}%`, top: `${currentPosition.y}%` }} aria-label={`現在地 精度プラスマイナス${Math.round(effectiveLocation!.accuracy)}メートル`}><i style={{ width: `${Math.min(70, Math.max(22, effectiveLocation!.accuracy / 2))}px`, height: `${Math.min(70, Math.max(22, effectiveLocation!.accuracy / 2))}px` }} /><b /><Navigation /></div>}
-        <button className="recenter-button" disabled={locating} onClick={() => void refreshMapLocation()} aria-label="現在地を更新"><LocateFixed /></button>
-        <div className="map-legend"><span><Trophy />AREA BATTLE</span><span><Gift />SPOT GACHA</span><span><i />現在地</span></div>
+      <div className="game-map-stage">
+        <GameMap
+          areas={TOKYO_AREAS}
+          spots={TAG_SPOTS}
+          champions={champions}
+          selectedAreaId={selectedAreaId}
+          selectedSpotId={selectedSpotId}
+          location={effectiveLocation}
+          tagActive={tagActive}
+          boostActiveUntil={boostActiveUntil}
+          level={progress.level}
+          availableExp={growth.availableExp}
+          claimedSpotIds={claimedSpotIds}
+          locating={locating}
+          onSelectArea={selectArea}
+          onSelectSpot={selectSpot}
+          onLocate={() => void refreshMapLocation()}
+        />
+        <div className="map-quick-actions" aria-label="マップの目的地">
+          <button className={selectedSpotId === null ? "is-selected" : ""} onClick={() => selectArea(selectedAreaId)}><Trophy />{area.name} AREA</button>
+          {TAG_SPOTS.map((item) => <button key={item.id} className={selectedSpotId === item.id ? "is-selected" : ""} onClick={() => selectSpot(item.id, item.areaId)}><Gift />{item.name.split(" ")[0]}</button>)}
+        </div>
       </div>
 
       <div className={`map-distance ${actionAvailable ? "is-ready" : ""}`}><MapPin /><span><b>{target.name.replace("TAG SPOT", "スポット")}まで {formatMapDistance(targetDistance)}</b><small>{locating ? "現在地を取得中…" : effectiveLocation?.accuracy && effectiveLocation.accuracy > 75 ? `精度 ±${Math.round(effectiveLocation.accuracy)}m · 再取得してください` : actionAvailable ? "利用可能エリア内です" : targetDistance === null ? "現在地を更新すると距離を表示します" : `利用範囲まであと${formatMapDistance(Math.max(0, targetDistance - target.radiusMeters))}`}</small></span><button disabled={locating} onClick={() => void refreshMapLocation()}>{locating ? "取得中" : "更新"}</button></div>
@@ -536,6 +570,11 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, boostActive, l
           <p>現地にいることを非公開判定して、1日1回無料でガチャを回せます。完全なハズレはありません。</p>
           <div className="reward-line"><span>通常</span><b>30 / 50 / 100 EXP</b><span>レア</span><b>限定プロフィール装飾</b><span>激レア</span><b>BOOST / SUPER BOOST</b></div>
           <button className="primary-wide spot-draw" disabled={alreadyClaimed || !liveEnabled || actionPending} onClick={() => void drawSpot()}>{alreadyClaimed ? "本日は受取済み" : actionPending ? "現在地を確認中…" : !liveEnabled ? "サービス開始後に利用可能" : memberReady ? "無料でガチャを回す" : "本人確認して利用"}</button>
+          <div className="spot-area-action">
+            <div><small>AREA BATTLE</small><b>{area.name}にEXP追加</b><em>合計 {selectedAreaStats.totalExp.toLocaleString()} EXP · {selectedAreaStats.participants}人参加</em></div>
+            <div className="stake-control"><button aria-label="EXPを減らす" onClick={() => setStake(Math.max(100, stake - 100))}><Minus /></button><b>{stake} EXP</b><button aria-label="EXPを増やす" onClick={() => setStake(Math.min(1000, stake + 100))}><Plus /></button></div>
+            <button className="secondary-wide" disabled={!liveEnabled || actionPending} onClick={contribute}>{actionPending ? "現在地を確認中…" : "このエリアにEXPを追加"}</button>
+          </div>
         </div>
       ) : (
         <div className="map-panel">
@@ -543,6 +582,7 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, boostActive, l
           {champion?.userId ? <div className="champion-row"><Crown /><span><small>AREA CHAMPION</small><b>{champion.displayName}{champion.isOfficial ? " · 公認" : ""}</b>{champion.handle && <em>@{champion.handle}</em>}</span><strong>{champion.points.toLocaleString()}pt</strong></div> : <div className="area-empty"><Trophy /><span><b>最初のCHAMPIONを募集中</b><small>実際にEXPが追加されると表示されます</small></span></div>}
           {myPoints > 0 && <div className="rank-row mine"><Star /><span><small>あなたのEXP追加</small><b>プロフィール Lv.{getLevelProgress(growth.totalEarnedExp).level}</b></span><strong>{myPoints.toLocaleString()}pt</strong></div>}
           {champion && champion.pointsToFirst > 0 && <p className="points-to-first">あと <b>{champion.pointsToFirst.toLocaleString()} EXP</b> で1位</p>}
+          <div className="area-activity-stats"><span><small>エリア総EXP</small><b>{selectedAreaStats.totalExp.toLocaleString()}</b></span><span><small>参加者</small><b>{selectedAreaStats.participants}人</b></span><span><small>あなたの順位</small><b>{selectedAreaStats.myRank > 0 ? `${selectedAreaStats.myRank}位` : "-位"}</b></span></div>
           <div className="area-range-note"><MapPin /><span><b>拠点の1km圏内限定</b><small>新しい高精度の現在地を、追加可否の判定だけに使用します</small></span></div>
           <div className="stake-control"><button aria-label="EXPを減らす" onClick={() => setStake(Math.max(100, stake - 100))}><Minus /></button><b>{stake} EXP</b><button aria-label="EXPを増やす" onClick={() => setStake(Math.min(1000, stake + 100))}><Plus /></button></div>
           <button className="primary-wide" disabled={!liveEnabled || actionPending} onClick={contribute}>{actionPending ? "現在地を確認中…" : !liveEnabled ? "サービス開始後に利用可能" : memberReady ? "EXPを追加する" : "本人確認して利用"}</button>
@@ -2207,7 +2247,7 @@ export default function TagTokyoApp() {
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b>{!isEmailAuthenticated && <button className="top-login" onClick={() => { setTab("me"); window.setTimeout(() => document.getElementById("account-registration")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }}><LogIn />ログイン</button>}<small>BETA</small></div>
       {tab === "home" && <HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} betaStatus={betaStatus} authenticated={isEmailAuthenticated} liveEnabled={liveEnabled} activateBoost={() => void activateBetaBoost()} />}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => openRegistration("交流機能にはメール認証と20歳以上確認が必要です")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
-      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} boostActive={Boolean(betaStatus.boostActiveUntil && new Date(betaStatus.boostActiveUntil).getTime() > now)} latestLocation={latestPrivateLocation} onRequireAccount={() => openRegistration("MAPの利用にはメール認証と20歳以上確認が必要です")} onInventoryChanged={() => void refreshBetaStatus()} onLevelEarned={announceLevelGain} />}
+      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} tagActive={session.active} boostActiveUntil={betaStatus.boostActiveUntil} latestLocation={latestPrivateLocation} onRequireAccount={() => openRegistration("MAPの利用にはメール認証と20歳以上確認が必要です")} onInventoryChanged={() => void refreshBetaStatus()} onLevelEarned={announceLevelGain} />}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={(matchId) => void selectLiveMatch(matchId)} onSend={sendLiveMessage} onReact={reactToLiveMessage} onLoadOlder={loadOlderMessages} onUnmatch={unmatchLiveMember} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen />)}
