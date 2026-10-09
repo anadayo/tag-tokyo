@@ -146,7 +146,8 @@ export function GameMap({
       maplibre.setWorkerUrl(`${ASSET_PREFIX}/maplibre-gl-worker.mjs`);
       const map = new maplibre.Map({
         container: containerRef.current,
-        style: `https://tiles.openfreemap.org/styles/${night ? "dark" : "liberty"}`,
+        // Keep roads and station labels legible outdoors and on dim mobile displays.
+        style: "https://tiles.openfreemap.org/styles/liberty",
         center: TOKYO_CENTER,
         zoom: 15.2,
         pitch: 55,
@@ -228,10 +229,10 @@ export function GameMap({
         minzoom: 15,
         filter: ["!=", ["get", "hide_3d"], true],
         paint: {
-          "fill-extrusion-color": night ? "#25254a" : "#dce6ef",
+          "fill-extrusion-color": night ? "#aeb9cb" : "#dce6ef",
           "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 15, 0, 16, ["coalesce", ["get", "render_height"], 8]],
           "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
-          "fill-extrusion-opacity": 0.82,
+          "fill-extrusion-opacity": night ? 0.68 : 0.82,
         },
       }, labelLayer);
     }

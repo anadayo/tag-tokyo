@@ -541,7 +541,7 @@ button { color: inherit; }
 .map-quick-actions button svg { width: 13px; }
 .map-quick-actions button.is-selected { border-color: #62eeff; background: rgba(17,39,65,.94); color: #69f0ff; }
 .game-map-canvas { position: absolute; inset: 0; }
-.game-map-shell::after { content: ""; position: absolute; z-index: 2; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(7,8,26,.34) 0, transparent 21%, transparent 68%, rgba(7,8,26,.5) 100%); }
+.game-map-shell::after { content: ""; position: absolute; z-index: 2; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(7,8,26,.12) 0, transparent 21%, transparent 72%, rgba(7,8,26,.24) 100%); }
 .game-map-shell.is-day::after { background: linear-gradient(180deg, rgba(13,24,42,.18) 0, transparent 24%, transparent 72%, rgba(8,12,30,.36) 100%); }
 .game-map-player-hud { position: absolute; z-index: 6; top: 12px; left: 12px; height: 47px; display: flex; overflow: hidden; border: 1px solid rgba(119,229,255,.4); border-radius: 8px; background: rgba(11,12,32,.86); color: white; box-shadow: 0 8px 24px rgba(8,7,30,.24); backdrop-filter: blur(12px); }
 .game-map-player-hud span { min-width: 68px; padding: 7px 10px; display: grid; align-content: center; gap: 2px; border-right: 1px solid rgba(255,255,255,.12); }
