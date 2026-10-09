@@ -5,4 +5,7 @@ export const publicOperator = {
 };
 
 export const publicContactReady = Boolean(publicOperator.name && publicOperator.contact);
-export const publicOperatorReady = publicContactReady && Boolean(publicOperator.notificationNumber);
+const notificationPlaceholder = /^(?:なし|未設定|確認中|届出済み)$/;
+export const publicOperatorReady = publicContactReady
+  && publicOperator.notificationNumber.length >= 4
+  && !notificationPlaceholder.test(publicOperator.notificationNumber);
