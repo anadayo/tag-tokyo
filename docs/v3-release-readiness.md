@@ -4,9 +4,9 @@ Updated: 2026-10-09
 
 ## Current decision
 
-**Public preview: READY / Live user interaction: HOLD**
+**Public beta: LIVE by owner decision / Formal release verification: IN PROGRESS**
 
-The application build is healthy and may be published as a non-interactive public preview. Live user-to-user interaction must wait for the production database migrations and transactional E2E tests below, and remains automatically gated until the public operator notification number is configured.
+The application build is healthy. The owner confirmed the applicable operating requirements and approved live beta interaction. Production database migrations, transactional E2E and physical-device checks below remain required before declaring formal-release verification complete.
 
 ## Implemented
 

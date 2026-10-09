@@ -16,7 +16,6 @@ import {
 import { distanceMeters, isInsideTokyo, requestPrivateLocation, watchPrivateLocation } from "@/lib/location";
 import type { SafeLocation } from "@/lib/location";
 import { hasSupabase, isLiveCommunityEnabled, supabase } from "@/lib/supabase";
-import { publicOperatorReady } from "@/lib/public-operator";
 import type { AreaChampion, BetaCampaignStatus, DailyMission, DiscoveryProfile, EditableProfile, GrowthState, LiveCrossing, LiveMatch, LiveMessage, OfficialProfile, TabId, TagCatalogItem, TagDuration, TagSessionResult, TagSessionState, TagStreak, TodayStats } from "@/lib/types";
 
 const INITIAL_SESSION: TagSessionState = {
@@ -1178,7 +1177,7 @@ export default function TagTokyoApp() {
   const walkMissionClaimedRef = useRef(false);
   const betaTrackedRef = useRef(false);
   const crossSyncReadyRef = useRef(false);
-  const liveEnabled = isLiveCommunityEnabled && databaseLiveEnabled && publicOperatorReady;
+  const liveEnabled = isLiveCommunityEnabled && databaseLiveEnabled;
 
   const announceLevelGain = useCallback((previousTotal: number, nextTotal: number) => {
     const from = getLevelProgress(previousTotal).level;
