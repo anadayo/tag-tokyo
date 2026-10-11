@@ -818,6 +818,10 @@ button { color: inherit; }
 @keyframes match-heart { to { transform: scale(1.12); } }
 
 .bottom-nav { position: fixed; z-index: 30; left: 50%; bottom: 0; transform: translateX(-50%); width: min(100%, 480px); height: 76px; padding: 7px 8px max(7px, env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(5, 1fr); background: rgba(255,255,255,.96); border-top: 1px solid var(--line); backdrop-filter: blur(15px); }
+.ad-unit { margin: 16px 18px 20px; min-height: 100px; overflow: hidden; text-align: center; }
+.ad-unit > small { display: block; margin-bottom: 5px; color: var(--muted); font-size: 8px; }
+.ad-unit-preview { display: grid; place-items: center; align-content: center; gap: 5px; border: 1px dashed #bbb4b6; border-radius: 8px; color: var(--muted); font-size: 10px; }
+.ad-unit-preview > small { margin: 0; }
 .bottom-nav button { border: 0; background: transparent; color: #918b8e; display: grid; place-items: center; align-content: center; gap: 3px; font-size: 8px; font-weight: 900; }
 .bottom-nav svg { width: 21px; }
 .bottom-nav button.active { color: var(--coral); }

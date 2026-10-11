@@ -63,7 +63,7 @@ export function AgeVerificationPanel({ authenticated, consentReady, initialStatu
         p_handle: profile.handle,
         p_gender: profile.gender,
         p_terms_version: "2026-10-05",
-        p_privacy_version: "2026-10-05",
+        p_privacy_version: "2026-10-11",
       });
       if (consentError) {
         setSubmitting(false);

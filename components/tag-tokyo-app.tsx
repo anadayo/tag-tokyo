@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { track } from "@/lib/analytics";
 import { AgeVerificationPanel } from "@/components/age-verification-panel";
+import { AdSlot } from "@/components/ad-slot";
 import { GameMap } from "@/components/game-map";
 import {
   COSMETICS, DAILY_LOGIN_EXP, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_UNLOCKS,
@@ -35,7 +36,7 @@ const INITIAL_SESSION: TagSessionState = {
 const ASSET_PREFIX = process.env.NODE_ENV === "production" ? "/tag-tokyo" : "";
 const HANDLE_PATTERN = /^[A-Za-z0-9_]{5,15}$/;
 const TERMS_VERSION = "2026-10-05";
-const PRIVACY_VERSION = "2026-10-05";
+const PRIVACY_VERSION = "2026-10-11";
 const PROFILE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 const PROFILE_PHOTO_MAX_SIDE = 1200;
 const PROFILE_PHOTO_TARGET_BYTES = 1.5 * 1024 * 1024;
@@ -2251,9 +2252,9 @@ export default function TagTokyoApp() {
   return (
     <main className="app-shell">
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b>{!isEmailAuthenticated && <button className="top-login" onClick={() => { setTab("me"); window.setTimeout(() => document.getElementById("account-registration")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }}><LogIn />ログイン</button>}<small>BETA</small></div>
-      {tab === "home" && <HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} betaStatus={betaStatus} authenticated={isEmailAuthenticated} liveEnabled={liveEnabled} activateBoost={() => void activateBetaBoost()} />}
+      {tab === "home" && <><HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} betaStatus={betaStatus} authenticated={isEmailAuthenticated} liveEnabled={liveEnabled} activateBoost={() => void activateBetaBoost()} /><AdSlot placement="home" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOME} /></>}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => openRegistration("交流機能にはメール認証と20歳以上確認が必要です")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
-      {tab === "map" && <MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} tagActive={session.active} boostActiveUntil={betaStatus.boostActiveUntil} latestLocation={latestPrivateLocation} playerAvatarUrl={profile.avatarDataUrl} playerDisplayName={profile.displayName} onRequireAccount={() => openRegistration("MAPの利用にはメール認証と20歳以上確認が必要です")} onInventoryChanged={() => void refreshBetaStatus()} onLevelEarned={announceLevelGain} />}
+      {tab === "map" && <><MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} tagActive={session.active} boostActiveUntil={betaStatus.boostActiveUntil} latestLocation={latestPrivateLocation} playerAvatarUrl={profile.avatarDataUrl} playerDisplayName={profile.displayName} onRequireAccount={() => openRegistration("MAPの利用にはメール認証と20歳以上確認が必要です")} onInventoryChanged={() => void refreshBetaStatus()} onLevelEarned={announceLevelGain} /><AdSlot placement="map" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_MAP} /></>}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={(matchId) => void selectLiveMatch(matchId)} onSend={sendLiveMessage} onReact={reactToLiveMessage} onLoadOlder={loadOlderMessages} onUnmatch={unmatchLiveMember} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen />)}
