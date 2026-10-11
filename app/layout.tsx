@@ -33,7 +33,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-  const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT?.trim();
+  const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT?.trim() || "ca-pub-6265700167821181";
   const adsenseReady = Boolean(adsenseClient && /^ca-pub-\d{16}$/.test(adsenseClient));
   return (
     <html lang="ja">

@@ -15,7 +15,7 @@ type AdSlotProps = {
 
 export function AdSlot({ slot = "", placement }: AdSlotProps) {
   const initialized = useRef(false);
-  const client = process.env.NEXT_PUBLIC_ADSENSE_CLIENT?.trim() ?? "";
+  const client = process.env.NEXT_PUBLIC_ADSENSE_CLIENT?.trim() || "ca-pub-6265700167821181";
   const preview = process.env.NEXT_PUBLIC_ADSENSE_PREVIEW === "true";
   const ready = /^ca-pub-\d{16}$/.test(client) && /^\d+$/.test(slot);
 
