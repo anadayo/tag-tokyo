@@ -24,6 +24,14 @@ Free users keep access to profiles, TAG, matching and messages. A purchase only 
 
 Only after all checks pass, update the single `commerce_controls` row so `legal_review_completed` and `purchases_enabled` are both true. Keep `stripe_test_mode` aligned with the key prefix. Never put Stripe secret keys in GitHub Pages or any `NEXT_PUBLIC_*` variable.
 
+## Payout destination
+
+- Receive JPY payouts in the owner's PayPay Bank account.
+- Enter the branch, seven-digit account number, account type and account-holder name only in Stripe Dashboard. Do not store bank details in this repository, Supabase, Notion, analytics or support logs.
+- The account-holder name must match the legal name registered with Stripe. Confirm the details against a bank statement before saving.
+- Keep the payout schedule manual during test launch. Change to weekly or monthly only after the first test payout and account review are complete.
+- Bank-account changes affect future payouts only; verify there is no payout already in transit before changing the destination.
+
 ## Incident controls
 
 - Disable sales immediately by setting `purchases_enabled=false`.
