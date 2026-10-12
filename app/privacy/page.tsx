@@ -3,7 +3,7 @@ import { publicContactReady, publicOperator } from "@/lib/public-operator";
 export default function PrivacyPage() {
   return <main className="policy-page">
     <h1>TAG TOKYO プライバシーポリシー</h1>
-    <p>最終更新日: 2026年10月11日 / バージョン: 2026-10-11</p>
+    <p>最終更新日: 2026年10月12日 / バージョン: 2026-10-12</p>
     <h2>1. 取得する情報と目的</h2>
     <p>メールアドレスはログイン認証、年齢確認結果の通知、安全上の連絡、プロフィール・いいね・マッチ情報は利用者同士の交流、性別は本人が選択した表示内容の調整、位置情報はすれ違い・TAG SPOT・エリア拠点の距離判定、通報・ブロック情報は安全対応のために利用します。メールアドレス、正確な位置、性別の表示設定は他の利用者へ公開しません。</p>
     <h2>2. 20歳以上の確認</h2>
@@ -16,7 +16,9 @@ export default function PrivacyPage() {
     <p>利用者はサービス内の退会・削除申請から、保有情報の削除を申請できます。法令上または安全対応上の保存義務がある記録を除き、確認後に処理します。</p>
     <h2>6. アクセス解析・広告・Cookie</h2>
     <p>本サービスは利用状況の把握と改善のためGoogle Analyticsを利用し、公開コンテンツのホームおよびマップ画面ではGoogle AdSenseによる広告を配信する場合があります。Googleを含む第三者配信事業者はCookie等を使用し、過去のアクセス情報に基づく広告を表示することがあります。パーソナライズ広告は<a href="https://adssettings.google.com/" target="_blank" rel="noreferrer">Google広告設定</a>で無効にできます。メッセージ、アカウント登録、本人確認、運営管理の画面には広告を表示しません。</p>
-    <h2>7. 問い合わせ</h2>
+    <h2>7. 決済情報</h2>
+    <p>有料アイテム購入時のカード情報はStripeが処理し、TAG TOKYOのサーバーには保存しません。運営は注文ID、Stripeの決済識別子、商品、金額、決済・返金状態、日時を、アイテム付与、問い合わせ対応、不正防止、会計処理のために保存します。</p>
+    <h2>8. 問い合わせ</h2>
     {publicContactReady
       ? <p>運営者: {publicOperator.name}<br />個人情報に関する問い合わせ: <a href={`mailto:${publicOperator.contact}`}>{publicOperator.contact}</a></p>
       : <p>運営者情報と公開問い合わせ窓口は現在設定中です。掲示が完了するまで実在ユーザー間の交流機能は開始しません。</p>}

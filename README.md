@@ -52,6 +52,12 @@ Supabase未設定時やライブ停止中は架空プロフィールを表示せ
 
 GitHub Pagesは公開クライアントを配信し、秘密鍵が必要な年齢確認通知・定期削除はSupabase Edge Functionsで処理します。
 
+## Commerce
+
+BOOST（800円）とSUPER BOOST（1,500円）のStripe Checkout基盤は、Supabase Edge Functionsと署名検証済みWebhookで処理します。価格はサーバー側の商品マスターだけを参照し、Webhookで支払いを確認するまでアイテムを付与しません。注文状態とイベントIDの両方で二重付与を防ぎます。
+
+販売は初期状態で無効です。販売者情報、法令確認、Stripe審査、テスト決済と返金確認が完了するまで `commerce_controls.purchases_enabled` と `legal_review_completed` を有効にしないでください。設定と停止手順は [commerce runbook](docs/commerce-runbook.md) を参照してください。
+
 オーナー確認用URLでは全プロフィール項目と装飾を試着できます。本番のオーナー権限は `users.role = 'owner'` のアカウントだけに付与され、一般ユーザーのEXPやエリアランキング条件は変更しません。
 
 ## Safety

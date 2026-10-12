@@ -9,6 +9,7 @@ import {
 import { track } from "@/lib/analytics";
 import { AgeVerificationPanel } from "@/components/age-verification-panel";
 import { AdSlot } from "@/components/ad-slot";
+import { BoostStore } from "@/components/boost-store";
 import { GameMap } from "@/components/game-map";
 import {
   COSMETICS, DAILY_LOGIN_EXP, getLevelProgress, INITIAL_GROWTH, INITIAL_PROFILE, PROFILE_UNLOCKS,
@@ -35,8 +36,8 @@ const INITIAL_SESSION: TagSessionState = {
 };
 const ASSET_PREFIX = process.env.NODE_ENV === "production" ? "/tag-tokyo" : "";
 const HANDLE_PATTERN = /^[A-Za-z0-9_]{5,15}$/;
-const TERMS_VERSION = "2026-10-05";
-const PRIVACY_VERSION = "2026-10-11";
+const TERMS_VERSION = "2026-10-12";
+const PRIVACY_VERSION = "2026-10-12";
 const PROFILE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 const AUTH_EMAIL_COOLDOWN_MS = 60 * 1000;
 const PROFILE_PHOTO_MAX_SIDE = 1200;
@@ -319,7 +320,7 @@ function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBo
   );
 }
 
-function MapScreen({ growth, setGrowth, liveEnabled, memberReady, tagActive, boostActiveUntil, latestLocation, playerAvatarUrl, playerDisplayName, onRequireAccount, onInventoryChanged, onLevelEarned }: { growth: GrowthState; setGrowth: React.Dispatch<React.SetStateAction<GrowthState>>; liveEnabled: boolean; memberReady: boolean; tagActive: boolean; boostActiveUntil: string | null; latestLocation: SafeLocation | null; playerAvatarUrl: string; playerDisplayName: string; onRequireAccount: () => void; onInventoryChanged: () => void; onLevelEarned: (previousTotal: number, nextTotal: number) => void }) {
+function MapScreen({ growth, setGrowth, liveEnabled, memberReady, tagActive, boostActiveUntil, boostActiveItem, latestLocation, playerAvatarUrl, playerDisplayName, onRequireAccount, onInventoryChanged, onLevelEarned }: { growth: GrowthState; setGrowth: React.Dispatch<React.SetStateAction<GrowthState>>; liveEnabled: boolean; memberReady: boolean; tagActive: boolean; boostActiveUntil: string | null; boostActiveItem: string | null; latestLocation: SafeLocation | null; playerAvatarUrl: string; playerDisplayName: string; onRequireAccount: () => void; onInventoryChanged: () => void; onLevelEarned: (previousTotal: number, nextTotal: number) => void }) {
   const [selectedAreaId, setSelectedAreaId] = useState("kitasenju");
   const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
   const [stake, setStake] = useState(100);
@@ -564,6 +565,7 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, tagActive, boo
           location={effectiveLocation}
           tagActive={tagActive}
           boostActiveUntil={boostActiveUntil}
+          boostActiveItem={boostActiveItem}
           level={progress.level}
           availableExp={growth.availableExp}
           playerAvatarUrl={playerAvatarUrl}
@@ -607,6 +609,7 @@ function MapScreen({ growth, setGrowth, liveEnabled, memberReady, tagActive, boo
         </div>
       )}
       {result && <div className="notice map-result" role="status">{result}</div>}
+      <BoostStore memberReady={memberReady} onRequireAccount={onRequireAccount} onInventoryChanged={onInventoryChanged} />
       {rewardDisplay && <div className="reward-overlay" role="dialog" aria-modal="true" aria-label="ガチャ結果">
         <div className={`reward-modal is-${rewardDisplay.tier} ${rewardDisplay.revealed ? "is-revealed" : "is-drawing"}`}>
           {!rewardDisplay.revealed ? <><div className="gacha-capsule"><Gift /></div><h3>ガチャ抽選中</h3><button onClick={() => setRewardDisplay({ ...rewardDisplay, revealed: true })}>演出をスキップ</button></> : <>
@@ -1112,6 +1115,7 @@ function MeScreen({ email, setEmail, birthDate, setBirthDate, authNotice, authRe
           })}
         </div>
       </div>
+      <nav className="legal-links" aria-label="規約と販売情報"><a href={`${ASSET_PREFIX}/terms/`} target="_blank" rel="noreferrer">利用規約</a><a href={`${ASSET_PREFIX}/privacy/`} target="_blank" rel="noreferrer">プライバシー</a><a href={`${ASSET_PREFIX}/commercial-transactions/`} target="_blank" rel="noreferrer">特商法表記</a></nav>
       <div className="settings-card compact">
         <p><b>位置情報の扱い</b></p>
         <p>すれ違い判定だけに利用し、生の位置情報は数時間から24時間以内に削除します。他ユーザーへ現在地や正確な距離を公開しません。</p>
@@ -1192,6 +1196,7 @@ export default function TagTokyoApp() {
   const [levelUp, setLevelUp] = useState<null | { from: number; to: number }>(null);
   const [boostCelebration, setBoostCelebration] = useState(false);
   const [crossCelebration, setCrossCelebration] = useState<string | null>(null);
+  const [commerceBoost, setCommerceBoost] = useState<{ itemKey: string | null; activeUntil: string | null }>({ itemKey: null, activeUntil: null });
   const stopLocationWatchRef = useRef<null | (() => void)>(null);
   const locationRequestPendingRef = useRef(false);
   const lastMilestoneRef = useRef(0);
@@ -1203,6 +1208,8 @@ export default function TagTokyoApp() {
   const authCooldownUntilRef = useRef(0);
   const liveEnabled = isLiveCommunityEnabled && databaseLiveEnabled;
   const authRetrySeconds = Math.max(0, Math.ceil((authCooldownUntil - now) / 1000));
+
+  useEffect(() => { track("visit"); }, []);
 
   async function requestAuthEmail(
     request: () => Promise<{ error: { message: string } | null }>,
@@ -1265,6 +1272,22 @@ export default function TagTokyoApp() {
       track("beta_tester_awarded", { beta_tester_number: Number(row.beta_tester_number) });
     }
   }, []);
+
+  const refreshCommerceInventory = useCallback(async () => {
+    if (!supabase || !isEmailAuthenticated) {
+      setCommerceBoost({ itemKey: null, activeUntil: null });
+      return;
+    }
+    const { data, error } = await supabase.rpc("get_my_commerce_inventory");
+    if (error) return;
+    const active = ((data ?? []) as Array<{ active_item_key: string | null; active_until: string | null }>).find((row) => row.active_item_key && row.active_until);
+    setCommerceBoost({ itemKey: active?.active_item_key ?? null, activeUntil: active?.active_until ?? null });
+  }, [isEmailAuthenticated]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void refreshCommerceInventory(), 0);
+    return () => window.clearTimeout(timer);
+  }, [refreshCommerceInventory]);
 
   const activateBetaBoost = useCallback(async () => {
     if (!supabase) return;
@@ -2309,7 +2332,7 @@ export default function TagTokyoApp() {
       <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b>{!isEmailAuthenticated && <button className="top-login" onClick={() => { setTab("me"); window.setTimeout(() => document.getElementById("account-registration")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }}><LogIn />ログイン</button>}<small>EARLY ACCESS</small></div>
       {tab === "home" && <><HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} betaStatus={betaStatus} authenticated={isEmailAuthenticated} liveEnabled={liveEnabled} activateBoost={() => void activateBetaBoost()} register={() => { setTab("me"); track("founding_member_cta_click", { source: "home" }); window.setTimeout(() => document.getElementById("account-registration")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }} /><AdSlot placement="home" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOME} /></>}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => openRegistration("交流機能にはメール認証と20歳以上確認が必要です")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
-      {tab === "map" && <><MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} tagActive={session.active} boostActiveUntil={betaStatus.boostActiveUntil} latestLocation={latestPrivateLocation} playerAvatarUrl={profile.avatarDataUrl} playerDisplayName={profile.displayName} onRequireAccount={() => openRegistration("MAPの利用にはメール認証と20歳以上確認が必要です")} onInventoryChanged={() => void refreshBetaStatus()} onLevelEarned={announceLevelGain} /><AdSlot placement="map" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_MAP} /></>}
+      {tab === "map" && <><MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} tagActive={session.active} boostActiveUntil={commerceBoost.activeUntil ?? betaStatus.boostActiveUntil} boostActiveItem={commerceBoost.itemKey ?? (betaStatus.boostActiveUntil ? "beta-boost" : null)} latestLocation={latestPrivateLocation} playerAvatarUrl={profile.avatarDataUrl} playerDisplayName={profile.displayName} onRequireAccount={() => openRegistration("購入とMAPの利用にはメール認証・規約同意・20歳以上確認が必要です")} onInventoryChanged={() => { void refreshBetaStatus(); void refreshCommerceInventory(); }} onLevelEarned={announceLevelGain} /><AdSlot placement="map" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_MAP} /></>}
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={(matchId) => void selectLiveMatch(matchId)} onSend={sendLiveMessage} onReact={reactToLiveMessage} onLoadOlder={loadOlderMessages} onUnmatch={unmatchLiveMember} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen />)}

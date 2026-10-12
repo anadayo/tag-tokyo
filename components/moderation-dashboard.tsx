@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Activity, Check, Flag, HeartHandshake, RefreshCw, ShieldAlert, Trash2, UsersRound, X } from "lucide-react";
+import { Activity, Check, CreditCard, Flag, HeartHandshake, RefreshCw, ShieldAlert, Trash2, TrendingUp, UsersRound, X } from "lucide-react";
 import { hasSupabase, supabase } from "@/lib/supabase";
 
 type ReviewRequest = {
@@ -19,6 +19,7 @@ type ReviewRequest = {
 
 type ReviewChecks = { age: boolean; document: boolean; issuer: boolean };
 type AdminStats = { registeredUsers: number; confirmedEmails: number; betaTesters: number; remainingSlots: number; dau: number; activeMatches: number; openReports: number };
+type CommerceStats = { visits: number; registrations: number; confirmedEmails: number; tagUsers: number; crossings: number; matches: number; checkoutStarts: number; paidOrders: number; grossSales: number; refundTotal: number };
 type SafetyReport = { id: number; reason: string; detail: string; status: "open" | "in_review" | "actioned" | "closed"; priority: number; created_at: string };
 
 const DOCUMENT_LABELS: Record<string, string> = {
@@ -36,6 +37,7 @@ export function ModerationDashboard() {
   const [notice, setNotice] = useState("");
   const [checks, setChecks] = useState<Record<string, ReviewChecks>>({});
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [commerceStats, setCommerceStats] = useState<CommerceStats | null>(null);
   const [reports, setReports] = useState<SafetyReport[]>([]);
 
   function setCheck(requestId: string, key: keyof ReviewChecks, value: boolean) {
@@ -53,16 +55,24 @@ export function ModerationDashboard() {
     const { data: account } = await supabase.from("users").select("role,status").eq("auth_user_id", user.id).maybeSingle();
     if (!account || account.status !== "active" || !["owner", "moderator"].includes(account.role)) return setAllowed(false);
     setAllowed(true);
-    const [{ data, error }, statsResult, reportsResult] = await Promise.all([
+    const [{ data, error }, statsResult, reportsResult, commerceResult] = await Promise.all([
       supabase.from("age_verification_requests").select("id,user_id,object_path,document_type,status,submitted_at,delete_by,reviewed_at,review_note,evidence_deleted_at").order("submitted_at", { ascending: false }).limit(100),
       supabase.rpc("get_beta_admin_stats"),
       supabase.from("reports").select("id,reason,detail,status,priority,created_at").order("priority", { ascending: false }).order("created_at", { ascending: false }).limit(100),
+      supabase.rpc("get_commerce_admin_stats", { p_days: 30 }),
     ]);
     if (error) return setNotice(error.message);
     setRequests((data ?? []) as ReviewRequest[]);
     if (!reportsResult.error) setReports((reportsResult.data ?? []) as SafetyReport[]);
     const statRow = Array.isArray(statsResult.data) ? statsResult.data[0] : statsResult.data;
     if (statRow) setStats({ registeredUsers: Number(statRow.registered_users), confirmedEmails: Number(statRow.confirmed_emails), betaTesters: Number(statRow.beta_testers), remainingSlots: Number(statRow.remaining_slots), dau: Number(statRow.dau), activeMatches: Number(statRow.active_matches), openReports: Number(statRow.open_reports) });
+    const commerceRow = Array.isArray(commerceResult.data) ? commerceResult.data[0] : commerceResult.data;
+    if (!commerceResult.error && commerceRow) setCommerceStats({
+      visits: Number(commerceRow.visits), registrations: Number(commerceRow.registrations), confirmedEmails: Number(commerceRow.confirmed_emails),
+      tagUsers: Number(commerceRow.tag_users), crossings: Number(commerceRow.crossings), matches: Number(commerceRow.matches),
+      checkoutStarts: Number(commerceRow.checkout_starts), paidOrders: Number(commerceRow.paid_orders),
+      grossSales: Number(commerceRow.gross_sales), refundTotal: Number(commerceRow.refund_total),
+    });
 
     const pending = (data ?? []).filter((item) => !item.evidence_deleted_at) as ReviewRequest[];
     const signed = await Promise.all(pending.map(async (item) => {
@@ -130,6 +140,20 @@ export function ModerationDashboard() {
       <div><Activity /><span><small>24h ACTIVE</small><b>{stats.dau}</b></span></div>
       <div><HeartHandshake /><span><small>MATCH</small><b>{stats.activeMatches}</b></span></div>
       <div><Flag /><span><small>未対応通報</small><b>{stats.openReports}</b></span></div>
+    </section>}
+    {commerceStats && <section className="commerce-admin" aria-label="直近30日の収益化指標">
+      <header><TrendingUp /><div><small>LAST 30 DAYS</small><h2>登録・交流・売上</h2></div></header>
+      <div className="commerce-admin-grid">
+        <span><small>訪問</small><b>{commerceStats.visits.toLocaleString()}</b></span>
+        <span><small>新規登録</small><b>{commerceStats.registrations.toLocaleString()}</b></span>
+        <span><small>メール認証</small><b>{commerceStats.confirmedEmails.toLocaleString()}</b></span>
+        <span><small>TAG利用者</small><b>{commerceStats.tagUsers.toLocaleString()}</b></span>
+        <span><small>CROSS</small><b>{commerceStats.crossings.toLocaleString()}</b></span>
+        <span><small>MATCH</small><b>{commerceStats.matches.toLocaleString()}</b></span>
+        <span><small>決済到達</small><b>{commerceStats.checkoutStarts.toLocaleString()}</b></span>
+        <span><small>購入完了</small><b>{commerceStats.paidOrders.toLocaleString()}</b></span>
+      </div>
+      <div className="commerce-money"><span><CreditCard /><small>売上</small><b>¥{commerceStats.grossSales.toLocaleString()}</b></span><span><small>返金</small><b>¥{commerceStats.refundTotal.toLocaleString()}</b></span><span><small>純売上</small><b>¥{Math.max(0, commerceStats.grossSales - commerceStats.refundTotal).toLocaleString()}</b></span></div>
     </section>}
     <div className="moderation-warning"><ShieldAlert /><p><b>画像は審査以外に利用しないでください。</b><br />確認するのは年齢または生年月日、証明書名、発行者名のみです。判定後は原本を即時削除します。</p></div>
     {notice && <p className="moderation-notice" role="status">{notice}</p>}

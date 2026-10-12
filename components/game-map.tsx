@@ -15,6 +15,7 @@ type GameMapProps = {
   location: SafeLocation | null;
   tagActive: boolean;
   boostActiveUntil: string | null;
+  boostActiveItem: string | null;
   level: number;
   availableExp: number;
   playerAvatarUrl: string;
@@ -122,7 +123,7 @@ function makePlayerMarker(location: SafeLocation, avatarUrl: string, displayName
 }
 
 export function GameMap({
-  areas, spots, champions, selectedAreaId, selectedSpotId, location, tagActive, boostActiveUntil,
+  areas, spots, champions, selectedAreaId, selectedSpotId, location, tagActive, boostActiveUntil, boostActiveItem,
   claimedSpotIds, locating, onSelectArea, onSelectSpot, onLocate, level, availableExp, playerAvatarUrl, playerDisplayName,
 }: GameMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -140,6 +141,7 @@ export function GameMap({
   const boostEnd = boostActiveUntil ? new Date(boostActiveUntil).getTime() : 0;
   const boostActive = boostEnd > clock;
   const boostMinutes = boostActive ? Math.max(1, Math.ceil((boostEnd - clock) / 60_000)) : 0;
+  const boostRangeMeters = boostActiveItem === "super-boost" ? 10_000 : boostActiveItem === "boost" ? 5_000 : 1_500;
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -294,11 +296,11 @@ export function GameMap({
       if (target) features.push(circleFeature(target.longitude, target.latitude, target.radiusMeters, "target"));
       if (location) {
         features.push(circleFeature(location.longitude, location.latitude, Math.max(5, location.accuracy), "accuracy"));
-        if (tagActive) features.push(circleFeature(location.longitude, location.latitude, boostActive ? 1500 : 1000, "boost"));
+        if (tagActive) features.push(circleFeature(location.longitude, location.latitude, boostActive ? boostRangeMeters : 1000, "boost"));
       }
       void source.setData({ type: "FeatureCollection", features });
     }
-  }, [boostActive, location, mapReady, tagActive, target]);
+  }, [boostActive, boostRangeMeters, location, mapReady, tagActive, target]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -364,7 +366,7 @@ export function GameMap({
     <div className="game-map-status" aria-label="マップ状態">
       <span>{night ? <Moon /> : <Sun />}{night ? "NIGHT" : "DAY"}</span>
       <span className={tagActive ? "is-on" : ""}>{tagActive ? "TAG ON" : "TAG OFF"}</span>
-      {boostActive && <span className="is-boost"><Zap />BOOST {boostMinutes}分 · 1.5km</span>}
+      {boostActive && <span className="is-boost"><Zap />{boostActiveItem === "super-boost" ? "SUPER BOOST" : "BOOST"} {boostMinutes}分 · {boostRangeMeters / 1000}km</span>}
     </div>
     <div className="game-map-tools">
       <button type="button" className={isFollowing ? "is-active" : ""} disabled={locating} onClick={recenter} aria-label="現在地へ戻る" title="現在地へ戻る"><LocateFixed /></button>
