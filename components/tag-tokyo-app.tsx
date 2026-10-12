@@ -1624,7 +1624,10 @@ export default function TagTokyoApp() {
   }, []);
 
   useEffect(() => {
-    if (profileLoaded) window.localStorage.setItem("tagtokyo_profile_v2", JSON.stringify(profile));
+    if (profileLoaded) {
+      const persistentProfile = { ...profile, avatarDataUrl: "" };
+      window.localStorage.setItem("tagtokyo_profile_v2", JSON.stringify(persistentProfile));
+    }
   }, [profile, profileLoaded]);
 
   useEffect(() => {

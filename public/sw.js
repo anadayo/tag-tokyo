@@ -1,6 +1,7 @@
-const CACHE_NAME = "tag-tokyo-v043";
+const CACHE_NAME = "tag-tokyo-v044";
 const BASE = self.location.pathname.replace(/\/sw\.js$/, "");
 const APP_SHELL = [`${BASE}/`, `${BASE}/manifest.webmanifest`, `${BASE}/icon-192.png`];
+const STATIC_DESTINATIONS = new Set(["style", "script", "worker", "font", "image", "manifest"]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
@@ -13,10 +14,19 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-  event.respondWith(fetch(event.request).then((response) => {
-    const copy = response.clone();
-    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+  const requestUrl = new URL(event.request.url);
+  const isStaticAsset = event.request.method === "GET"
+    && requestUrl.origin === self.location.origin
+    && requestUrl.search === ""
+    && STATIC_DESTINATIONS.has(event.request.destination);
+
+  if (!isStaticAsset) return;
+
+  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+    if (response.ok && response.type === "basic") {
+      const copy = response.clone();
+      event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)));
+    }
     return response;
-  }).catch(() => caches.match(event.request).then((cached) => cached || caches.match(`${BASE}/`))));
+  })));
 });
