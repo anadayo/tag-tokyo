@@ -38,6 +38,7 @@ const HANDLE_PATTERN = /^[A-Za-z0-9_]{5,15}$/;
 const TERMS_VERSION = "2026-10-05";
 const PRIVACY_VERSION = "2026-10-11";
 const PROFILE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+const AUTH_EMAIL_COOLDOWN_MS = 60 * 1000;
 const PROFILE_PHOTO_MAX_SIDE = 1200;
 const PROFILE_PHOTO_TARGET_BYTES = 1.5 * 1024 * 1024;
 const PROFILE_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -852,12 +853,14 @@ function TagCollectionEditor({ catalog, selected, primary, onChange }: {
   </fieldset>;
 }
 
-function MeScreen({ email, setEmail, birthDate, setBirthDate, authNotice, sendLoginLink, sendMagicLink, signOut, requestAccountDeletion, growth, buyCosmetic, equipCosmetic, profile, setProfile, tagCatalog, isOwner, liveEnabled, emailAuthenticated, consentReady, ageVerificationStatus }: {
+function MeScreen({ email, setEmail, birthDate, setBirthDate, authNotice, authRequestPending, authRetrySeconds, sendLoginLink, sendMagicLink, signOut, requestAccountDeletion, growth, buyCosmetic, equipCosmetic, profile, setProfile, tagCatalog, isOwner, liveEnabled, emailAuthenticated, consentReady, ageVerificationStatus }: {
   email: string;
   setEmail: (value: string) => void;
   birthDate: string;
   setBirthDate: (value: string) => void;
   authNotice: string;
+  authRequestPending: boolean;
+  authRetrySeconds: number;
   sendLoginLink: () => void;
   sendMagicLink: (termsAccepted: boolean, privacyAccepted: boolean) => void;
   signOut: () => void;
@@ -1070,8 +1073,8 @@ function MeScreen({ email, setEmail, birthDate, setBirthDate, authNotice, sendLo
         </>}
         {!emailAuthenticated
           ? accountMode === "login"
-            ? <button className="primary-wide" disabled={!email.includes("@")} onClick={sendLoginLink}>{hasSupabase ? "ログインメールを送る" : "接続準備中"}</button>
-            : <button className="primary-wide" disabled={!isAdultBirthDate(birthDate)} onClick={() => sendMagicLink(termsAccepted, privacyAccepted)}>{hasSupabase ? "無料登録メールを送る" : "接続準備中"}</button>
+            ? <button className="primary-wide" disabled={!email.includes("@") || authRequestPending || authRetrySeconds > 0} onClick={sendLoginLink}>{!hasSupabase ? "接続準備中" : authRequestPending ? "送信中…" : authRetrySeconds > 0 ? `再送まで ${authRetrySeconds}秒` : "ログインメールを送る"}</button>
+            : <button className="primary-wide" disabled={!isAdultBirthDate(birthDate) || authRequestPending || authRetrySeconds > 0} onClick={() => sendMagicLink(termsAccepted, privacyAccepted)}>{!hasSupabase ? "接続準備中" : authRequestPending ? "送信中…" : authRetrySeconds > 0 ? `再送まで ${authRetrySeconds}秒` : "無料登録メールを送る"}</button>
           : !consentReady
             ? <button className="primary-wide" disabled={!isAdultBirthDate(birthDate)} onClick={() => sendMagicLink(termsAccepted, privacyAccepted)}>{hasSupabase ? "同意して登録を完了" : "接続準備中"}</button>
           : <button className="secondary-wide" onClick={signOut}>ログアウト</button>}
@@ -1150,6 +1153,8 @@ export default function TagTokyoApp() {
   const [email, setEmail] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [authNotice, setAuthNotice] = useState("");
+  const [authRequestPending, setAuthRequestPending] = useState(false);
+  const [authCooldownUntil, setAuthCooldownUntil] = useState(0);
   const [growth, setGrowth] = useState<GrowthState>(INITIAL_GROWTH);
   const [profile, setProfile] = useState<EditableProfile>(INITIAL_PROFILE);
   const [tagCatalog, setTagCatalog] = useState<TagCatalogItem[]>([]);
@@ -1194,7 +1199,36 @@ export default function TagTokyoApp() {
   const walkMissionClaimedRef = useRef(false);
   const betaTrackedRef = useRef(false);
   const crossSyncReadyRef = useRef(false);
+  const authRequestPendingRef = useRef(false);
+  const authCooldownUntilRef = useRef(0);
   const liveEnabled = isLiveCommunityEnabled && databaseLiveEnabled;
+  const authRetrySeconds = Math.max(0, Math.ceil((authCooldownUntil - now) / 1000));
+
+  async function requestAuthEmail(
+    request: () => Promise<{ error: { message: string } | null }>,
+    successMessage: string,
+    errorMessage?: string,
+  ) {
+    const requestedAt = Date.now();
+    if (authRequestPendingRef.current) return;
+    if (requestedAt < authCooldownUntilRef.current) {
+      const seconds = Math.ceil((authCooldownUntilRef.current - requestedAt) / 1000);
+      setAuthNotice(`認証メールは${seconds}秒後に再送できます`);
+      return;
+    }
+    authRequestPendingRef.current = true;
+    setAuthRequestPending(true);
+    const cooldownUntil = requestedAt + AUTH_EMAIL_COOLDOWN_MS;
+    authCooldownUntilRef.current = cooldownUntil;
+    setAuthCooldownUntil(cooldownUntil);
+    try {
+      const { error } = await request();
+      setAuthNotice(error ? (errorMessage ?? error.message) : successMessage);
+    } finally {
+      authRequestPendingRef.current = false;
+      setAuthRequestPending(false);
+    }
+  }
 
   const announceLevelGain = useCallback((previousTotal: number, nextTotal: number) => {
     const from = getLevelProgress(previousTotal).level;
@@ -1991,6 +2025,7 @@ export default function TagTokyoApp() {
       setAuthNotice("認証サーバーへ接続できません");
       return;
     }
+    const authClient = supabase;
     if (!isEmailAuthenticated && !email.includes("@")) {
       setAuthNotice("メールアドレスを入力してください");
       return;
@@ -2026,8 +2061,10 @@ export default function TagTokyoApp() {
     const redirectUrl = new URL(window.location.href);
     redirectUrl.searchParams.set("onboarding", "1");
     track("registration_start");
-    const { error } = await supabase.auth.signInWithOtp({ email: normalizedEmail, options: { emailRedirectTo: redirectUrl.toString(), data: { birth_date: birthDate } } });
-    setAuthNotice(error ? error.message : "認証メールを送りました。メール内のリンクを開いて登録を完了してください");
+    await requestAuthEmail(
+      () => authClient.auth.signInWithOtp({ email: normalizedEmail, options: { emailRedirectTo: redirectUrl.toString(), data: { birth_date: birthDate } } }),
+      "認証メールを送りました。メール内のリンクを開いて登録を完了してください",
+    );
   }
 
   async function sendLoginLink() {
@@ -2035,6 +2072,7 @@ export default function TagTokyoApp() {
       setAuthNotice("認証サーバーへ接続できません");
       return;
     }
+    const authClient = supabase;
     if (!email.includes("@")) {
       setAuthNotice("登録済みのメールアドレスを入力してください");
       return;
@@ -2043,13 +2081,14 @@ export default function TagTokyoApp() {
     redirectUrl.searchParams.delete("onboarding");
     redirectUrl.searchParams.set("login", "1");
     track("email_login_start");
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: { emailRedirectTo: redirectUrl.toString(), shouldCreateUser: false },
-    });
-    setAuthNotice(error
-      ? "このメールアドレスの登録を確認できませんでした。初めての方から無料登録してください"
-      : "ログインメールを送りました。メール内のリンクを開くと保存データを復元できます");
+    await requestAuthEmail(
+      () => authClient.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: { emailRedirectTo: redirectUrl.toString(), shouldCreateUser: false },
+      }),
+      "登録済みの場合はログインメールが届きます。メール内のリンクを開いてください",
+      "登録済みの場合はログインメールが届きます。届かない場合は時間をおいて再送してください",
+    );
   }
 
   async function signOut() {
@@ -2084,11 +2123,14 @@ export default function TagTokyoApp() {
       setTab("me");
       return;
     }
+    const authClient = supabase;
     window.sessionStorage.setItem("tagtokyo_pending_message_consent_v1", JSON.stringify({ termsVersion: TERMS_VERSION, privacyVersion: PRIVACY_VERSION }));
     const redirectUrl = new URL(window.location.href);
     redirectUrl.searchParams.set("onboarding", "1");
-    const { error } = await supabase.auth.signInWithOtp({ email: nextEmail, options: { emailRedirectTo: redirectUrl.toString(), data: { birth_date: nextBirthDate } } });
-    setAuthNotice(error ? error.message : "ログインリンクをメールへ送りました。認証後にメッセージを開けます。");
+    await requestAuthEmail(
+      () => authClient.auth.signInWithOtp({ email: nextEmail, options: { emailRedirectTo: redirectUrl.toString(), data: { birth_date: nextBirthDate } } }),
+      "ログインリンクをメールへ送りました。認証後にメッセージを開けます。",
+    );
     setTab("me");
   }
 
@@ -2271,7 +2313,7 @@ export default function TagTokyoApp() {
       {tab === "match" && (liveEnabled
         ? <LiveMatchScreen matches={liveMatches} messages={liveMessages} currentUserId={currentUserId} selectedMatchId={selectedLiveMatchId} loading={liveLoading} error={liveError} memberReady={liveMemberReady} messageAccessReady={isEmailAuthenticated} onSelect={(matchId) => void selectLiveMatch(matchId)} onSend={sendLiveMessage} onReact={reactToLiveMessage} onLoadOlder={loadOlderMessages} onUnmatch={unmatchLiveMember} onBlock={blockLiveMatch} onReport={reportLiveMatch} onRequireEmail={() => setShowMessageGate(true)} />
         : <MatchScreen />)}
-      {tab === "me" && <MeScreen email={email} setEmail={setEmail} birthDate={birthDate} setBirthDate={setBirthDate} authNotice={authNotice} sendLoginLink={() => void sendLoginLink()} sendMagicLink={sendMagicLink} signOut={() => void signOut()} requestAccountDeletion={() => void requestAccountDeletion()} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} tagCatalog={tagCatalog} isOwner={isOwner} liveEnabled={liveEnabled} emailAuthenticated={isEmailAuthenticated} consentReady={consentReady} ageVerificationStatus={ageVerificationStatus} />}
+      {tab === "me" && <MeScreen email={email} setEmail={setEmail} birthDate={birthDate} setBirthDate={setBirthDate} authNotice={authNotice} authRequestPending={authRequestPending} authRetrySeconds={authRetrySeconds} sendLoginLink={() => void sendLoginLink()} sendMagicLink={sendMagicLink} signOut={() => void signOut()} requestAccountDeletion={() => void requestAccountDeletion()} growth={growth} buyCosmetic={buyCosmetic} equipCosmetic={equipCosmetic} profile={profile} setProfile={setProfile} tagCatalog={tagCatalog} isOwner={isOwner} liveEnabled={liveEnabled} emailAuthenticated={isEmailAuthenticated} consentReady={consentReady} ageVerificationStatus={ageVerificationStatus} />}
       <BottomNav tab={tab} onChange={(next) => {
         setTab(next);
         window.scrollTo({ top: 0, behavior: "instant" });
