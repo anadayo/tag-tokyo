@@ -213,25 +213,33 @@ function DailyMissionBoard({ missions }: { missions: DailyMission[] }) {
   </section>;
 }
 
-function BetaCampaignCard({ status, authenticated, liveEnabled, now, onActivate }: { status: BetaCampaignStatus; authenticated: boolean; liveEnabled: boolean; now: number; onActivate: () => void }) {
+function BetaCampaignCard({ status, authenticated, liveEnabled, now, onActivate, onRegister }: { status: BetaCampaignStatus; authenticated: boolean; liveEnabled: boolean; now: number; onActivate: () => void; onRegister: () => void }) {
   const activeUntil = status.boostActiveUntil ? new Date(status.boostActiveUntil) : null;
   const active = Boolean(activeUntil && activeUntil.getTime() > now);
   return <section className={`beta-campaign ${status.isBetaTester ? "is-member" : ""}`}>
     <div className="beta-campaign-icon"><Crown /></div>
     <div className="beta-campaign-copy">
-      <small>TAG TOKYO BETA</small>
-      <h2>{status.isBetaTester ? `β TESTER #${status.betaTesterNumber}` : status.campaignOpen ? "先着300名 βテスター募集" : "βテスター募集終了"}</h2>
-      <p>{status.isBetaTester ? "限定称号と通常800円相当のBOOSTを獲得しました。" : status.campaignOpen ? `メール認証完了で限定称号＋BOOST。残り${status.remainingCount}名。` : "通常登録は引き続き利用できます。"}</p>
+      <small>FOUNDING MEMBER</small>
+      <h2>{status.isBetaTester ? `創設メンバー #${status.betaTesterNumber}` : status.campaignOpen ? "創設メンバー受付中" : "TAG TOKYOへようこそ"}</h2>
+      <p>{status.isBetaTester ? "限定称号とBOOSTを獲得しました。" : status.campaignOpen ? "メール認証を完了すると、創設メンバー限定称号とBOOSTを受け取れます。" : "登録後も基本機能は無料で利用できます。"}</p>
       {(status.isBetaTester || status.boostQuantity > 0) && <div className="beta-rewards">{status.isBetaTester && <span><BadgeCheck />β TESTER称号</span>}{status.boostQuantity > 0 && <span><Zap />BOOST ×{status.boostQuantity}</span>}</div>}
       {(status.isBetaTester || status.boostQuantity > 0) && (active
         ? <strong className="boost-active">BOOST発動中 · {activeUntil!.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}まで</strong>
         : status.boostQuantity > 0 && <button disabled={!authenticated || !liveEnabled} onClick={onActivate}><Zap />{liveEnabled ? "BOOSTを使う" : "交流開始後に使用可能"}</button>)}
     </div>
-    {!status.isBetaTester && status.campaignOpen && <strong className="beta-counter">{status.claimedCount}<small>/300</small></strong>}
+    {!authenticated && <button className="founding-register" onClick={onRegister}>無料プロフィールを作る <ChevronRight /></button>}
   </section>;
 }
 
-function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBonusNotice, showGuide, dismissGuide, missions, streak, todayStats, betaStatus, authenticated, liveEnabled, activateBoost }: {
+function TagTimeCard({ authenticated, onRegister }: { authenticated: boolean; onRegister: () => void }) {
+  return <section className="tag-time-card">
+    <div className="tag-time-icon"><MapPin /></div>
+    <div><small>WEEKLY TAG TIME</small><h2>金曜 19:00–22:00｜北千住</h2><p>同じ時間とエリアへ集まり、CROSSしやすくする初期メンバー向け集中タイムです。現在地そのものは公開されません。</p></div>
+    {!authenticated && <button onClick={onRegister}>参加準備</button>}
+  </section>;
+}
+
+function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBonusNotice, showGuide, dismissGuide, missions, streak, todayStats, betaStatus, authenticated, liveEnabled, activateBoost, register }: {
   session: TagSessionState;
   now: number;
   start: () => void;
@@ -249,6 +257,7 @@ function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBo
   authenticated: boolean;
   liveEnabled: boolean;
   activateBoost: () => void;
+  register: () => void;
 }) {
   const progress = getLevelProgress(growth.totalEarnedExp);
   const nextUnlock = PROFILE_UNLOCKS.find((item) => item.level > progress.level);
@@ -259,7 +268,8 @@ function HomeScreen({ session, now, start, stop, extend, notice, growth, dailyBo
       <div className="eyebrow"><MapPin /> TOKYO ONLY</div>
       <h1>東京を歩くほど、<br />出会いと自分が育つ。</h1>
       <p className="lead">現在地は誰にも表示されません。近くにいた事実だけをCROSSへ届け、街での活動をプロフィールの成長につなげます。</p>
-      <BetaCampaignCard status={betaStatus} authenticated={authenticated} liveEnabled={liveEnabled} now={now} onActivate={activateBoost} />
+      <BetaCampaignCard status={betaStatus} authenticated={authenticated} liveEnabled={liveEnabled} now={now} onActivate={activateBoost} onRegister={register} />
+      <TagTimeCard authenticated={authenticated} onRegister={register} />
 
       {showGuide && <section className="start-guide">
         <header><span>はじめかた</span><button onClick={dismissGuide}>閉じる</button></header>
@@ -2251,8 +2261,8 @@ export default function TagTokyoApp() {
 
   return (
     <main className="app-shell">
-      <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b>{!isEmailAuthenticated && <button className="top-login" onClick={() => { setTab("me"); window.setTimeout(() => document.getElementById("account-registration")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }}><LogIn />ログイン</button>}<small>BETA</small></div>
-      {tab === "home" && <><HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} betaStatus={betaStatus} authenticated={isEmailAuthenticated} liveEnabled={liveEnabled} activateBoost={() => void activateBetaBoost()} /><AdSlot placement="home" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOME} /></>}
+      <div className="top-brand"><span className="brand-mark"><Sparkles /></span><b>TAG TOKYO</b>{!isEmailAuthenticated && <button className="top-login" onClick={() => { setTab("me"); window.setTimeout(() => document.getElementById("account-registration")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }}><LogIn />ログイン</button>}<small>EARLY ACCESS</small></div>
+      {tab === "home" && <><HomeScreen session={session} now={now} start={requestTagStart} stop={stopTag} extend={() => void startTag()} notice={notice} growth={growth} dailyBonusNotice={dailyBonusNotice} showGuide={showHomeGuide} dismissGuide={() => { window.localStorage.setItem("tagtokyo_home_guide_v04", "done"); setShowHomeGuide(false); }} missions={dailyMissions} streak={tagStreak} todayStats={todayStats} betaStatus={betaStatus} authenticated={isEmailAuthenticated} liveEnabled={liveEnabled} activateBoost={() => void activateBetaBoost()} register={() => { setTab("me"); track("founding_member_cta_click", { source: "home" }); window.setTimeout(() => document.getElementById("account-registration")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0); }} /><AdSlot placement="home" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOME} /></>}
       {tab === "cross" && <LiveCrossScreen crossings={liveEnabled && liveMemberReady ? liveCrossings : []} recommendations={liveEnabled && liveMemberReady ? discoveryProfiles : []} officialProfile={officialProfile} memberReady={liveMemberReady} liveEnabled={liveEnabled} onTag={sendLiveTag} onLike={sendProfileLike} onRequireAccount={() => openRegistration("交流機能にはメール認証と20歳以上確認が必要です")} error={liveError} showGuide={showCrossGuide} onDismissGuide={() => { window.localStorage.setItem("tagtokyo_cross_guide_v04", "done"); setShowCrossGuide(false); }} />}
       {tab === "map" && <><MapScreen growth={growth} setGrowth={setGrowth} liveEnabled={liveEnabled} memberReady={liveMemberReady} tagActive={session.active} boostActiveUntil={betaStatus.boostActiveUntil} latestLocation={latestPrivateLocation} playerAvatarUrl={profile.avatarDataUrl} playerDisplayName={profile.displayName} onRequireAccount={() => openRegistration("MAPの利用にはメール認証と20歳以上確認が必要です")} onInventoryChanged={() => void refreshBetaStatus()} onLevelEarned={announceLevelGain} /><AdSlot placement="map" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_MAP} /></>}
       {tab === "match" && (liveEnabled
