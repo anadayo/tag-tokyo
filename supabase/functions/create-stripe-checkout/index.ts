@@ -4,6 +4,12 @@ import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 const SITE_URL = "https://anadayo.github.io/tag-tokyo/";
 const allowedOrigins = new Set(["https://anadayo.github.io", "http://localhost:3000", "http://localhost:3342", "http://localhost:3344"]);
 
+function stripeKeyMode(key: string) {
+  if (/^(?:sk|rk)_test_/.test(key)) return "test";
+  if (/^(?:sk|rk)_live_/.test(key)) return "live";
+  return "unknown";
+}
+
 function corsHeaders(request: Request) {
   const origin = request.headers.get("origin") ?? "";
   return {
@@ -61,7 +67,7 @@ Deno.serve(async (request) => {
   if ((recentOrders ?? 0) >= 5) return Response.json({ error: "短時間に購入操作が続いています。10分ほどお待ちください" }, { status: 429, headers });
 
   const configuredMode = controls.stripe_test_mode ? "test" : "live";
-  const actualMode = stripeKey.startsWith("sk_test_") ? "test" : stripeKey.startsWith("sk_live_") ? "live" : "unknown";
+  const actualMode = stripeKeyMode(stripeKey);
   if (configuredMode !== actualMode) return Response.json({ error: "決済設定を確認中です" }, { status: 503, headers });
 
   const { data: order, error: orderError } = await serviceClient.from("payment_orders").insert({
